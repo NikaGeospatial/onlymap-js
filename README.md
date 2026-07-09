@@ -26,19 +26,19 @@ That's a complete app: a no-token MapLibre basemap, data-driven colors and sizes
 
 It's also designed to be written **by AI agents**: HTML is a reliable generation target, [`llms.txt`](llms.txt) teaches the format, and `DeckMap.validate()` returns structured errors with actionable fixes — a real feedback loop instead of a blank canvas.
 
-> ⚠️ **Status: v0.1, pre-release.** Not yet published to npm and no license granted yet — run it from this repository (below). APIs may still move.
+> ⚠️ **Status: v0.1, pre-release.** APIs may still move. License terms are in [LICENSE.md](LICENSE.md).
 
 ## Running it today
 
 ```bash
 git clone <this repo> && cd onlymap
 npm install
-npm run dev        # opens examples/ — nine commented example pages (the AIS + fleet demos need a live backend)
-npm test           # 214 unit/behavioral tests
-npm run test:e2e   # 11 Playwright tests (real GPU rendering & picking)
+npm run dev        # opens the local example navigator
+npm test           # 251 unit/behavioral tests
+npm run test:e2e   # 12 Playwright tests (real GPU rendering & picking)
 ```
 
-The [examples](examples/index.html) are the best tour: widgets, behaviors & overlays, basemaps, columnar/Arrow data, 3D models, a live WebSocket ship feed, and a polled driver fleet.
+The examples are the best tour: widgets, behaviors & overlays, basemaps, columnar/Arrow data, manual drawing, 3D models, a live WebSocket ship feed, and a polled driver fleet.
 
 ## The manifest
 
@@ -48,7 +48,7 @@ Five elements, one rule: **attributes are kebab-case versions of deck.gl props**
 |---|---|
 | `<deck-map>` | The map. `center`, `zoom`, `pitch`, `bearing`; `basemap="maplibre"` (default style or any style URL — no token) or `"none"` (standalone canvas); `validate` for a live on-page error panel. |
 | `<deck-layer>` | Any of **33 layer types** by name — all of deck.gl's core, geo, aggregation, and mesh layers (Scatterplot, GeoJson, Arc, Path, Heatmap, Hexagon, Trips, Tile, Tile3D, Scenegraph, …) plus the built-in `PopupLayer` for WebGL badges/labels at scale. `id` required; `label`/`color` feed the legend. |
-| `<deck-widget>` | UI panels. Built-ins: `legend`, `layer-switcher`, `zoom-controls`, `scale-bar`, `attribution`, `filter`, `vega-lite` (live charts). Or write your own inline with HTML + a `<script type="deck/widget">`. |
+| `<deck-widget>` | UI panels. Built-ins: `legend`, `layer-switcher`, `zoom-controls`, `scale-bar`, `attribution`, `filter`, `draw`, `vega-lite` (live charts). Or write your own inline with HTML + a `<script type="deck/widget">`. |
 | `<deck-overlay>` | Rich HTML anchored to a map location — a static `anchor="[lng, lat]"`, the current selection, or a feature's own geometry via `anchor-layer`/`anchor-feature-id`. `{{field}}` interpolates the picked feature, HTML-escaped by default. |
 | `<deck-behavior>` | Declarative interactions: `on="click|hover|drag|load|data-loaded"` → a named action. |
 | `<deck-story>` | A storyboard: `<deck-step>` children fire actions on a timeline. Controlled by the `player` widget, behaviors, or `storyEl.play()/pause()/seek()`. |
@@ -79,6 +79,7 @@ Built-ins: `scale()` (types: `sequential`, `diverging`, `threshold`, `sqrt`, `lo
 | **KML** | `data="./tour.kml"` | placemarks → GeoJSON features; other formats plug in via `DeckMap.registerFormat` |
 | **WebSocket stream** | `data="wss://feed" key="id" flush="250ms" source="myFormat"` | upsert-by-key, burst coalescing, auto-reconnect; decode any format via `DeckMap.registerSource` |
 | **Polled REST snapshot** | `data="/api/fleet.json" refresh="5s"` | full-snapshot replace per poll; outages keep the last good data |
+| **Draw store** | `data="draw:sketch"` | live in-memory GeoJSON feature store written by `<deck-widget type="draw" target="sketch">` |
 
 Private endpoints: `DeckMap.configureData({ headers, credentials, fetch })` — applied to every fetch including refreshes. Credentials stay out of markup by design. Full guide: [docs/live-data.md](docs/live-data.md).
 
@@ -100,12 +101,40 @@ Custom widget scripts receive `ctx`: layer metadata, `viewport` (bounds/zoom/pro
 
 `onlymapjs.html-data.json` (generated from the layer registry — `npm run gen:html-data`) gives autocomplete and hover docs for every `deck-*` element and attribute in VS Code and any editor speaking the [html-customData](https://github.com/microsoft/vscode-custom-data) format:
 
+```bash
+npx onlymapjs init
+```
+
+That opt-in command updates `.vscode/settings.json` and copies the `!`-prefixed manifest snippets into `.vscode/onlymap.code-snippets`. It never runs automatically during install.
+
 ```jsonc
 // .vscode/settings.json
 { "html.customData": ["./node_modules/onlymapjs/onlymapjs.html-data.json"] }
 ```
 
-The repo also ships `!`-prefixed manifest snippets (`.vscode/onlymap.code-snippets`) — type `!deck-map`, `!deck-layer`, `!deck-story`, etc. to scaffold a well-formed element.
+The package also ships `!`-prefixed manifest snippets (`node_modules/onlymapjs/.vscode/onlymap.code-snippets`) — type `!starter`, `!map`, `!layer`, `!draw`, etc. to scaffold a well-formed element.
+
+## LLM Skill
+
+The npm package and public mirror include a portable Skill at `skills/onlymapjs`. Skill-aware agents can install that folder to learn the OnlyMapJS manifest syntax, authoring patterns, and validation workflow instead of treating the library like raw deck.gl.
+
+With the Vercel Labs `skills` CLI, install it from the public GitHub repo:
+
+```bash
+npx -y skills add <owner>/<repo> --skill onlymapjs --agent codex
+```
+
+Or install globally for Codex:
+
+```bash
+npx -y skills add <owner>/<repo> --skill onlymapjs --agent codex --global
+```
+
+Replace `<owner>/<repo>` with the public mirror repository. To inspect it without installing:
+
+```bash
+npx -y skills add <owner>/<repo> --list
+```
 
 ## Validation — the feedback loop
 
@@ -140,7 +169,7 @@ Plus `DeckMap.snapshotIR(html)` to lock down what a manifest *means* in a snapsh
 
 ## Not implemented yet (honestly)
 
-Mapbox GL basemaps, depth-interleaved 3D compositing, globe projection, SSE transport, multi-field filters, `dblclick` behaviors, the `transform` data pipeline, and the React adapter / typed builder. The full design-vs-built ledger lives in the Implementation Status table.
+Mapbox GL basemaps, depth-interleaved 3D compositing, globe projection, SSE transport, multi-field filters, `dblclick` behaviors, the `transform` data pipeline, and the React adapter / typed builder.
 
 ## Going deeper
 
@@ -148,4 +177,4 @@ Mapbox GL basemaps, depth-interleaved 3D compositing, globe projection, SSE tran
 |---|---|
 | [docs/testing.md](docs/testing.md) · [docs/live-data.md](docs/live-data.md) · [docs/3d-assets.md](docs/3d-assets.md) · [docs/stories.md](docs/stories.md) | Consumer guides |
 | [llms.txt](llms.txt) | The agent-facing quick reference |
-| [examples/](examples/index.html) | Nine example pages — seven run standalone; AIS + fleet need a live backend |
+| `skills/onlymapjs` | Installable LLM skill for OnlyMapJS authoring |

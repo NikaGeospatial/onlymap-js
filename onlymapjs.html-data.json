@@ -1329,6 +1329,27 @@
             },
             {
               "name": "hide-tooltip"
+            },
+            {
+              "name": "draw-mode"
+            },
+            {
+              "name": "draw-commit"
+            },
+            {
+              "name": "draw-cancel"
+            },
+            {
+              "name": "draw-delete"
+            },
+            {
+              "name": "draw-clear"
+            },
+            {
+              "name": "draw-config"
+            },
+            {
+              "name": "draw-save"
             }
           ]
         },
@@ -1373,6 +1394,9 @@
             },
             {
               "name": "player"
+            },
+            {
+              "name": "draw"
             }
           ]
         },
@@ -1409,6 +1433,47 @@
         {
           "name": "story",
           "description": "Story id (player widget)."
+        },
+        {
+          "name": "target",
+          "description": "Draw widget: store the sketch feeds — bind a layer with data=\"draw:<target>\"."
+        },
+        {
+          "name": "modes",
+          "description": "Draw widget: space-separated tools to show.",
+          "values": [
+            {
+              "name": "point line polygon"
+            },
+            {
+              "name": "point"
+            },
+            {
+              "name": "line"
+            },
+            {
+              "name": "polygon"
+            }
+          ]
+        },
+        {
+          "name": "save",
+          "description": "Draw widget: how Save persists the GeoJSON.",
+          "values": [
+            {
+              "name": "both"
+            },
+            {
+              "name": "download"
+            },
+            {
+              "name": "file-system"
+            }
+          ]
+        },
+        {
+          "name": "autosave",
+          "description": "Draw widget: localStorage key — mirrors the sketch and restores it on reload."
         },
         {
           "name": "title",
@@ -1519,6 +1584,27 @@
             },
             {
               "name": "hide-tooltip"
+            },
+            {
+              "name": "draw-mode"
+            },
+            {
+              "name": "draw-commit"
+            },
+            {
+              "name": "draw-cancel"
+            },
+            {
+              "name": "draw-delete"
+            },
+            {
+              "name": "draw-clear"
+            },
+            {
+              "name": "draw-config"
+            },
+            {
+              "name": "draw-save"
             }
           ]
         },

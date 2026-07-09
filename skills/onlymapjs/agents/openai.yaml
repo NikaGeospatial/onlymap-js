@@ -1,0 +1,4 @@
+interface:
+  display_name: "OnlyMapJS"
+  short_description: "Build declarative HTML maps with OnlyMapJS"
+  default_prompt: "Use $onlymapjs to create a declarative HTML map."

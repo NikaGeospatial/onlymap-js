@@ -31,8 +31,8 @@ UI panel (legend, chart, stats) → `<deck-widget>`. Rich HTML at one map locati
 
 ## Docs
 
-- [README](README.md): thesis, architecture overview, build/run commands
-- Architecture spec: full design — attribute resolution order, expression grammar and AST whitelist, reconciliation, `ctx` contract, validation format
+- [README](README.md): thesis, authoring overview, build/run commands
+- [Docs](docs/): consumer guides for testing, live data, stories, and 3D assets
 - [Examples](examples/README.md): six complete, reviewed manifests from hello-map to a flagship dashboard and the React adapter — the canonical patterns to imitate
 
 ## Verification loop

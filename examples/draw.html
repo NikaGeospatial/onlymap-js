@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<!--
+  Manual drawing example (spec: "Manual Drawing — Sketch Capture").
+
+  The <deck-widget type="draw"> toolbar captures geometry directly on the map:
+  pick a tool, click to place. Points drop per click; lines and polygons take a
+  vertex per click and close on a double-click or Enter (Esc cancels). Every
+  committed feature flows into the live `draw:sketch` store, which the ordinary
+  <deck-layer data="draw:sketch"> below renders with normal accessors — so the
+  drawn features are picked, styled, and (here) saved like any other GeoJSON
+  layer. Save writes a .geojson to disk (a real file via the File System Access
+  API where supported, a download otherwise).
+
+  No backend, no new dependencies — the capture rides the same live-data
+  channel the streaming layers use.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Manual drawing</title>
+  <script type="module" src="https://esm.sh/onlymapjs@0.1.0"></script>
+  <link rel="stylesheet" href="nav.css" />
+</head>
+<body>
+
+  <header class="nav">
+    <strong>OnlyMapJS examples</strong>
+    <a href="index.html">Overview</a>
+    <a href="widgets.html">Widgets</a>
+    <a href="behaviors-overlays.html">Behaviors &amp; overlays</a>
+    <a href="basemap.html">Basemap</a>
+    <a href="columnar.html">Columnar / GeoArrow</a>
+    <a href="draw.html" class="current">Draw</a>
+    <a href="scenegraph.html">3D models</a>
+    <a href="story.html">Map story</a>
+  </header>
+
+  <deck-map center="[-122.431, 37.773]" zoom="12.5" basemap="maplibre">
+
+    <!-- The drawn features live here. `data="draw:sketch"` binds this ordinary
+         layer to the in-memory sketch store the toolbar writes into; it renders
+         Points, LineStrings and Polygons with the same accessors any GeoJSON
+         layer uses, and is pickable like any other layer. -->
+    <deck-layer id="sketch" type="GeoJsonLayer" data="draw:sketch"
+                label="Sketch"
+                get-fill-color="[80, 140, 255, 90]"
+                get-line-color="[40, 90, 220]"
+                point-radius-min-pixels="6"
+                line-width-min-pixels="3"
+                stroked filled pickable></deck-layer>
+
+    <!-- The capture toolbar. `target` names the store (draw:sketch); `save`
+         picks the persistence path. Pick a tool, click to place; double-click
+         or Enter closes a line/polygon, Esc cancels; re-click a tool to stop. -->
+    <deck-widget type="draw" target="sketch" position="top-left"
+                 modes="point line polygon" save="both"
+                 autosave="onlymapjs-draw-demo"></deck-widget>
+
+    <deck-widget type="attribution" position="bottom-right"
+                 text="OnlyMapJS · draw demo"></deck-widget>
+
+  </deck-map>
+
+  <p style="font:13px/1.5 system-ui,sans-serif; color:#444; max-width:60ch; margin:12px 14px;">
+    Pick <strong>Point</strong>, <strong>Line</strong> or <strong>Polygon</strong> and click on the map to
+    place vertices. Double-click or press <kbd>Enter</kbd> to finish a line or polygon;
+    <kbd>Esc</kbd> cancels the shape in progress. <strong>Save</strong> writes the sketch to a
+    <code>.geojson</code> file.
+  </p>
+
+</body>
+</html>
