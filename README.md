@@ -34,7 +34,7 @@ It's also designed to be written **by AI agents**: HTML is a reliable generation
 git clone <this repo> && cd onlymap
 npm install
 npm run dev        # opens examples/ — nine commented example pages (the AIS + fleet demos need a live backend)
-npm test           # 212 unit/behavioral tests
+npm test           # 214 unit/behavioral tests
 npm run test:e2e   # 11 Playwright tests (real GPU rendering & picking)
 ```
 
@@ -105,6 +105,8 @@ Custom widget scripts receive `ctx`: layer metadata, `viewport` (bounds/zoom/pro
 { "html.customData": ["./node_modules/onlymapjs/onlymapjs.html-data.json"] }
 ```
 
+The repo also ships `!`-prefixed manifest snippets (`.vscode/onlymap.code-snippets`) — type `!deck-map`, `!deck-layer`, `!deck-story`, etc. to scaffold a well-formed element.
+
 ## Validation — the feedback loop
 
 ```js
@@ -132,13 +134,13 @@ Plus `DeckMap.snapshotIR(html)` to lock down what a manifest *means* in a snapsh
 
 ## Programmatic surface
 
-- **`DeckMap.*`** — `validate`, `snapshotIR`, `registerLayer`, `registerWidget`, `registerAction`, `registerSource`, `configureData`, `getLayerSchema`
+- **`DeckMap.*`** — `validate`, `snapshotIR`, `registerLayer`, `registerWidget`, `registerAction`, `registerSource`, `registerFormat`, `configureData`, `getLayerSchema`
 - **On a `<deck-map>` element** — `ready` (promise), `flyTo(coords, zoom?)`, `setLayerVisible(id, bool)`, `getLayers()`, `emit(action, payload)`; `document.querySelector("deck-map")` is fully typed
 - **Testing** — `mountForTest`, and imports are SSR-safe (importing in Node/jsdom never touches browser globals)
 
 ## Not implemented yet (honestly)
 
-Mapbox GL basemaps, depth-interleaved 3D compositing, globe projection, SSE transport, multi-field filters, `dblclick` behaviors, the `transform` data pipeline, the React adapter / typed builder, and editor autocomplete tooling. The full design-vs-built ledger lives in the Implementation Status table.
+Mapbox GL basemaps, depth-interleaved 3D compositing, globe projection, SSE transport, multi-field filters, `dblclick` behaviors, the `transform` data pipeline, and the React adapter / typed builder. The full design-vs-built ledger lives in the Implementation Status table.
 
 ## Going deeper
 

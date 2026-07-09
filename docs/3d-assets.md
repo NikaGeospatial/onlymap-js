@@ -2,8 +2,8 @@
 
 OnlyMapJS renders 3D models **in geographic context**: buildings, equipment, vehicles — anything you can place at a longitude/latitude. The architecture rule that makes this simple is the same one the library applies to data everywhere:
 
-> **Domain formats stay upstream; the manifest ingests web standards.**
-> IFC, CAD, shapefiles → convert on your server. GLB (binary glTF) and 3D Tiles → the manifest renders directly.
+> **Domain 3D formats stay upstream; the manifest ingests web standards.**
+> IFC, CAD, mesh formats → convert on your server to GLB. GLB (binary glTF) and 3D Tiles → the manifest renders directly. (2D vector formats — GeoJSON, CSV, Shapefile, KML, GeoArrow — load directly too; see the README's data-formats table.)
 
 ## The manifest half (this library)
 
