@@ -1,6 +1,6 @@
 ---
 name: onlymapjs
-description: Build, edit, debug, or review OnlyMapJS declarative HTML maps and dashboards. Use when a user asks for an interactive map, deck.gl-style visualization, geospatial dashboard, live fleet/telemetry map, choropleth, popup/tooltip map, map story/tour, manual drawing/sketch map, 3D map assets, or help with OnlyMapJS syntax, validation, widgets, data formats, testing, or publishing examples.
+description: Build, edit, debug, or review OnlyMapJS declarative HTML maps and dashboards, or React maps via the @nika-js/onlymap/react adapter. Use when a user asks for an interactive map, deck.gl-style visualization, geospatial dashboard, live fleet/telemetry map, choropleth, popup/tooltip map, map story/tour, manual drawing/sketch map, 3D map assets, a React map component, or help with OnlyMapJS syntax, validation, widgets, data formats, testing, or publishing examples.
 ---
 
 # OnlyMapJS
@@ -23,7 +23,17 @@ Use OnlyMapJS as a declarative HTML map library. Write custom elements such as `
 </script>
 ```
 
-For no-build CDN examples, use a published module URL such as `https://esm.sh/@nika-js/onlymap@0.1.0`.
+For no-build CDN examples, use a published module URL such as `https://esm.sh/@nika-js/onlymap@0.2.0`.
+
+## React Projects
+
+In a React codebase, do NOT render `om-*` elements from JSX — React and the library would contend over the same DOM. Use the first-party adapter instead:
+
+```tsx
+import { OmMap, OmLayer, OmWidget, OmOverlay, useOmMap } from "@nika-js/onlymap/react";
+```
+
+The adapter inverts several HTML-manifest rules: props are camelCase deck.gl props, accessors are plain JS functions (`getFillColor={d => ...}` — no `$field` expression language, no `js` opt-in), and interactions are `onClick`/`onHover` handlers plus React state, not `<om-behavior>` or state-mutating actions. Load `references/react.md` before writing React map code.
 
 ## Required References
 
@@ -31,6 +41,7 @@ Load the smallest reference needed for the task:
 
 - `references/syntax.md` — element vocabulary, attributes, data formats, accessors, actions, widgets, overlays, drawing, 3D, built-in layer types.
 - `references/patterns.md` — copyable manifest patterns for common map requests.
+- `references/react.md` — the React adapter: components, the useOmMap hook, HTML-vs-React rule differences, testing.
 - `references/testing.md` — validation, snapshot, headless harness, and browser testing workflow.
 
 ## Non-Negotiable Syntax Rules
