@@ -23,10 +23,53 @@
         },
         {
           "name": "basemap",
-          "description": "Basemap renderer.",
+          "description": "Basemap: a registered preset name, \"maplibre\" (demo style), a style URL, or \"none\" (standalone canvas).",
           "values": [
             {
               "name": "maplibre"
+            },
+            {
+              "name": "none"
+            },
+            {
+              "name": "liberty"
+            },
+            {
+              "name": "bright"
+            },
+            {
+              "name": "positron"
+            },
+            {
+              "name": "dark-matter"
+            },
+            {
+              "name": "voyager"
+            },
+            {
+              "name": "osm"
+            },
+            {
+              "name": "maptiler-streets"
+            },
+            {
+              "name": "maptiler-dataviz"
+            },
+            {
+              "name": "maptiler-satellite"
+            }
+          ]
+        },
+        {
+          "name": "basemap-key",
+          "description": "Provider API key for keyed basemap presets (maptiler-*) — publishable origin-restricted key; or call OmMap.configureBasemap once."
+        },
+        {
+          "name": "attribution",
+          "description": "Set \"false\" to opt out of the compact attribution control shown with basemaps.",
+          "values": [
+            {
+              "name": "false"
             }
           ]
         },
@@ -1358,6 +1401,9 @@
             },
             {
               "name": "draw-save"
+            },
+            {
+              "name": "set-basemap"
             }
           ]
         },
@@ -1405,6 +1451,9 @@
             },
             {
               "name": "draw"
+            },
+            {
+              "name": "basemap-switcher"
             }
           ]
         },
@@ -1482,6 +1531,10 @@
         {
           "name": "autosave",
           "description": "Draw widget: localStorage key — mirrors the sketch and restores it on reload."
+        },
+        {
+          "name": "options",
+          "description": "Basemap-switcher: space-separated preset names to offer (default: every keyless registered preset)."
         },
         {
           "name": "title",
@@ -1613,6 +1666,9 @@
             },
             {
               "name": "draw-save"
+            },
+            {
+              "name": "set-basemap"
             }
           ]
         },

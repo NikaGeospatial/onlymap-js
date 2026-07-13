@@ -33,7 +33,8 @@ Common attributes:
 - `zoom="11"`
 - `pitch="55"`
 - `bearing="20"`
-- `basemap="maplibre"` or `basemap="none"` or a MapLibre style URL
+- `basemap` — a free preset (`liberty`, `bright`, `positron`, `dark-matter`, `voyager`, `osm`; keyed `maptiler-streets|dataviz|satellite` with `basemap-key="…"` or `OmMap.configureBasemap({ maptilerKey })`), `maplibre` (bare demo style), a MapLibre style URL, or `none` (standalone canvas). The attribute is live: writing it switches the basemap in place (camera and layers survive). Register more with `OmMap.registerBasemap(name, { style })`.
+- `attribution="false"` to opt out of the automatic provider-attribution control (only if you render equivalent credits yourself)
 - `validate` to show live validation errors during authoring
 - `headless width="800" height="600"` for test harness use
 
@@ -178,6 +179,7 @@ Built-ins:
 - `draw`
 - `vega-lite`
 - `player`
+- `basemap-switcher` — radio list of presets; `options="positron dark-matter osm"` (default: every keyless registered preset)
 
 Positions: `top-left`, `top-right`, `bottom-left`, `bottom-right`.
 
@@ -187,6 +189,7 @@ Examples:
 <om-widget type="legend" position="bottom-right" title="Layers" interactive></om-widget>
 <om-widget type="filter" layer="quakes" field="magnitude" position="top-left"></om-widget>
 <om-widget type="draw" target="sketch" modes="point line polygon" save="both"></om-widget>
+<om-widget type="basemap-switcher" options="positron dark-matter liberty osm" position="top-right"></om-widget>
 ```
 
 Custom widget:
@@ -254,6 +257,7 @@ Common built-in actions:
 - `highlight-feature`
 - `zoom-to-feature`
 - `filter-layer`
+- `set-basemap` — payload `{ basemap }`; writes the `<om-map basemap>` attribute
 - `zoom-in`, `zoom-out`
 - `fly-to`
 - story actions: `story-play`, `story-pause`, `story-seek`

@@ -54,9 +54,9 @@ Five elements, one rule: **attributes are kebab-case versions of deck.gl props**
 
 | Element | Role |
 |---|---|
-| `<om-map>` | The map. `center`, `zoom`, `pitch`, `bearing`; `basemap="maplibre"` (default style or any style URL — no token) or `"none"` (standalone canvas); `validate` for a live on-page error panel. |
+| `<om-map>` | The map. `center`, `zoom`, `pitch`, `bearing`; `basemap` takes a free preset (`positron`, `liberty`, `dark-matter`, `osm`, …), a style URL, or `"none"` (standalone canvas) — and switches **live**; `validate` for a live on-page error panel. |
 | `<om-layer>` | Any of **33 layer types** by name — all of deck.gl's core, geo, aggregation, and mesh layers (Scatterplot, GeoJson, Arc, Path, Heatmap, Hexagon, Trips, Tile, Tile3D, Scenegraph, …) plus the built-in `PopupLayer` for WebGL badges/labels at scale. `id` required; `label`/`color` feed the legend. |
-| `<om-widget>` | UI panels. Built-ins: `legend`, `layer-switcher`, `zoom-controls`, `scale-bar`, `attribution`, `filter`, `draw`, `vega-lite` (live charts). Or write your own inline with HTML + a `<script type="om/widget">`. |
+| `<om-widget>` | UI panels. Built-ins: `legend`, `layer-switcher`, `basemap-switcher`, `zoom-controls`, `scale-bar`, `attribution`, `filter`, `draw`, `vega-lite` (live charts). Or write your own inline with HTML + a `<script type="om/widget">`. |
 | `<om-overlay>` | Rich HTML anchored to a map location — a static `anchor="[lng, lat]"`, the current selection, or a feature's own geometry via `anchor-layer`/`anchor-feature-id`. `{{field}}` interpolates the picked feature, HTML-escaped by default. |
 | `<om-behavior>` | Declarative interactions: `on="click|hover|drag|load|data-loaded"` → a named action. |
 | `<om-story>` | A storyboard: `<om-step>` children fire actions on a timeline. Controlled by the `player` widget, behaviors, or `storyEl.play()/pause()/seek()`. |
@@ -93,7 +93,9 @@ Private endpoints: `OmMap.configureData({ headers, credentials, fetch })` — ap
 
 ### Interaction
 
-Ten built-in actions wire to picks, widget buttons (`data-emit`), or script (`ctx.emit`) with one shared payload contract: `show-overlay`, `hide-overlay`, `show-tooltip`, `hide-tooltip`, `toggle-layer`, `highlight-feature`, `zoom-to-feature`, `filter-layer`, `zoom-in`, `zoom-out` — plus `OmMap.registerAction` for your own.
+Built-in actions wire to picks, widget buttons (`data-emit`), or script (`ctx.emit`) with one shared payload contract: `show-overlay`, `hide-overlay`, `show-tooltip`, `hide-tooltip`, `toggle-layer`, `highlight-feature`, `zoom-to-feature`, `filter-layer`, `set-basemap`, `zoom-in`, `zoom-out` — plus `OmMap.registerAction` for your own.
+
+**Basemaps:** free presets out of the box — OpenFreeMap `liberty`/`bright`/`positron` (no key, no limits), CARTO `dark-matter`/`voyager`, classic `osm` raster, and keyed `maptiler-*` presets (MapTiler's style editor is the visual way to customize basemap JSON; keys are publishable, via `basemap-key` or `OmMap.configureBasemap`). The `basemap` attribute switches **live** — camera and layers survive — from a hand edit, the `set-basemap` action, or `<om-widget type="basemap-switcher">`. Add your own with `OmMap.registerBasemap(name, { style })`; required attribution renders automatically. Guide: [docs/basemaps.md](docs/basemaps.md).
 
 **Animation:** camera moves accept a duration — `map.flyTo(coords, zoom, { duration: 1200, curve: true })`, or the `fly-to` action (`center`/`zoom`/`pitch`/`bearing`/`duration`) from any behavior or button; `prefers-reduced-motion` is honored (moves become instant, final state identical). Per-prop GPU transitions via the `transition` attribute: `transition="get-fill-color 800ms"` fades color changes; on a streaming layer, `transition="get-position 300ms"` makes entities glide between updates.
 
@@ -190,7 +192,7 @@ Plus `OmMap.snapshotIR(html)` to lock down what a manifest *means* in a snapshot
 
 ## Programmatic surface
 
-- **`OmMap.*`** — `validate`, `snapshotIR`, `registerLayer`, `registerWidget`, `registerAction`, `registerSource`, `registerFormat`, `configureData`, `getLayerSchema`
+- **`OmMap.*`** — `validate`, `snapshotIR`, `registerLayer`, `registerWidget`, `registerAction`, `registerSource`, `registerFormat`, `registerBasemap`, `configureBasemap`, `configureData`, `getLayerSchema`
 - **On a `<om-map>` element** — `ready` (promise), `flyTo(coords, zoom?)`, `setLayerVisible(id, bool)`, `getLayers()`, `emit(action, payload)`; `document.querySelector("om-map")` is fully typed
 - **`MapController`** — the framework-grade programmatic front-end (typed `LayerDescriptor`s → the same reconcile core, no DOM manifest): `setLayers`, `watch`, `emit`, camera methods, `injectPick`, `ready`. The React adapter rides it; usable directly from vanilla TS or other frameworks
 - **Testing** — `mountForTest`, and imports are SSR-safe (importing in Node/jsdom never touches browser globals)
@@ -203,6 +205,6 @@ Mapbox GL basemaps, depth-interleaved 3D compositing, globe projection, SSE tran
 
 | | |
 |---|---|
-| [docs/react.md](docs/react.md) · [docs/testing.md](docs/testing.md) · [docs/live-data.md](docs/live-data.md) · [docs/3d-assets.md](docs/3d-assets.md) · [docs/stories.md](docs/stories.md) | Consumer guides |
+| [docs/react.md](docs/react.md) · [docs/basemaps.md](docs/basemaps.md) · [docs/testing.md](docs/testing.md) · [docs/live-data.md](docs/live-data.md) · [docs/3d-assets.md](docs/3d-assets.md) · [docs/stories.md](docs/stories.md) | Consumer guides |
 | [llms.txt](llms.txt) | The agent-facing quick reference |
 | `skills/onlymapjs` | Installable LLM skill for OnlyMapJS authoring |

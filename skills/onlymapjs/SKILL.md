@@ -61,6 +61,7 @@ Load the smallest reference needed for the task:
 - Sparse rich HTML at one geographic location -> `<om-overlay>`.
 - Many labels/badges -> `<om-layer type="PopupLayer">`.
 - Guided tour or narrative sequence -> `<om-story>` with `<om-step>` siblings that reference existing layers/overlays by id.
+- Basemap choice or user-switchable basemaps -> `basemap` presets (`positron`, `liberty`, `dark-matter`, `osm`, ...) + `<om-widget type="basemap-switcher">`; MapTiler custom styles via a style URL or `basemap-key`.
 - Live entity updates -> `wss://` stream with `key` and optional `source` decoder.
 - REST snapshot that changes over time -> `refresh="5s"`.
 - User sketching -> `data="draw:sketch"` layer plus `<om-widget type="draw" target="sketch">`.

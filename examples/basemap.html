@@ -9,7 +9,7 @@
 <head>
   <meta charset="utf-8" />
   <title>OnlyMapJS — Basemap example</title>
-  <script type="module" src="https://esm.sh/@nika-js/onlymap@0.2.0"></script>
+  <script type="module" src="https://esm.sh/@nika-js/onlymap@0.2.1"></script>
   <link rel="stylesheet" href="nav.css" />
 </head>
 <body>
@@ -29,10 +29,13 @@
     <a href="story.html">Map story</a>
   </header>
 
-  <!-- "maplibre" (or a style URL) resolves to MapLibre's free demo style
-       -- no account, no token. Try "none" (or removing the attribute
-       entirely) to compare against the standalone, deck.gl-owns-view path. -->
-  <om-map center="[-122.42, 37.77]" zoom="12" basemap="maplibre">
+  <!-- basemap accepts a registered PRESET name (liberty/bright/positron —
+       OpenFreeMap; dark-matter/voyager — CARTO; osm — the classic raster),
+       "maplibre" (the demo style), a style URL (e.g. a MapTiler-customized
+       style with its ?key=), or "none" for the standalone deck.gl-owns-view
+       path. The basemap-switcher widget below swaps them LIVE — layers and
+       camera survive the style change. -->
+  <om-map center="[-122.42, 37.77]" zoom="12" basemap="positron">
 
     <om-layer id="regions" type="GeoJsonLayer"
                 data="./data/regions.geojson"
@@ -49,10 +52,11 @@
                 radius-units="pixels" pickable></om-layer>
 
     <om-widget type="legend" title="Layers" interactive position="top-right"></om-widget>
+    <om-widget type="basemap-switcher" position="top-right"
+                 options="positron liberty bright dark-matter voyager osm maplibre"
+                 style="margin-top: 120px;"></om-widget>
     <om-widget type="zoom-controls" position="bottom-right"></om-widget>
     <om-widget type="scale-bar" position="bottom-left"></om-widget>
-    <om-widget type="attribution" text="Basemap: MapLibre (no token)" position="bottom-left"
-                 style="margin-bottom: 28px;"></om-widget>
 
     <om-widget position="top-left">
       <style>
@@ -60,9 +64,10 @@
                  box-shadow: 0 2px 10px rgba(0,0,0,.15); font-size: 13px; }
       </style>
       <div class="panel">
-        <strong>Basemap: MapLibre</strong><br/>
+        <strong>Basemap: presets + live switching</strong><br/>
         The camera is owned by the basemap now, not deck.gl —<br/>
-        pan/zoom/scale-bar/picking all still work identically.
+        pan/zoom/scale-bar/picking all still work identically.<br/>
+        Pick another basemap on the right: layers and camera survive.
       </div>
     </om-widget>
 

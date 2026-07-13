@@ -54,7 +54,7 @@ Actions that mutate manifest attributes (`toggle-layer`, `show-overlay`, `fade`,
 | Prop | Notes |
 |---|---|
 | `center` `zoom` `pitch` `bearing` | Initial camera; later prop changes move the camera (instant). While they're unchanged, user panning is never fought. |
-| `basemap` | Same contract as the attribute — `"maplibre"`, a style URL, or omit for standalone deck.gl. |
+| `basemap` | Same contract as the attribute — a preset name (`"positron"`, `"dark-matter"`, `"osm"`, …), a style URL, or omit for standalone deck.gl. Changing the prop switches live (camera + layers survive); `basemapKey` supplies the MapTiler key. See [docs/basemaps.md](basemaps.md). |
 | `headless` | `true` or `{ width, height }` — no renderer, real projection math (tests under jsdom/happy-dom). |
 | `onReady` | Renderer up + first commit + no data URL still loading. |
 | `onViewStateChange` | Every camera change, with the current `CameraState`. |
