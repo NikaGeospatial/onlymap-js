@@ -29,10 +29,16 @@ Use these patterns as starting points. Replace data URLs, layer ids, fields, cen
                 pickable></om-layer>
     <om-widget type="legend" position="bottom-right" title="Layers"></om-widget>
     <om-widget type="zoom-controls" position="top-right"></om-widget>
+    <!-- Shown only where scripts never run (chat-app/email file previews) -->
+    <om-fallback>
+      <p>This interactive map requires JavaScript — open this file in a web browser.</p>
+    </om-fallback>
   </om-map>
 </body>
 </html>
 ```
+
+Every complete-page pattern below should also carry an `<om-fallback>` (omitted for brevity) — see the good-practice rule in SKILL.md.
 
 ## Click Popup
 

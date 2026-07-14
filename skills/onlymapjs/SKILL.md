@@ -1,6 +1,6 @@
 ---
 name: onlymapjs
-description: Build, edit, debug, or review OnlyMapJS declarative HTML maps and dashboards, or React maps via the @nika-js/onlymap/react adapter. Use when a user asks for an interactive map, deck.gl-style visualization, geospatial dashboard, live fleet/telemetry map, choropleth, popup/tooltip map, map story/tour, manual drawing/sketch map, 3D map assets, a React map component, or help with OnlyMapJS syntax, validation, widgets, data formats, testing, or publishing examples.
+description: Build, edit, debug, or review OnlyMapJS declarative HTML maps and dashboards, or React maps via the @nika-js/onlymap/react adapter. Use when a user asks for an interactive map, deck.gl-style visualization, geospatial dashboard, live fleet/telemetry map, choropleth, popup/tooltip map, map story/tour, manual drawing/sketch map, 3D map assets, a React map component, a map page shared as a single HTML file (incl. no-JS fallbacks for chat/email previews), or help with OnlyMapJS syntax, validation, widgets, data formats, testing, or publishing examples.
 ---
 
 # OnlyMapJS
@@ -65,9 +65,12 @@ Load the smallest reference needed for the task:
 - Live entity updates -> `wss://` stream with `key` and optional `source` decoder.
 - REST snapshot that changes over time -> `refresh="5s"`.
 - User sketching -> `data="draw:sketch"` layer plus `<om-widget type="draw" target="sketch">`.
+- Page may travel as a file (shared, emailed, downloaded) or be embedded -> add an `<om-fallback>` child to `<om-map>`. Chat-app and email previews render HTML with JavaScript disabled (iOS QuickLook), so the map cannot boot there; the fallback is what recipients see instead. It is hidden automatically once the map boots. Good practice on every complete page — without one, the stylesheet shows a generic text-only banner.
 
 ## Output Expectations
 
 When creating a map page, output a complete runnable HTML file unless the user asks for a fragment. Include CSS only as needed for page sizing or custom widgets/overlays. Keep the first screen the usable map, not a landing page.
+
+Include an `<om-fallback>` element (a short "this map requires JavaScript — open in a browser" message, optionally with a hosted-version link) as a direct child of `<om-map>` on any complete page. For the fallback to render in no-JS previews, `onlymapjs.css` must load without JavaScript — a real `<link rel="stylesheet">` or inlined `<style>`, not only a runtime `import` (bundler-emitted stylesheets are fine).
 
 When modifying an existing page, preserve the user's data URLs, layer ids, and styling unless the request requires changing them.

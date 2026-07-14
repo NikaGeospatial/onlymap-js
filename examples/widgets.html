@@ -66,6 +66,15 @@
       </script>
     </om-widget>
 
+    <!-- No-JS fallback — shown only where scripts never run (chat-app/email
+         file previews, iOS QuickLook); the stylesheet hides it the moment
+         the map boots. Good practice on any page shared as a file. -->
+    <om-fallback>
+      <p><strong>This interactive map requires JavaScript.</strong><br />
+         If you are seeing this in a file preview, open the file in a web
+         browser such as Chrome, Safari, or Firefox.</p>
+    </om-fallback>
+
   </om-map>
 
 </body>

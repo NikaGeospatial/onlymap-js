@@ -19,13 +19,13 @@ Static CDN page:
 <script type="module" src="https://esm.sh/@nika-js/onlymap@0.1.0"></script>
 ```
 
-If using MapLibre basemaps from a built package, include the CSS import or stylesheet. Standalone `basemap="none"` maps do not need the CSS.
+Always include `onlymapjs.css` — it carries the MapLibre basemap styles and the no-JS fallback rules (`<om-fallback>` / default banner). For the fallback to work in script-disabled previews it must load without JavaScript: a real `<link rel="stylesheet">` or inlined `<style>` on no-build pages (a bundler-emitted stylesheet is fine in npm projects).
 
 ## Elements
 
 ### `<om-map>`
 
-Root element. Children are layers, widgets, overlays, behaviors, and stories.
+Root element. Children are layers, widgets, overlays, behaviors, stories, and an optional fallback.
 
 Common attributes:
 
@@ -241,6 +241,26 @@ Example:
   <div><b>{{place}}</b> M {{magnitude}}</div>
 </om-overlay>
 <om-behavior on="click" layer="quakes" action="show-overlay" target="detail"></om-behavior>
+```
+
+### `<om-fallback>`
+
+Static content shown only where scripts never run — chat-app/email file previews (iOS QuickLook), file managers, sandboxed webviews. Hidden automatically once the map boots. Good practice on every complete page, especially one that may be shared as a file.
+
+Rules:
+
+- Direct child of `<om-map>` (validation warns elsewhere), one per map.
+- No attributes; plain HTML content — links work, so include a hosted-version URL when one exists.
+- Without an `<om-fallback>`, the stylesheet shows a generic text-only banner instead.
+- Requires `onlymapjs.css` to load without JavaScript (see Import Patterns above).
+
+Example:
+
+```html
+<om-fallback>
+  <p><strong>This interactive map requires JavaScript.</strong><br />
+     Open this file in a web browser, or visit <a href="https://example.com/map">the hosted version</a>.</p>
+</om-fallback>
 ```
 
 ### `<om-behavior>`

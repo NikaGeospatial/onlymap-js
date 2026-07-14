@@ -93,7 +93,7 @@
       "references": [
         {
           "name": "README",
-          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/../README.md"
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/README.md"
         }
       ]
     },
@@ -1291,6 +1291,17 @@
         {
           "name": "Stories & overlays",
           "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/stories.md"
+        }
+      ]
+    },
+    {
+      "name": "om-fallback",
+      "description": "Static fallback shown only when the library never boots — JS-disabled contexts like chat-app/email file previews (iOS QuickLook), file managers, sandboxed webviews. Direct child of <om-map>; hidden automatically once the map upgrades. Good practice on any page that may be shared as a file. Without one, the stylesheet shows a text-only default banner. Requires onlymapjs.css to load without JS (link tag / bundled / inlined).",
+      "attributes": [],
+      "references": [
+        {
+          "name": "README",
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/README.md"
         }
       ]
     },

@@ -44,13 +44,13 @@ Or with no build step at all, straight from a CDN:
 <script type="module" src="https://esm.sh/@nika-js/onlymap"></script>
 ```
 
-Then `npx @nika-js/onlymap init` wires up VS Code IntelliSense and `!`-prefixed manifest snippets for your project. The library ships with 254 unit/behavioral tests and 12 Playwright GPU tests.
+Then `npx @nika-js/onlymap init` wires up VS Code IntelliSense and `!`-prefixed manifest snippets for your project. The library ships with 297 unit/behavioral tests and 19 Playwright GPU tests.
 
 The [examples](https://github.com/NikaGeospatial/onlymapjs/tree/main/examples) are the best tour: widgets, behaviors & overlays, basemaps, columnar/Arrow data, manual drawing, 3D models, a live WebSocket ship feed, and a polled driver fleet.
 
 ## The manifest
 
-Five elements, one rule: **attributes are kebab-case versions of deck.gl props** (`radius-units` → `radiusUnits`), and `get-*` attributes are data-driven accessors.
+A handful of elements, one rule: **attributes are kebab-case versions of deck.gl props** (`radius-units` → `radiusUnits`), and `get-*` attributes are data-driven accessors.
 
 | Element | Role |
 |---|---|
@@ -60,6 +60,7 @@ Five elements, one rule: **attributes are kebab-case versions of deck.gl props**
 | `<om-overlay>` | Rich HTML anchored to a map location — a static `anchor="[lng, lat]"`, the current selection, or a feature's own geometry via `anchor-layer`/`anchor-feature-id`. `{{field}}` interpolates the picked feature, HTML-escaped by default. |
 | `<om-behavior>` | Declarative interactions: `on="click|hover|drag|load|data-loaded"` → a named action. |
 | `<om-story>` | A storyboard: `<om-step>` children fire actions on a timeline. Controlled by the `player` widget, behaviors, or `storyEl.play()/pause()/seek()`. |
+| `<om-fallback>` | What shows where scripts never run — chat-app/email file previews (iOS QuickLook renders HTML attachments with JS off), file managers, sandboxed webviews. A direct child of `<om-map>`, hidden automatically the moment the map boots; pages without one get a text-only default banner from the stylesheet. Good practice on any page that may travel as a file. The gate is pure CSS (`om-map:not(:defined)`), so `onlymapjs.css` must load without JS — a real `<link>`, a bundler-emitted sheet, or an inlined `<style>`. |
 
 ### Accessors without JavaScript
 
