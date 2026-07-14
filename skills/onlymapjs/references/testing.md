@@ -92,6 +92,8 @@ Harness operations:
 
 Use `vi.stubGlobal("fetch", ...)` for URL data and `vi.stubGlobal("WebSocket", ...)` for streams.
 
+Free-plan license gates (5 layers, 25k rows per layer) apply in headless tests exactly as in production — gated layers emit errors on the validation stream instead of rendering. If the page under test legitimately exceeds the limits, call `OmMap.configureLicense("om_live_…")` in test setup; keys verify offline, so CI needs no network. Telemetry never fires from headless maps.
+
 ## Browser/E2E Testing
 
 Use Playwright only for pixels, real GPU picking, basemap composition, or asset rendering.

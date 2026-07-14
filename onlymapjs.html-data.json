@@ -78,6 +78,23 @@
           "description": "Run manifest validation and show the on-page error panel."
         },
         {
+          "name": "map-id",
+          "description": "Optional authored UUID identifying this map artifact (telemetry dedup across visits/pages — not a visitor id). Opt-out: delete it."
+        },
+        {
+          "name": "license-key",
+          "description": "OnlyMapJS license token (om_live_…) — lifts the free-tier limits (5 layers / 25k rows per layer) and removes the badge. Publishable, origin-restricted; or call OmMap.configureLicense once."
+        },
+        {
+          "name": "telemetry",
+          "description": "Set \"off\" to disable usage telemetry for this map (global opt-out: OmMap.configureTelemetry).",
+          "values": [
+            {
+              "name": "off"
+            }
+          ]
+        },
+        {
           "name": "headless",
           "description": "No renderer — parsing/IR only (tests, SSR)."
         },
@@ -1415,6 +1432,12 @@
             },
             {
               "name": "set-basemap"
+            },
+            {
+              "name": "undo"
+            },
+            {
+              "name": "redo"
             }
           ]
         },
@@ -1465,6 +1488,9 @@
             },
             {
               "name": "basemap-switcher"
+            },
+            {
+              "name": "undo-redo"
             }
           ]
         },
@@ -1680,6 +1706,12 @@
             },
             {
               "name": "set-basemap"
+            },
+            {
+              "name": "undo"
+            },
+            {
+              "name": "redo"
             }
           ]
         },

@@ -116,5 +116,6 @@ React ≥ 18 is an optional peer dependency — it's only loaded if you import `
 
 - **Stories** as React components (a `<Story>`/timeline hook is on the roadmap) — an HTML `<om-story>` needs the HTML front-end.
 - **The draw widget** — HTML front-end only for now.
+- **Undo/redo** — manifest history is a DOM-front-end feature; in React your state (and its undo) belongs to the app. `ctx.history` reads `{ canUndo: false, canRedo: false }` here.
 - Per-feature `trace` (it animates via runtime manifest elements) — whole-layer `trace` on a TripsLayer works.
 - A `scale()` helper mirroring the expression language — use `d3-scale` or plain functions.

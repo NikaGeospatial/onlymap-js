@@ -122,8 +122,8 @@ h = await mountForTest(PAGE);                 // resolves after the mocked fetch
 
 A *failing* fetch also settles readiness (the layer is just empty) — `mountForTest` never hangs on a bad URL.
 
-**What's real at this tier:** validation, accessor execution, `ctx.stats`/`data`/`dataInViewport`, declarative + viewport filtering, behaviors → actions, overlay anchoring/culling/interpolation (real Mercator math), widget reactivity, XSS escaping, columnar row materialization.
-**What isn't:** pixels, GPU attribute recompute, basemap compositing, and CDN-loaded widgets (`vega-lite` is browser-only — assert its *data* here via `ctx.stats`, its rendering at tier 3 if at all).
+**What's real at this tier:** validation, accessor execution, `ctx.stats`/`data`/`dataInViewport`, declarative + viewport filtering, behaviors → actions, overlay anchoring/culling/interpolation (real Mercator math), widget reactivity, XSS escaping, columnar row materialization — **and the free-plan license gates** (5 layers / 25k rows per layer), which apply in headless tests exactly as in production so a passing suite can't hide a gated page. If your page legitimately exceeds the free limits, configure your license key in test setup — keys are publishable and verify **offline**, so CI needs no network or secrets vault: `OmMap.configureLicense("om_live_…")`. Gate violations surface as errors on the validation stream (`om-validation-error` / the `validate` attribute), naming the limit.
+**What isn't:** pixels, GPU attribute recompute, basemap compositing, and CDN-loaded widgets (`vega-lite` is browser-only — assert its *data* here via `ctx.stats`, its rendering at tier 3 if at all). Telemetry is also silent here — headless maps never report.
 
 ## Tier 3 — visual: Playwright
 

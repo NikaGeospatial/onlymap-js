@@ -1,6 +1,6 @@
 # OnlyMap Commercial License Agreement
 
-**Last Updated:** July 9, 2026
+**Last Updated:** July 14, 2026
 
 This OnlyMap Commercial License Agreement ("Agreement") governs access to and use of OnlyMap, published as the `OnlyMap` package or otherwise made available by the copyright holder ("Licensor"). By downloading, installing, accessing, or using the Software, you accept this Agreement.
 
@@ -27,9 +27,13 @@ Subject to Licensee's compliance with this Agreement and any applicable Order Fo
 
 No ownership rights are transferred. Licensor and its licensors retain all right, title, and interest in and to the Software.
 
-## 3. Commercial Authorization Required
+## 3. Non-Commercial and Commercial Use
 
-The Software is commercial proprietary software. Unless Licensor has granted Licensee a written evaluation license, Licensee may use the Software only if Licensee has purchased and maintains a valid commercial license from Licensor.
+The Software is commercial proprietary software.
+
+**Non-Commercial Use.** Licensee may exercise the rights granted in Section 2 free of charge for Non-Commercial Use, provided that the Software's included attribution — the on-map "OnlyMap by NIKA" notice and other proprietary notices — remains visible, unmodified, and unobstructed in every Application. "Non-Commercial Use" means personal, educational, academic-research, or evaluation use that is not intended for or directed toward commercial advantage or monetary compensation, whether for Licensee or any third party. Use by or on behalf of a for-profit business (including internal business tools), in any product or service that generates revenue (including through advertising, subscriptions, or paid access), or in paid consulting or government work is not Non-Commercial Use. Non-Commercial Use may be subject to technical limits built into the Software.
+
+**Commercial use.** Any use other than Non-Commercial Use requires a purchased and maintained valid commercial license from Licensor, unless Licensor has granted Licensee a separate written license.
 
 Access to an npm package, repository, package tarball, source archive, or build artifact does not by itself grant any rights beyond the rights expressly granted in this Agreement.
 
@@ -88,13 +92,19 @@ Licensor may provide updates, patches, or new versions at its discretion. Unless
 
 Updates are part of the Software and are governed by this Agreement unless Licensor provides different terms with the update.
 
-## 11. Fees and Taxes
+## 11. Telemetry
+
+The Software may transmit anonymous, deployment-scoped usage reports and error reports to Licensor's telemetry endpoint when the Software runs (for example, when a map finishes loading). These reports may include the Software version, feature and layer usage counts, widget types, the hostname of the page using the Software, an optional author-assigned map identifier, and, for errors caused by the Software, sanitized error signatures.
+
+Telemetry reports do not include end-user identifiers, page URLs or paths, cookies, map data, or the contents of Licensee's Applications, and Licensor does not store IP addresses from telemetry requests. Telemetry can be disabled at any time, globally via `OmMap.configureTelemetry({ disabled: true })` or per map with the `telemetry="off"` attribute. The full payload schema and collection rules are documented in the Software's `docs/telemetry.md`.
+
+## 12. Fees and Taxes
 
 Licensee must pay all fees stated in the applicable Order Form. Fees are non-refundable except as expressly stated in the Order Form or required by law.
 
 Licensee is responsible for taxes, duties, levies, and similar governmental charges arising from its purchase or use of the Software, excluding taxes based on Licensor's net income.
 
-## 12. Term and Termination
+## 13. Term and Termination
 
 This Agreement begins when Licensee first downloads, installs, accesses, or uses the Software and continues until terminated.
 
@@ -102,32 +112,32 @@ Licensor may terminate this Agreement immediately if Licensee breaches this Agre
 
 Sections that by their nature should survive termination will survive, including ownership, restrictions, payment obligations, warranty disclaimers, liability limits, and governing law.
 
-## 13. Disclaimer of Warranty
+## 14. Disclaimer of Warranty
 
 TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE," WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT, ACCURACY, AVAILABILITY, SECURITY, OR ERROR-FREE OPERATION.
 
-## 14. Limitation of Liability
+## 15. Limitation of Liability
 
 TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, LICENSOR WILL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, OR FOR LOST PROFITS, LOST REVENUE, LOST DATA, BUSINESS INTERRUPTION, OR PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES, ARISING OUT OF OR RELATING TO THE SOFTWARE OR THIS AGREEMENT, EVEN IF LICENSOR HAS BEEN ADVISED OF THE POSSIBILITY OF THOSE DAMAGES.
 
 TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, LICENSOR'S TOTAL LIABILITY ARISING OUT OF OR RELATING TO THE SOFTWARE OR THIS AGREEMENT WILL NOT EXCEED THE AMOUNTS PAID BY LICENSEE TO LICENSOR FOR THE SOFTWARE DURING THE TWELVE MONTHS BEFORE THE EVENT GIVING RISE TO LIABILITY, OR USD 100 IF LICENSEE PAID NO AMOUNTS DURING THAT PERIOD.
 
-## 15. Export and Compliance
+## 16. Export and Compliance
 
 Licensee must comply with all applicable export control, sanctions, anti-corruption, privacy, data protection, and other laws applicable to Licensee's use of the Software.
 
-## 16. Assignment
+## 17. Assignment
 
 Licensee may not assign or transfer this Agreement, any Order Form, or any rights or obligations under them without Licensor's prior written consent. Any attempted assignment in violation of this section is void.
 
-## 17. Governing Law
+## 18. Governing Law
 
 This Agreement is governed by the laws of the jurisdiction in which Licensor resides or is organized, without regard to conflict of law principles. The parties consent to the exclusive jurisdiction and venue of the courts located in that jurisdiction for disputes arising out of or relating to this Agreement.
 
-## 18. Entire Agreement
+## 19. Entire Agreement
 
 This Agreement, together with any applicable Order Form, is the entire agreement between Licensor and Licensee regarding the Software and supersedes all prior or contemporaneous agreements, proposals, or understandings about the Software.
 
-## 19. Contact
+## 20. Contact
 
 For licensing questions or requests for permissions beyond this Agreement, contact Licensor through the official repository, npm package page, website, or other distribution channel for the Software.

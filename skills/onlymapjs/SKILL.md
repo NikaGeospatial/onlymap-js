@@ -23,7 +23,7 @@ Use OnlyMapJS as a declarative HTML map library. Write custom elements such as `
 </script>
 ```
 
-For no-build CDN examples, use a published module URL such as `https://esm.sh/@nika-js/onlymap@0.2.0`.
+For no-build CDN examples, use a published module URL such as `https://esm.sh/@nika-js/onlymap@0.2.3`.
 
 ## React Projects
 
@@ -62,6 +62,7 @@ Load the smallest reference needed for the task:
 - Many labels/badges -> `<om-layer type="PopupLayer">`.
 - Guided tour or narrative sequence -> `<om-story>` with `<om-step>` siblings that reference existing layers/overlays by id.
 - Basemap choice or user-switchable basemaps -> `basemap` presets (`positron`, `liberty`, `dark-matter`, `osm`, ...) + `<om-widget type="basemap-switcher">`; MapTiler custom styles via a style URL or `basemap-key`.
+- Undoable UI (step back after layer toggles, filter changes, basemap switches, sketch edits) -> `<om-widget type="undo-redo">`; Cmd/Ctrl-Z works even without the widget. Camera moves and story playback are not undo steps.
 - Live entity updates -> `wss://` stream with `key` and optional `source` decoder.
 - REST snapshot that changes over time -> `refresh="5s"`.
 - User sketching -> `data="draw:sketch"` layer plus `<om-widget type="draw" target="sketch">`.
@@ -70,6 +71,8 @@ Load the smallest reference needed for the task:
 ## Output Expectations
 
 When creating a map page, output a complete runnable HTML file unless the user asks for a fragment. Include CSS only as needed for page sizing or custom widgets/overlays. Keep the first screen the usable map, not a landing page.
+
+Include a `map-id="<random UUID>"` attribute on `<om-map>` when creating a new complete page (generate a fresh UUID — never copy one from an example). It identifies the map artifact for usage telemetry, not the visitor; the author can delete it to opt out.
 
 Include an `<om-fallback>` element (a short "this map requires JavaScript — open in a browser" message, optionally with a hosted-version link) as a direct child of `<om-map>` on any complete page. For the fallback to render in no-JS previews, `onlymapjs.css` must load without JavaScript — a real `<link rel="stylesheet">` or inlined `<style>`, not only a runtime `import` (bundler-emitted stylesheets are fine).
 

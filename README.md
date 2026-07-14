@@ -30,7 +30,7 @@ That's a complete app: a no-token MapLibre basemap, data-driven colors and sizes
 
 It's also designed to be written **by AI agents**: HTML is a reliable generation target, [`llms.txt`](llms.txt) teaches the format, and `OmMap.validate()` returns structured errors with actionable fixes — a real feedback loop instead of a blank canvas.
 
-> ⚠️ **Status: v0.1.** Proprietary — commercial licensing terms are in [LICENSE.md](LICENSE.md); APIs may still move before 1.0.
+> ⚠️ **Status: v0.2.** Proprietary — free for non-commercial use with attribution; commercial licensing terms are in [LICENSE.md](LICENSE.md). APIs may still move before 1.0.
 
 ## Install
 
@@ -44,7 +44,7 @@ Or with no build step at all, straight from a CDN:
 <script type="module" src="https://esm.sh/@nika-js/onlymap"></script>
 ```
 
-Then `npx @nika-js/onlymap init` wires up VS Code IntelliSense and `!`-prefixed manifest snippets for your project. The library ships with 297 unit/behavioral tests and 19 Playwright GPU tests.
+Then `npx @nika-js/onlymap init` wires up VS Code IntelliSense and `!`-prefixed manifest snippets for your project. The library ships with 366 unit/behavioral tests and 21 Playwright GPU tests.
 
 The [examples](https://github.com/NikaGeospatial/onlymapjs/tree/main/examples) are the best tour: widgets, behaviors & overlays, basemaps, columnar/Arrow data, manual drawing, 3D models, a live WebSocket ship feed, and a polled driver fleet.
 
@@ -56,7 +56,7 @@ A handful of elements, one rule: **attributes are kebab-case versions of deck.gl
 |---|---|
 | `<om-map>` | The map. `center`, `zoom`, `pitch`, `bearing`; `basemap` takes a free preset (`positron`, `liberty`, `dark-matter`, `osm`, …), a style URL, or `"none"` (standalone canvas) — and switches **live**; `validate` for a live on-page error panel. |
 | `<om-layer>` | Any of **33 layer types** by name — all of deck.gl's core, geo, aggregation, and mesh layers (Scatterplot, GeoJson, Arc, Path, Heatmap, Hexagon, Trips, Tile, Tile3D, Scenegraph, …) plus the built-in `PopupLayer` for WebGL badges/labels at scale. `id` required; `label`/`color` feed the legend. |
-| `<om-widget>` | UI panels. Built-ins: `legend`, `layer-switcher`, `basemap-switcher`, `zoom-controls`, `scale-bar`, `attribution`, `filter`, `draw`, `vega-lite` (live charts). Or write your own inline with HTML + a `<script type="om/widget">`. |
+| `<om-widget>` | UI panels. Built-ins: `legend`, `layer-switcher`, `basemap-switcher`, `zoom-controls`, `undo-redo`, `scale-bar`, `attribution`, `filter`, `draw`, `vega-lite` (live charts). Or write your own inline with HTML + a `<script type="om/widget">`. |
 | `<om-overlay>` | Rich HTML anchored to a map location — a static `anchor="[lng, lat]"`, the current selection, or a feature's own geometry via `anchor-layer`/`anchor-feature-id`. `{{field}}` interpolates the picked feature, HTML-escaped by default. |
 | `<om-behavior>` | Declarative interactions: `on="click|hover|drag|load|data-loaded"` → a named action. |
 | `<om-story>` | A storyboard: `<om-step>` children fire actions on a timeline. Controlled by the `player` widget, behaviors, or `storyEl.play()/pause()/seek()`. |
@@ -94,7 +94,9 @@ Private endpoints: `OmMap.configureData({ headers, credentials, fetch })` — ap
 
 ### Interaction
 
-Built-in actions wire to picks, widget buttons (`data-emit`), or script (`ctx.emit`) with one shared payload contract: `show-overlay`, `hide-overlay`, `show-tooltip`, `hide-tooltip`, `toggle-layer`, `highlight-feature`, `zoom-to-feature`, `filter-layer`, `set-basemap`, `zoom-in`, `zoom-out` — plus `OmMap.registerAction` for your own.
+Built-in actions wire to picks, widget buttons (`data-emit`), or script (`ctx.emit`) with one shared payload contract: `show-overlay`, `hide-overlay`, `show-tooltip`, `hide-tooltip`, `toggle-layer`, `highlight-feature`, `zoom-to-feature`, `filter-layer`, `set-basemap`, `zoom-in`, `zoom-out`, `undo`, `redo` — plus `OmMap.registerAction` for your own.
+
+**Undo/redo:** user-facing manifest changes — layer toggles, filter changes, basemap switches, element edits, drawn sketches — are undoable out of the box; the manifest *is* the state, so history is recorded from the DOM itself. Add `<om-widget type="undo-redo">` for buttons, or just press Cmd/Ctrl-Z (Shift-Cmd/Ctrl-Z or Ctrl-Y to redo). Camera moves, hover effects, and story playback are deliberately not undo steps.
 
 **Basemaps:** free presets out of the box — OpenFreeMap `liberty`/`bright`/`positron` (no key, no limits), CARTO `dark-matter`/`voyager`, classic `osm` raster, and keyed `maptiler-*` presets (MapTiler's style editor is the visual way to customize basemap JSON; keys are publishable, via `basemap-key` or `OmMap.configureBasemap`). The `basemap` attribute switches **live** — camera and layers survive — from a hand edit, the `set-basemap` action, or `<om-widget type="basemap-switcher">`. Add your own with `OmMap.registerBasemap(name, { style })`; required attribution renders automatically. Guide: [docs/basemaps.md](docs/basemaps.md).
 
@@ -193,10 +195,29 @@ Plus `OmMap.snapshotIR(html)` to lock down what a manifest *means* in a snapshot
 
 ## Programmatic surface
 
-- **`OmMap.*`** — `validate`, `snapshotIR`, `registerLayer`, `registerWidget`, `registerAction`, `registerSource`, `registerFormat`, `registerBasemap`, `configureBasemap`, `configureData`, `getLayerSchema`
+- **`OmMap.*`** — `validate`, `snapshotIR`, `registerLayer`, `registerWidget`, `registerAction`, `registerSource`, `registerFormat`, `registerBasemap`, `configureBasemap`, `configureData`, `configureTelemetry`, `configureLicense`, `getLayerSchema`
 - **On a `<om-map>` element** — `ready` (promise), `flyTo(coords, zoom?)`, `setLayerVisible(id, bool)`, `getLayers()`, `emit(action, payload)`; `document.querySelector("om-map")` is fully typed
 - **`MapController`** — the framework-grade programmatic front-end (typed `LayerDescriptor`s → the same reconcile core, no DOM manifest): `setLayers`, `watch`, `emit`, camera methods, `injectPick`, `ready`. The React adapter rides it; usable directly from vanilla TS or other frameworks
 - **Testing** — `mountForTest`, and imports are SSR-safe (importing in Node/jsdom never touches browser globals)
+
+## Free tier & licensing
+
+**Non-commercial use is free with attribution** (LICENSE.md §3); commercial use requires a license. Without a license key, maps run on the **free plan**: up to **5 layers** and **25,000 rows per layer** (20 MB per data fetch), with a small "OnlyMap by NIKA. Free for non-commercial use." badge in the corner. Exceeding a limit never breaks the map — the offending layer simply doesn't render, and the validation stream/error panel tells you exactly which limit, why, and how to lift it. Limits apply identically everywhere (including localhost — no dev/prod surprises).
+
+A license key lifts all limits and removes the badge:
+
+```html
+<om-map license-key="om_live_…">        <!-- keys are publishable & origin-restricted — safe in page source -->
+```
+```ts
+OmMap.configureLicense("om_live_…");     // or once, in code
+```
+
+Keys are self-verifying signed tokens (no network round-trip, works offline and in CI) bound to your domains. Licensing: https://www.nikaplanet.com/onlymap.
+
+## Telemetry
+
+The library reports one **deployment-scoped** usage snapshot per map per page load — layer types and counts, widget types, renderer; hostname only, no page URLs, no visitor identifiers, and `headless` (test) maps never report — plus errors caused by the library's own code (own-bundle stack filtering, scrubbed, rate-limited). Reports go to a first-party endpoint, never a third-party domain. Opt out globally with `OmMap.configureTelemetry({ disabled: true })` or per map with `telemetry="off"`. Full schema, rules, and the license disclosure: [docs/telemetry.md](docs/telemetry.md), LICENSE.md §11.
 
 ## Not implemented yet (honestly)
 
@@ -206,6 +227,6 @@ Mapbox GL basemaps, depth-interleaved 3D compositing, globe projection, SSE tran
 
 | | |
 |---|---|
-| [docs/react.md](docs/react.md) · [docs/basemaps.md](docs/basemaps.md) · [docs/testing.md](docs/testing.md) · [docs/live-data.md](docs/live-data.md) · [docs/3d-assets.md](docs/3d-assets.md) · [docs/stories.md](docs/stories.md) | Consumer guides |
+| [docs/react.md](docs/react.md) · [docs/basemaps.md](docs/basemaps.md) · [docs/testing.md](docs/testing.md) · [docs/live-data.md](docs/live-data.md) · [docs/3d-assets.md](docs/3d-assets.md) · [docs/stories.md](docs/stories.md) · [docs/telemetry.md](docs/telemetry.md) | Consumer guides |
 | [llms.txt](llms.txt) | The agent-facing quick reference |
 | `skills/onlymapjs` | Installable LLM skill for OnlyMapJS authoring |

@@ -36,6 +36,9 @@ Common attributes:
 - `basemap` — a free preset (`liberty`, `bright`, `positron`, `dark-matter`, `voyager`, `osm`; keyed `maptiler-streets|dataviz|satellite` with `basemap-key="…"` or `OmMap.configureBasemap({ maptilerKey })`), `maplibre` (bare demo style), a MapLibre style URL, or `none` (standalone canvas). The attribute is live: writing it switches the basemap in place (camera and layers survive). Register more with `OmMap.registerBasemap(name, { style })`.
 - `attribution="false"` to opt out of the automatic provider-attribution control (only if you render equivalent credits yourself)
 - `validate` to show live validation errors during authoring
+- `map-id="<random UUID>"` — identifies the map artifact for usage telemetry (not a visitor id). Include one on new complete pages, freshly generated — never copied from an example; deleting it is the opt-out.
+- `telemetry="off"` disables usage telemetry for this map (global: `OmMap.configureTelemetry({ disabled: true })`)
+- `license-key="om_live_…"` — lifts the free-plan limits (5 layers, 25k rows per layer) and removes the corner badge; publishable origin-restricted token, safe in page source (or `OmMap.configureLicense(key)` once). Free-plan violations don't break the map: the offending layer isn't rendered and validation names the limit.
 - `headless width="800" height="600"` for test harness use
 
 Example:
@@ -180,6 +183,7 @@ Built-ins:
 - `vega-lite`
 - `player`
 - `basemap-switcher` — radio list of presets; `options="positron dark-matter osm"` (default: every keyless registered preset)
+- `undo-redo` — undo/redo buttons over the manifest history (layer toggles, filters, basemap switches, element edits, drawn sketches). Keyboard works without the widget: Cmd/Ctrl-Z, Shift-Cmd/Ctrl-Z, Ctrl-Y. Camera moves, hover effects, and story playback are not undo steps.
 
 Positions: `top-left`, `top-right`, `bottom-left`, `bottom-right`.
 
@@ -215,7 +219,10 @@ Widget context:
 - `ctx.stats(id, field, { scope: "viewport" })`
 - `ctx.selection`
 - `ctx.viewport`
+- `ctx.history` — `{ canUndo, canRedo }`; re-render on changes via the `history` watch token
 - `ctx.emit(action, payload)`
+
+Watch tokens: `data:<layerId>`, `viewport`, `selection`, `layers` (fires on layer add/remove, visibility, and filter changes), `basemap`, `history`.
 
 Use `this.$()` and `this.root`; widgets render in shadow DOM.
 
@@ -278,6 +285,7 @@ Common built-in actions:
 - `zoom-to-feature`
 - `filter-layer`
 - `set-basemap` — payload `{ basemap }`; writes the `<om-map basemap>` attribute
+- `undo`, `redo` — step the manifest history (no payload)
 - `zoom-in`, `zoom-out`
 - `fly-to`
 - story actions: `story-play`, `story-pause`, `story-seek`
