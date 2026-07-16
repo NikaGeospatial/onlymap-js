@@ -23,7 +23,7 @@ Use OnlyMapJS as a declarative HTML map library. Write custom elements such as `
 </script>
 ```
 
-For no-build CDN examples, use a published module URL such as `https://esm.sh/@nika-js/onlymap@0.2.3`.
+For no-build CDN examples, use a published module URL such as `https://esm.sh/@nika-js/onlymap@0.3.0`.
 
 ## React Projects
 

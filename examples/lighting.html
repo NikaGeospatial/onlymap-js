@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<!--
+  Scene lighting example (spec: "Scene Lighting").
+  Extruded GeoJSON "buildings" under the lighting* attributes: the map
+  starts in `daylight` (bright sun, strong directional shading); the
+  NATIVE lighting widget swaps presets and tunes ambient/sun/azimuth/
+  elevation/camera live, and the sun-date button drives a solar-position
+  sun (shadow-study mode) — all attribute writes through set-lighting,
+  so every change is undoable (Cmd/Ctrl-Z) and DOM-inspectable.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — scene lighting example</title>
+  <script type="module" src="https://esm.sh/@nika-js/onlymap@0.3.0"></script>
+  <link rel="stylesheet" href="nav.css" />
+</head>
+<body>
+
+  <header class="nav">
+    <strong>OnlyMapJS examples</strong>
+    <a href="index.html">Overview</a>
+    <a href="widgets.html">Widgets</a>
+    <a href="scenegraph.html">3D models</a>
+    <a href="lighting.html" class="current">Scene lighting</a>
+    <a href="story.html">Map story</a>
+  </header>
+
+  <om-map center="[-122.399, 37.79]" zoom="15.5" pitch="55" bearing="20" basemap="positron"
+          lighting="daylight">
+
+    <om-layer id="blocks" type="GeoJsonLayer" label="City blocks" color="#8ca6cc"
+                extruded filled stroked="false" wireframe="false"
+                get-elevation="$height"
+                get-fill-color="'#a8bdd6'"
+                pickable>
+      <script type="application/json">
+        { "type": "FeatureCollection", "features": [
+          { "type": "Feature", "properties": { "name": "Alpha Tower", "height": 180 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.4005, 37.7896], [-122.3997, 37.7894], [-122.3995, 37.7901], [-122.4003, 37.7903], [-122.4005, 37.7896]]] } },
+          { "type": "Feature", "properties": { "name": "Beta Block", "height": 90 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.3990, 37.7890], [-122.3981, 37.7888], [-122.3979, 37.7895], [-122.3988, 37.7897], [-122.3990, 37.7890]]] } },
+          { "type": "Feature", "properties": { "name": "Gamma Slab", "height": 140 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.3999, 37.7906], [-122.3990, 37.7904], [-122.3988, 37.7911], [-122.3997, 37.7913], [-122.3999, 37.7906]]] } },
+          { "type": "Feature", "properties": { "name": "Delta Annex", "height": 45 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.3984, 37.7900], [-122.3975, 37.7898], [-122.3973, 37.7905], [-122.3982, 37.7907], [-122.3984, 37.7900]]] } }
+        ] }
+      </script>
+    </om-layer>
+
+    <!-- The native lighting widget: preset radios + tuning sliders, all
+         routed through set-lighting attribute writes — story steps / undo /
+         hand edits / agent edits behave identically and re-sync it. -->
+    <om-widget type="lighting" position="top-right"></om-widget>
+
+    <!-- sun-date is action-payload territory (shadow studies) — a plain
+         data-emit button covers it; a bare-preset click resets it. -->
+    <om-widget position="top-left">
+      <button style="font:12px system-ui;" data-emit="set-lighting" data-lighting="daylight" data-sun-date="2026-12-21T16:30:00Z">Winter dusk (sun-date)</button>
+    </om-widget>
+
+    <om-widget type="legend" position="bottom-right"></om-widget>
+    <om-behavior on="hover" layer="blocks" action="show-tooltip" template="#block-tooltip"></om-behavior>
+
+  </om-map>
+
+  <template id="block-tooltip">
+    <div style="background:#222; color:#fff; padding:4px 8px; border-radius:4px; font:12px system-ui, sans-serif;">
+      <b>{{name}}</b> — {{height}} m
+    </div>
+  </template>
+
+</body>
+</html>

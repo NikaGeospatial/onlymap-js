@@ -74,6 +74,87 @@
           ]
         },
         {
+          "name": "lighting",
+          "description": "Scene lighting preset for 3D content — seeds ambient/sun/camera values that lighting-* attributes override. Absent = deck.gl default lights.",
+          "values": [
+            {
+              "name": "daylight"
+            },
+            {
+              "name": "studio"
+            },
+            {
+              "name": "flat"
+            },
+            {
+              "name": "custom"
+            }
+          ]
+        },
+        {
+          "name": "lighting-ambient",
+          "description": "Ambient light intensity (always-on fill), e.g. 0.9."
+        },
+        {
+          "name": "lighting-sun",
+          "description": "Sun (directional light) intensity; 0 removes the sun."
+        },
+        {
+          "name": "lighting-sun-azimuth",
+          "description": "Sun compass bearing, degrees clockwise from north [0, 360)."
+        },
+        {
+          "name": "lighting-sun-elevation",
+          "description": "Sun height above the horizon, degrees [0, 90]."
+        },
+        {
+          "name": "lighting-sun-date",
+          "description": "ISO 8601 or epoch ms — computes the sun's azimuth/elevation from solar position at the map center (shadow studies). Overrides azimuth/elevation."
+        },
+        {
+          "name": "lighting-camera",
+          "description": "Camera-following fill light intensity (model inspection); 0 removes it."
+        },
+        {
+          "name": "terrain",
+          "description": "3D elevation surface: a registered terrain preset, a {z}/{x}/{y} DEM URL (needs terrain-decoder), or \"off\". Replaces an active basemap while on. Geographic layers drape by default (per-layer terrain attribute overrides).",
+          "values": [
+            {
+              "name": "off"
+            },
+            {
+              "name": "terrarium"
+            },
+            {
+              "name": "maptiler-terrain"
+            }
+          ]
+        },
+        {
+          "name": "terrain-decoder",
+          "description": "DEM RGB decoder: \"terrarium\", \"mapbox-rgb\", or {rScaler,gScaler,bScaler,offset} JSON. Required for raw DEM URLs; presets carry their own.",
+          "values": [
+            {
+              "name": "terrarium"
+            },
+            {
+              "name": "mapbox-rgb"
+            }
+          ]
+        },
+        {
+          "name": "terrain-exaggeration",
+          "description": "Vertical relief multiplier, applied in the DEM decoder; 1 = true relief."
+        },
+        {
+          "name": "terrain-max-zoom",
+          "description": "DEM tileset zoom cap — the provider's REAL limit (a too-high cap requests 404 tiles and blanks the terrain)."
+        },
+        {
+          "name": "terrain-texture",
+          "description": "Optional {z}/{x}/{y} imagery template draped over the surface (satellite, etc.)."
+        },
+        {
           "name": "validate",
           "description": "Run manifest validation and show the on-page error panel."
         },
@@ -288,6 +369,21 @@
           "description": "Feature id to highlight (set by the highlight-feature action)."
         },
         {
+          "name": "terrain",
+          "description": "Behavior under an active map terrain: drape onto the surface, offset (sit on it — the 3D-model default), or off. Absent = the type default.",
+          "values": [
+            {
+              "name": "drape"
+            },
+            {
+              "name": "offset"
+            },
+            {
+              "name": "off"
+            }
+          ]
+        },
+        {
           "name": "key",
           "description": "Stream entity identity field — messages upsert by this key (wss data)."
         },
@@ -346,6 +442,34 @@
         {
           "name": "get-line-width",
           "description": "Accessor for deck.gl getLineWidth — expression language: $field, scale(), arithmetic."
+        },
+        {
+          "name": "get-point-radius",
+          "description": "Accessor for deck.gl getPointRadius — expression language: $field, scale(), arithmetic."
+        },
+        {
+          "name": "point-radius-units",
+          "description": "deck.gl pointRadiusUnits."
+        },
+        {
+          "name": "point-radius-min-pixels",
+          "description": "deck.gl pointRadiusMinPixels."
+        },
+        {
+          "name": "line-width-units",
+          "description": "deck.gl lineWidthUnits."
+        },
+        {
+          "name": "get-elevation",
+          "description": "Accessor for deck.gl getElevation — expression language: $field, scale(), arithmetic."
+        },
+        {
+          "name": "extruded",
+          "description": "deck.gl extruded."
+        },
+        {
+          "name": "wireframe",
+          "description": "deck.gl wireframe."
         },
         {
           "name": "get-text",
@@ -596,10 +720,6 @@
           "description": "deck.gl elevationScale."
         },
         {
-          "name": "line-width-units",
-          "description": "deck.gl lineWidthUnits."
-        },
-        {
           "name": "line-width-scale",
           "description": "deck.gl lineWidthScale."
         },
@@ -608,20 +728,8 @@
           "description": "deck.gl lineWidthMaxPixels."
         },
         {
-          "name": "extruded",
-          "description": "deck.gl extruded."
-        },
-        {
-          "name": "wireframe",
-          "description": "deck.gl wireframe."
-        },
-        {
           "name": "flat-shading",
           "description": "deck.gl flatShading."
-        },
-        {
-          "name": "get-elevation",
-          "description": "Accessor for deck.gl getElevation — expression language: $field, scale(), arithmetic."
         },
         {
           "name": "material",
@@ -868,16 +976,8 @@
           "description": "deck.gl pointRadiusMaxPixels."
         },
         {
-          "name": "point-radius-min-pixels",
-          "description": "deck.gl pointRadiusMinPixels."
-        },
-        {
           "name": "point-radius-scale",
           "description": "deck.gl pointRadiusScale."
-        },
-        {
-          "name": "point-radius-units",
-          "description": "deck.gl pointRadiusUnits."
         },
         {
           "name": "point-antialiasing",
@@ -886,10 +986,6 @@
         {
           "name": "point-billboard",
           "description": "deck.gl pointBillboard."
-        },
-        {
-          "name": "get-point-radius",
-          "description": "Accessor for deck.gl getPointRadius — expression language: $field, scale(), arithmetic."
         },
         {
           "name": "icon-size-max-pixels",
@@ -1434,6 +1530,12 @@
               "name": "set-basemap"
             },
             {
+              "name": "set-lighting"
+            },
+            {
+              "name": "set-terrain"
+            },
+            {
               "name": "undo"
             },
             {
@@ -1490,6 +1592,9 @@
               "name": "basemap-switcher"
             },
             {
+              "name": "lighting"
+            },
+            {
               "name": "undo-redo"
             }
           ]
@@ -1514,7 +1619,7 @@
         },
         {
           "name": "watch",
-          "description": "Space-separated watch tokens: viewport, selection, layers, data:<layerId>."
+          "description": "Space-separated watch tokens: viewport, selection, layers, history, basemap, lighting, terrain, data:<layerId>."
         },
         {
           "name": "layer",
@@ -1706,6 +1811,12 @@
             },
             {
               "name": "set-basemap"
+            },
+            {
+              "name": "set-lighting"
+            },
+            {
+              "name": "set-terrain"
             },
             {
               "name": "undo"

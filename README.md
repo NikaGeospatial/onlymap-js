@@ -65,9 +65,9 @@ Or with no build step at all, straight from a CDN:
 <script type="module" src="https://esm.sh/@nika-js/onlymap"></script>
 ```
 
-Then `npx @nika-js/onlymap init` wires up VS Code IntelliSense and `!`-prefixed manifest snippets for your project. The library ships with 366 unit/behavioral tests and 21 Playwright GPU tests.
+Then `npx @nika-js/onlymap init` wires up VS Code IntelliSense and `!`-prefixed manifest snippets for your project. The library ships with 437 unit/behavioral tests and 25 Playwright GPU tests.
 
-The [examples](https://github.com/NikaGeospatial/onlymapjs/tree/main/examples) are the best tour: widgets, behaviors & overlays, basemaps, columnar/Arrow data, manual drawing, 3D models, a live WebSocket ship feed, and a polled driver fleet.
+The [examples](https://github.com/NikaGeospatial/onlymapjs/tree/main/examples) are the best tour: widgets, behaviors & overlays, basemaps, columnar/Arrow data, manual drawing, 3D models, scene lighting (with the native lighting widget), DEM terrain, a live WebSocket ship feed, and a polled driver fleet.
 
 ## The manifest
 
@@ -77,7 +77,7 @@ A handful of elements, one rule: **attributes are kebab-case versions of deck.gl
 |---|---|
 | `<om-map>` | The map. `center`, `zoom`, `pitch`, `bearing`; `basemap` takes a free preset (`positron`, `liberty`, `dark-matter`, `osm`, …), a style URL, or `"none"` (standalone canvas) — and switches **live**; `validate` for a live on-page error panel. |
 | `<om-layer>` | Any of **33 layer types** by name — all of deck.gl's core, geo, aggregation, and mesh layers (Scatterplot, GeoJson, Arc, Path, Heatmap, Hexagon, Trips, Tile, Tile3D, Scenegraph, …) plus the built-in `PopupLayer` for WebGL badges/labels at scale. `id` required; `label`/`color` feed the legend. |
-| `<om-widget>` | UI panels. Built-ins: `legend`, `layer-switcher`, `basemap-switcher`, `zoom-controls`, `undo-redo`, `scale-bar`, `attribution`, `filter`, `draw`, `vega-lite` (live charts). Or write your own inline with HTML + a `<script type="om/widget">`. |
+| `<om-widget>` | UI panels. Built-ins: `legend`, `layer-switcher`, `basemap-switcher`, `lighting`, `zoom-controls`, `undo-redo`, `scale-bar`, `attribution`, `filter`, `draw`, `vega-lite` (live charts). Or write your own inline with HTML + a `<script type="om/widget">`. |
 | `<om-overlay>` | Rich HTML anchored to a map location — a static `anchor="[lng, lat]"`, the current selection, or a feature's own geometry via `anchor-layer`/`anchor-feature-id`. `{{field}}` interpolates the picked feature, HTML-escaped by default. |
 | `<om-behavior>` | Declarative interactions: `on="click|hover|drag|load|data-loaded"` → a named action. |
 | `<om-story>` | A storyboard: `<om-step>` children fire actions on a timeline. Controlled by the `player` widget, behaviors, or `storyEl.play()/pause()/seek()`. |
@@ -212,13 +212,14 @@ Plus `OmMap.snapshotIR(html)` to lock down what a manifest *means* in a snapshot
 
 ## 3D
 
-`ScenegraphLayer` instances glTF/GLB models at coordinates (no three.js, no loader wiring), `Tile3DLayer` consumes OGC 3D Tiles, and the camera tilts via `pitch`/`bearing` attributes. Converting IFC/CAD upstream: [docs/3d-assets.md](docs/3d-assets.md).
+`ScenegraphLayer` instances glTF/GLB models at coordinates (no three.js, no loader wiring), `Tile3DLayer` consumes OGC 3D Tiles, `GeoJsonLayer` extrudes polygons (`extruded get-elevation="$height"`), and the camera tilts via `pitch`/`bearing` attributes. Terrain is one attribute: `<om-map terrain="terrarium">` raises a real DEM surface (keyless AWS tiles; `maptiler-terrain` keyed; or a bring-your-own `{z}/{x}/{y}` DEM URL + `terrain-decoder`), geographic layers drape onto it automatically (per-layer `terrain="drape|offset|off"` overrides; 3D models sit ON the surface), `terrain-exaggeration` scales the relief, and `terrain-texture` drapes imagery. Terrain replaces an active basemap while on (flat canvas vs raised surface) and restores it when off. Scene lighting is declarative: `<om-map lighting="daylight">` (presets `daylight`/`studio`/`flat`/`custom`, tuned via `lighting-ambient`, `lighting-sun`, `lighting-sun-azimuth`/`-elevation`, or `lighting-sun-date` for a solar-position sun) — attribute-backed, so lighting changes are undoable and story-steppable via the `set-lighting` action. `<om-widget type="lighting">` gives users native preset radios + tuning sliders over the same attributes. Converting IFC/CAD upstream: [docs/3d-assets.md](docs/3d-assets.md).
 
 ## Programmatic surface
 
 - **`OmMap.*`** — `validate`, `snapshotIR`, `registerLayer`, `registerWidget`, `registerAction`, `registerSource`, `registerFormat`, `registerBasemap`, `configureBasemap`, `configureData`, `configureTelemetry`, `configureLicense`, `getLayerSchema`
-- **On a `<om-map>` element** — `ready` (promise), `flyTo(coords, zoom?)`, `setLayerVisible(id, bool)`, `getLayers()`, `emit(action, payload)`; `document.querySelector("om-map")` is fully typed
-- **`MapController`** — the framework-grade programmatic front-end (typed `LayerDescriptor`s → the same reconcile core, no DOM manifest): `setLayers`, `watch`, `emit`, camera methods, `injectPick`, `ready`. The React adapter rides it; usable directly from vanilla TS or other frameworks
+- **`@nika-js/onlymap/deck`** — the bundled deck.gl classes (`CompositeLayer`, `TileLayer`, …) for building custom layer types: shims must extend the same class hierarchy the core renders with, not a second installed deck.gl copy. Recipe: [docs/custom-layers.md](docs/custom-layers.md)
+- **On a `<om-map>` element** — `ready` (promise), `flyTo(coords, zoom?)`, `setLayerVisible(id, bool)`, `getLayers()`, `emit(action, payload)`, `snapshot(opts?)` (canvas-only PNG of basemap + layers at device pixels — DOM widgets/overlays and provider attribution are NOT captured, so exports must render credits themselves; `{as: "blob"}` for files, default dataURL); the `om-view-changed` event fires once the camera settles (debounced; `detail` = `{longitude, latitude, zoom, pitch, bearing}`) — the camera-persistence hook; `document.querySelector("om-map")` is fully typed
+- **`MapController`** — the framework-grade programmatic front-end (typed `LayerDescriptor`s → the same reconcile core, no DOM manifest): `setLayers`, `watch`, `emit`, camera methods, `injectPick`, `ready`, `snapshot`, an `onViewChange` option (the `om-view-changed` twin). The React adapter rides it; usable directly from vanilla TS or other frameworks
 - **Testing** — `mountForTest`, and imports are SSR-safe (importing in Node/jsdom never touches browser globals)
 
 ## Free tier & licensing

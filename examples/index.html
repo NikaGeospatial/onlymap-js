@@ -2,7 +2,7 @@
 <!--
   Runnable examples — unlike ../../examples/ (aspirational spec-consistency
   docs pointing at a CDN package and fictional data), these load the live
-  dev source (https://esm.sh/@nika-js/onlymap@0.2.3) and the real datasets in ../data/, so you
+  dev source (https://esm.sh/@nika-js/onlymap@0.3.0) and the real datasets in ../data/, so you
   can actually open and click through them. Same shared nav bar on every
   page for quick switching; this page is just the landing/overview.
 -->
@@ -31,6 +31,8 @@
     <a href="columnar.html">Columnar / GeoArrow</a>
     <a href="draw.html">Draw</a>
     <a href="scenegraph.html">3D models</a>
+    <a href="lighting.html">Scene lighting</a>
+    <a href="terrain.html">Terrain</a>
     <a href="google-3d-tiles.html">Google 3D Tiles</a>
     <a href="google-3d-flyby.html">3D Flyby</a>
     <a href="ais.html">Live AIS</a>
@@ -41,7 +43,7 @@
 
   <main>
     <h1>OnlyMapJS examples</h1>
-    <p>Each page below is a real, runnable manifest — open it, pan/zoom/click around. They import the library straight from source (<code>https://esm.sh/@nika-js/onlymap@0.2.3</code>), the same way <code>dev/index.html</code> does, so they always reflect the current implementation.</p>
+    <p>Each page below is a real, runnable manifest — open it, pan/zoom/click around. They import the library straight from source (<code>https://esm.sh/@nika-js/onlymap@0.3.0</code>), the same way <code>dev/index.html</code> does, so they always reflect the current implementation.</p>
 
     <a class="card" href="widgets.html">
       <h3>Widgets</h3>
@@ -66,6 +68,14 @@
     <a class="card" href="scenegraph.html">
       <h3>3D models</h3>
       <p>GLB models instanced on the basemap via ScenegraphLayer — the browser half of an IFC/CAD asset pipeline, no three.js required.</p>
+    </a>
+    <a class="card" href="lighting.html">
+      <h3>Scene lighting</h3>
+      <p>Extruded buildings under the lighting* attributes — the native lighting widget swaps presets and tunes ambient/sun/azimuth live; a sun-date button drives a solar-position sun. Every change is undoable.</p>
+    </a>
+    <a class="card" href="terrain.html">
+      <h3>Terrain</h3>
+      <p>The keyless AWS terrarium DEM raises Yosemite in 3D; vector layers drape onto the surface automatically, with per-layer drape/offset/off control and live exaggeration.</p>
     </a>
     <a class="card" href="google-3d-tiles.html">
       <h3>Google 3D Tiles</h3>
