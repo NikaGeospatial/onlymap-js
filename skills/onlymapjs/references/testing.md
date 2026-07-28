@@ -93,7 +93,7 @@ Harness operations:
 
 Use `vi.stubGlobal("fetch", ...)` for URL data and `vi.stubGlobal("WebSocket", ...)` for streams.
 
-Free-plan license gates (5 layers, 25k rows per layer) apply in headless tests exactly as in production — gated layers emit errors on the validation stream instead of rendering. If the page under test legitimately exceeds the limits, call `OmMap.configureLicense("om_live_…")` in test setup; keys verify offline, so CI needs no network. Telemetry never fires from headless maps.
+Free-plan license gates (5 layers, 25k rows per layer) apply in headless tests exactly as in production, and emit errors on the validation stream either way: a layer past the LAYER cap doesn't render at all, while a layer past the ROW cap renders its first 25,000 rows in source order — so assert on row counts, not on emptiness. (The dismissible on-map notice that accompanies truncation is browser-only chrome; headless never mounts it.) If the page under test legitimately exceeds the limits, call `OmMap.configureLicense("om_live_…")` in test setup; keys verify offline, so CI needs no network. Telemetry never fires from headless maps.
 
 ## Layout Audit
 

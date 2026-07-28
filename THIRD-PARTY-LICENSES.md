@@ -168,7 +168,7 @@ hand.
 | pbf | 3.3.0 | BSD-3-Clause |
 | potpack | 2.1.0 | ISC |
 | process-nextick-args | 2.0.1 | MIT |
-| proj4 | 2.6.2 | MIT |
+| proj4 | 2.20.9 | MIT |
 | protocol-buffers-schema | 3.6.1 | MIT |
 | quickselect | 3.0.0 | ISC |
 | readable-stream | 2.3.8 | MIT |
@@ -7210,7 +7210,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.**
 ```
 
-## proj4@2.6.2 (MIT)
+## proj4@2.20.9 (MIT)
 
 ```
 ## Proj4js -- Javascript reprojection library. 

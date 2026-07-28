@@ -24,6 +24,8 @@ Always include `onlymapjs.css` — it carries the MapLibre basemap styles and th
 
 ## Elements
 
+
+
 ### `<om-map>`
 
 Root element. Children are layers, widgets, overlays, behaviors, stories, and an optional fallback.
@@ -39,7 +41,7 @@ Common attributes:
 - `validate` to show live validation errors during authoring
 - `map-id="<random UUID>"` — identifies the map artifact for usage telemetry (not a visitor id). Include one on new complete pages, freshly generated — never copied from an example; deleting it is the opt-out.
 - `telemetry="off"` disables usage telemetry for this map (global: `OmMap.configureTelemetry({ disabled: true })`)
-- `license-key="om_live_…"` — lifts the free-plan limits (5 layers, 25k rows per layer) and removes the corner badge; publishable origin-restricted token, safe in page source (or `OmMap.configureLicense(key)` once). Free-plan violations don't break the map: the offending layer isn't rendered and validation names the limit.
+- `license-key="om_live_…"` — lifts the free-plan limits (5 layers, 25k rows per layer — a layer past the layer cap doesn't render, a layer past the row cap renders its first 25k rows plus a dismissible on-map notice) and removes the corner badge; publishable origin-restricted token, safe in page source (or `OmMap.configureLicense(key)` once). Free-plan violations don't break the map: the offending layer isn't rendered and validation names the limit.
 - `terrain="terrarium|<preset>|<{z}/{x}/{y} DEM URL>|off"` — 3D elevation surface. `terrarium` is keyless (AWS); `maptiler-terrain` needs `basemap-key`/`configureBasemap`; raw DEM URLs need `terrain-decoder` (`terrarium`, `mapbox-rgb`, or `{rScaler,gScaler,bScaler,offset}` JSON). `terrain-exaggeration` scales relief (1 = true); `terrain-max-zoom` = the provider's REAL tileset cap; `terrain-texture` drapes a `{z}/{x}/{y}` imagery template. Geographic layers drape automatically; per-layer `terrain="drape|offset|off"` overrides (3D-model layers default to `offset`). Terrain REPLACES an active basemap while on (restored when off) — validation warns. Register presets with `OmMap.registerTerrain(name, {...})`; `set-terrain` action + `terrain` watch token; attribute-backed (undoable).
 - `lighting="daylight|studio|flat|custom"` — scene lighting for 3D content (extruded polygons, models); absent = deck defaults. Preset seeds values; `lighting-ambient`, `lighting-sun` (intensity; 0 removes the sun), `lighting-sun-azimuth` (° CW from north), `lighting-sun-elevation` (° above horizon), `lighting-camera` (model-inspection fill) override individual fields; `lighting-sun-date` (ISO 8601 or epoch ms) computes the sun from solar position at the map center and wins over azimuth/elevation. Attribute-backed: changes are undoable, and the `set-lighting {lighting, sunAzimuth, …}` action makes lighting story-steppable (`lighting="default"` removes the whole attribute set; a bare preset is a clean reset). `<om-widget type="lighting">` is the native UI. Widget scripts can `watch = ["lighting"]`.
 - `widgets-dim="off"` disables collision-dim — by default a widget slot dims (`--om-widget-opacity-dimmed`, 0.35) while an open `<om-overlay>` popup covers it, rather than the popup dodging (attribution/toggle slots never dim).
@@ -57,6 +59,8 @@ Example:
 </om-map>
 ```
 
+
+
 ### `<om-layer>`
 
 Declares a deck.gl layer. Required: `id`, `type`.
@@ -68,7 +72,7 @@ Core attributes:
 - `data="./points.json"` — URL, stream, draw store, or omit for inline JSON.
 - `label="Earthquakes"` and `color="#b30000"` — legend metadata.
 - `pickable` — enable click/hover behaviors.
-- `visible="false"` or `opacity="0"` — initial visibility/opacity.
+- `visible="false"` or `opacity="0"` — initial visibility/opacity.w
 
 Accessors:
 
@@ -98,6 +102,8 @@ Filtering:
 filter-field="magnitude" filter-range="[4, 10]"
 ```
 
+
+
 ### Built-In Layer Types
 
 Use the `type` value exactly:
@@ -113,6 +119,8 @@ Common choices:
 - Tiles: `TileLayer`, `MVTLayer`, `Tile3DLayer`.
 - 3D models: `ScenegraphLayer`, `SimpleMeshLayer`, `PointCloudLayer`, `Tile3DLayer`.
 - GeoTIFF/COG rasters: `COGLayer`.
+
+
 
 ### COGLayer (GeoTIFF / COG rasters)
 
@@ -133,20 +141,56 @@ External layer classes become manifest types via `OmMap.registerLayer({type, dec
 
 ### Data Sources
 
-| Source | Manifest | Notes |
-|---|---|---|
-| JSON / GeoJSON URL | `data="./points.json"` | Arrays or FeatureCollections. |
-| Inline JSON | child `<script type="application/json">` | Good for tests/demos. |
-| Columnar JSON | `{"columns": {"lon": [...], "lat": [...]}}` | Fast point path. |
-| CSV / TSV | `data="./quakes.csv"` | Parsed to typed columns. |
-| Arrow / GeoArrow IPC | `data="./big.arrow"` | Points stay columnar; lines/polygons become GeoJSON features. |
-| Shapefile | `data="./countries.shp"` | Loads sidecars and joins `.dbf` attributes. |
-| KML | `data="./tour.kml"` | Placemarks become GeoJSON features. |
-| WebSocket | `data="wss://feed" key="id" flush="250ms" source="decoder"` | Upsert-by-key stream. |
-| Polling | `data="/api/fleet.json" refresh="5s"` | Snapshot replace. |
-| Draw store | `data="draw:sketch"` | Written by draw widget. |
+
+| Source               | Manifest                                                    | Notes                                                         |
+| -------------------- | ----------------------------------------------------------- | ------------------------------------------------------------- |
+| JSON / GeoJSON URL   | `data="./points.json"`                                      | Arrays or FeatureCollections.                                 |
+| Inline JSON          | child `<script type="application/json">`                    | Good for tests/demos.                                         |
+| Columnar JSON        | `{"columns": {"lon": [...], "lat": [...]}}`                 | Fast point path.                                              |
+| CSV / TSV            | `data="./quakes.csv"`                                       | Parsed to typed columns.                                      |
+| Arrow / GeoArrow IPC | `data="./big.arrow"`                                        | Points stay columnar; lines/polygons become GeoJSON features. |
+| Shapefile            | `data="./countries.shp"`                                    | Loads sidecars and joins `.dbf` attributes.                   |
+| KML                  | `data="./tour.kml"`                                         | Placemarks become GeoJSON features.                           |
+| CityJSON             | `data="./tile.city.json"`                                   | 3D city models → extruded footprints, or `?om-surfaces=1` for real per-face roof geometry; see below. |
+| CityJSONSeq          | `data="./tile.city.jsonl"`                                  | Same, streamed line by line as it downloads.                  |
+| WebSocket            | `data="wss://feed" key="id" flush="250ms" source="decoder"` | Upsert-by-key stream.                                         |
+| Polling              | `data="/api/fleet.json" refresh="5s"`                       | Snapshot replace.                                             |
+| Draw store           | `data="draw:sketch"`                                        | Written by draw widget.                                       |
+
 
 Data URLs accept any scheme the runtime's `fetch` supports — desktop webviews (Tauri, Electron) pass asset-protocol URLs (`asset://localhost/…`, custom schemes) straight in; format detection reads the path extension either way.
+
+CityJSON (3DBAG, PLATEAU, swisstopo) decodes to one of two shapes, chosen by the `data` URL — there is no CityJSON layer type:
+
+```html
+<!-- Default: one GeoJSON footprint per CityObject, extruded to a single
+     derived height. Lit, terrain-aware; can't show a pitched roof's shape. -->
+<om-layer id="buildings" type="GeoJsonLayer" data="./tile.city.json"
+          extruded get-elevation="$roof_height"
+          get-fill-color="$b3_dak_type == 'slanted' ? '#d6604d' : '#4393c3'"
+          pickable></om-layer>
+
+<!-- ?om-surfaces=1: one row per FACE, each at its own real height — a
+     pitched LoD2.2 roof actually looks pitched. Flat-shaded (unlit). NO
+     get-fill-color needed: SolidPolygonLayer defaults it to a `fill_color`
+     field the decoder populates with a ninja-viewer-style palette. -->
+<om-layer id="roofs" type="SolidPolygonLayer" data="./tile.city.json?om-surfaces=1"
+          get-polygon="$polygon" full3d
+          pickable></om-layer>
+
+<!-- Surfaces mode is unlit, so face edges are invisible without this: a
+     companion PathLayer tracing the decoder's `outline` field (the same
+     face, flattened to a closed 2D path). ALWAYS pair one with the
+     SolidPolygonLayer above in surfaces mode — SolidPolygonLayer's own
+     `wireframe` prop is a no-op here (deck only builds wireframe geometry
+     when `extruded: true`). Match filter-field/filter-range to the fill
+     layer so filtered-out buildings' outlines disappear too. -->
+<om-layer id="roof-outlines" type="PathLayer" data="./tile.city.json?om-surfaces=1"
+          get-path="$outline" get-color="[0, 0, 0]" width-min-pixels="1"
+          pickable="false"></om-layer>
+```
+
+Derived properties (these win over same-named source attributes, present in both modes): `roof_height` (area-weighted mean roof height above ground — the one to extrude by in the default mode), `eaves_height`, `ridge_height`, `ground_height`, `roof_area` (true 3D m²), `surface_count`, `lod`, `cityobject_id`, `cityobject_type`, `parent_id`. Surfaces-mode rows add `polygon` (this face's rings, `[[lng, lat, elevation], …]` — bind `get-polygon` to it), `outline` (same face's outer ring only, flattened and closed — bind a `PathLayer`'s `get-path` to it for visible edges, per above), `surface_type` (`"RoofSurface"` / `"WallSurface"` / `"GroundSurface"` / undefined), and `fill_color` — a default color per surface_type/cityobject_type (RoofSurface red, WallSurface white, Building blue, WaterBody light blue, …), verified against the actual default palette `cityjson-threejs-loader` (the engine behind the ninja reference viewer) ships. `SolidPolygonLayer`'s `get-fill-color` reads `$fill_color` automatically when left unauthored — zero color attributes needed for a reasonable render — and an authored `get-fill-color` (or a plain `color="…"`) still overrides it, same as any layer. Every source attribute survives, with a parent `Building`'s attributes inherited by its `BuildingPart` rows. National grids (NL 28992/7415, CH 2056, DE 25832/25833/5555/5556, JP 6668/6697/6669–6687, AT 31254/31255/31256, SG 3414) reproject automatically, axis order included; any other EPSG code fails with an error naming it. The highest LoD is used — pin one with `?om-lod=1.2` (combine as `?om-lod=1.2&om-surfaces=1`). `?om-surfaces=1` is flat-shaded — deck's solid-polygon shader only lights `extruded` geometry; it also costs roughly 30× the rows (one per face, not per building), so it reaches the free tier's 25k-row cap at a few hundred buildings where the footprint mode would not — past which the layer renders its first 25k rows (a partial scene, with an on-map notice) rather than going blank. See `docs/3d-assets.md`.
 
 Authenticated fetches:
 
@@ -172,6 +216,8 @@ OmMap.registerSource("fleet", {
   decode: (msg) => msg.type === "position" ? { id: msg.id, lon: msg.lon, lat: msg.lat } : null
 });
 ```
+
+
 
 ### Accessor Blocks
 
@@ -291,6 +337,8 @@ Example:
 <om-behavior on="click" layer="quakes" action="show-overlay" target="detail"></om-behavior>
 ```
 
+
+
 ### `<om-fallback>`
 
 Static content shown only where scripts never run — chat-app/email file previews (iOS QuickLook), file managers, sandboxed webviews. Hidden automatically once the map boots. Good practice on every complete page, especially one that may be shared as a file.
@@ -310,6 +358,8 @@ Example:
      Open this file in a web browser, or visit <a href="https://example.com/map">the hosted version</a>.</p>
 </om-fallback>
 ```
+
+
 
 ### `<om-behavior>`
 
@@ -340,6 +390,8 @@ Example:
 ```html
 <om-behavior on="click" layer="regions" action="zoom-to-feature" duration="1200ms"></om-behavior>
 ```
+
+
 
 ### Stories
 
@@ -425,3 +477,4 @@ For 3D Tiles LOD/refinement experiments, use:
             maximum-memory-usage="256"
             view-distance-scale="0.85"></om-layer>
 ```
+

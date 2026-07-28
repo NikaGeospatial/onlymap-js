@@ -789,6 +789,14 @@
           "description": "deck.gl pointType."
         },
         {
+          "name": "get-polygon",
+          "description": "Accessor for deck.gl getPolygon — expression language: $field, scale(), arithmetic."
+        },
+        {
+          "name": "full3d",
+          "description": "deck.gl _full3d."
+        },
+        {
           "name": "get-subtext",
           "description": "Accessor for deck.gl getSubtext — expression language: $field, scale(), arithmetic."
         },
@@ -1053,14 +1061,6 @@
           "description": "deck.gl _windingOrder."
         },
         {
-          "name": "get-polygon",
-          "description": "Accessor for deck.gl getPolygon — expression language: $field, scale(), arithmetic."
-        },
-        {
-          "name": "_full3d",
-          "description": "deck.gl _full3d."
-        },
-        {
           "name": "background",
           "description": "deck.gl background."
         },
@@ -1207,6 +1207,10 @@
         {
           "name": "visible-max-zoom",
           "description": "deck.gl visibleMaxZoom."
+        },
+        {
+          "name": "_full3d",
+          "description": "deck.gl _full3d."
         },
         {
           "name": "unique-id-property",

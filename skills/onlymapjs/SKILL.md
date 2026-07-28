@@ -69,6 +69,7 @@ Load the smallest reference needed for the task:
 - Keep mobile chrome usable -> rely on the default map-width auto-fold into per-side drawers; mark only essential controls `fold="never"`. Use `widgets-fold="off"` only when the user explicitly wants fixed wide-layout chrome.
 - Group adjacent map buttons (zoom + undo + toggle into one control group) -> just place compact button widgets in the same `position` slot; they auto-cluster. `cluster="false"` opts one out. Do NOT build a wrapper widget.
 - GeoTIFF/COG raster (DEM, satellite imagery, NDVI) -> `<om-layer type="COGLayer" src="…tif">` with `min`/`max`/`colormap` for single-band data (see syntax.md — `src`, not `data`).
+- CityJSON/CityJSONSeq per-face surfaces mode (`?om-surfaces=1`) -> always pair the `SolidPolygonLayer` with a companion `<om-layer type="PathLayer">` using `get-path="$outline"` to make roof/wall edges visible. This mode is unlit and `SolidPolygonLayer`'s own `wireframe` prop does nothing here (deck only builds wireframe geometry when `extruded: true`); the `PathLayer` is the only way to see face edges. Give it the same `filter-field`/`filter-range` as the fill layer so filtered-out buildings' outlines disappear too. See syntax.md.
 - Live entity updates -> `wss://` stream with `key` and optional `source` decoder.
 - REST snapshot that changes over time -> `refresh="5s"`.
 - User sketching -> `data="draw:sketch"` layer plus `<om-widget type="draw" target="sketch">`.

@@ -46,7 +46,7 @@ deck.gl is the best WebGL data-visualization engine there is — and OnlyMapJS i
 |---|---|---|
 | Setup | `new Deck({...})`, canvas + basemap sync wiring | one `<om-map>` element (or `<OmMap>` in React) |
 | State | your reducers/stores drive `setProps` | the manifest **is** the state — edit an attribute, the map reconciles; undo/redo built in |
-| Data loading | fetch + parse + reload yourself | `data="…"` — GeoJSON, CSV, Arrow/GeoArrow, Shapefile, KML, WebSocket streams, polled REST; GeoTIFF/COG rasters via `type="COGLayer"` |
+| Data loading | fetch + parse + reload yourself | `data="…"` — GeoJSON, CSV, Arrow/GeoArrow, Shapefile, KML, CityJSON, WebSocket streams, polled REST; GeoTIFF/COG rasters via `type="COGLayer"` |
 | Accessors | JS functions + `updateTriggers` bookkeeping | `get-*` expressions; update triggers derived automatically |
 | UI | build legends/popups/filters from scratch | built-in widgets, overlays, behaviors — declarative |
 | Testing | mock WebGL or ship untested | `OmMap.validate`, IR snapshots, headless behavioral harness |
@@ -111,6 +111,7 @@ Built-ins: `scale()` (types: `sequential`, `diverging`, `threshold`, `sqrt`, `lo
 | **CSV / TSV** | `data="./quakes.csv"` | parsed to typed columns (lazy ~48 KB chunk); numbers auto-typed, quoted fields intact |
 | **Shapefile** | `data="./countries.shp"` | geometry + `.dbf` attributes joined into GeoJSON features (sidecars fetched with your auth config) |
 | **KML** | `data="./tour.kml"` | placemarks → GeoJSON features; other formats plug in via `OmMap.registerFormat` |
+| **CityJSON / CityJSONSeq** | `data="./tile.city.json"` + `extruded get-elevation="$roof_height"` | semantic 3D city models (3DBAG, PLATEAU) → extruded footprints with derived `roof_height`/`eaves_height`/`ridge_height`/`roof_area`; national grids reprojected automatically (NL/CH/DE/JP/AT/SG); `.city.jsonl` streams in as it downloads; lazy chunk — see [docs/3d-assets.md](docs/3d-assets.md#semantic-city-models-cityjson) |
 | **GeoTIFF / COG raster** | `<om-layer type="COGLayer" src="./dem.tif" min="0" max="1900" colormap="viridis">` | Cloud-Optimized GeoTIFFs stream tiles by Range request (lazy chunk); min/max restretch + colormap swaps are GPU uniforms, nodata → transparent, legend ramp derives automatically; plain 8-bit RGB COGs need no attributes at all |
 | **WebSocket stream** | `data="wss://feed" key="id" flush="250ms" source="myFormat"` | upsert-by-key, burst coalescing, auto-reconnect; decode any format via `OmMap.registerSource` |
 | **Polled REST snapshot** | `data="/api/fleet.json" refresh="5s"` | full-snapshot replace per poll; outages keep the last good data |
@@ -263,7 +264,7 @@ Plus `OmMap.snapshotIR(html)` to lock down what a manifest *means* in a snapshot
 
 ## Free tier & licensing
 
-**Non-commercial use is free with attribution** (LICENSE.md §3); commercial use requires a license. Without a license key, maps run on the **free plan**: up to **5 layers** and **25,000 rows per layer** (20 MB per data fetch), with a small "OnlyMap by NIKA. Free for non-commercial use." badge in the corner. Exceeding a limit never breaks the map — the offending layer simply doesn't render, and the validation stream/error panel tells you exactly which limit, why, and how to lift it. Limits apply identically everywhere (including localhost — no dev/prod surprises).
+**Non-commercial use is free with attribution** (LICENSE.md §3); commercial use requires a license. Without a license key, maps run on the **free plan**: up to **5 layers** and **25,000 rows per layer** (20 MB per data fetch), with a small "OnlyMap by NIKA. Free for non-commercial use." badge in the corner. Exceeding a limit never breaks the map. Past the **layer** cap the extra layer simply doesn't render; past the **row** cap the layer renders its first 25,000 rows (an arbitrary subset, in source order) rather than nothing, with a dismissible on-map notice saying the data is partial — so a capped map is still useful to look at without ever pretending it's complete. Either way the validation stream/error panel tells you exactly which limit, why, and how to lift it. Limits apply identically everywhere (including localhost — no dev/prod surprises).
 
 A license key lifts all limits and removes the badge:
 
