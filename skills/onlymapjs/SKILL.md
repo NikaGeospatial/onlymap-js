@@ -23,7 +23,7 @@ Use OnlyMapJS as a declarative HTML map library. Write custom elements such as `
 </script>
 ```
 
-For no-build CDN pages, use the single-file standalone bundle from a raw-file CDN — `https://unpkg.com/@nika-js/onlymap@0.4.6` (the bare package URL serves `dist/onlymap.standalone.js`) — plus `<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.4.6/dist/onlymapjs.css">`. Never a rebundling CDN (esm.sh, skypack): re-bundling duplicates the deck.gl/luma.gl runtime and every layer fails shader compilation.
+For no-build CDN pages, use the single-file standalone bundle from a raw-file CDN — `https://unpkg.com/@nika-js/onlymap@0.5.0` (the bare package URL serves `dist/onlymap.standalone.js`) — plus `<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.0/dist/onlymapjs.css">`. Never a rebundling CDN (esm.sh, skypack): re-bundling duplicates the deck.gl/luma.gl runtime and every layer fails shader compilation.
 
 ## React Projects
 
@@ -47,6 +47,7 @@ Load the smallest reference needed for the task:
 ## Non-Negotiable Syntax Rules
 
 - Always use explicit closing tags: `<om-layer ...></om-layer>`, not `<om-layer ... />`.
+- Give `<om-map>` a height. A custom element is `display:inline` by default and collapses to zero size; the library injects a `display:block` default (fills a sized parent, else a 400px floor) so a bare map is still visible, but set a real height — full page: `om-map { display:block; height:100vh }` with `html,body { height:100% }`, or a sized container. Any height you set wins over the floor, including one below 400px. A still-collapsed map logs a console warning naming the fix.
 - Every `<om-layer>` needs a stable `id`.
 - Attribute names are kebab-case: `get-fill-color`, `radius-units`, `line-width-min-pixels`.
 - Accessor values are expressions: `get-position="[$lon, $lat]"`.

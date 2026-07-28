@@ -15,6 +15,10 @@ Use these patterns as starting points. Replace data URLs, layer ids, fields, cen
     import "@nika-js/onlymap/onlymapjs.css";
   </script>
   <style>
+    /* Always give om-map a height — a custom element is display:inline by
+       default. Omit this and the library injects a display:block default that
+       fills a sized parent, else a 400px floor; set a real height for
+       full-page layout. */
     html, body { margin: 0; height: 100%; }
     om-map { display: block; height: 100vh; }
   </style>
