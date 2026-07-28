@@ -78,7 +78,7 @@ Registered names show up in the switcher widget, validation, and (after `npx @ni
 
 ## Attribution
 
-Map data providers require attribution — OSM, OpenFreeMap, and CARTO all carry it in their style sources, and OnlyMapJS renders MapLibre's compact attribution control automatically whenever a basemap is active. Preset-level `attribution` text is appended. If you render your own credits, opt out with `attribution="false"` on `<om-map>` — but make sure your replacement satisfies the provider's terms.
+Map data providers require attribution — OSM, OpenFreeMap, and CARTO all carry it in their style sources, and OnlyMapJS renders MapLibre's compact attribution control automatically whenever a basemap is active. Preset-level `attribution` text is appended. The control is an in-flow member of the managed `bottom-end` slot in both HTML and React, so widgets placed there stack above it instead of covering it. It remains visible during hide-all and prevents its slot from collision-dimming. If you render your own credits, opt out with `attribution="false"` on `<om-map>` — but make sure your replacement satisfies the provider's terms.
 
 ## Validation
 

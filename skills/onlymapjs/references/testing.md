@@ -83,6 +83,7 @@ Harness operations:
 
 - `h.pick({ layer, featureId | index, type })`
 - `h.clearSelection()`
+- `h.mapPoint(coordinate, kind?)` — feed a click/hover map coordinate through the real onMapPoint path (fires `om-map-point`, drives the draw controller); for testing custom capture/AOI tools headlessly
 - `h.emit(action, payload)`
 - `h.setView({ center, zoom, pitch, bearing })`
 - `h.layers()`
@@ -93,6 +94,21 @@ Harness operations:
 Use `vi.stubGlobal("fetch", ...)` for URL data and `vi.stubGlobal("WebSocket", ...)` for streams.
 
 Free-plan license gates (5 layers, 25k rows per layer) apply in headless tests exactly as in production — gated layers emit errors on the validation stream instead of rendering. If the page under test legitimately exceeds the limits, call `OmMap.configureLicense("om_live_…")` in test setup; keys verify offline, so CI needs no network. Telemetry never fires from headless maps.
+
+## Layout Audit
+
+Run the public browser-truth audit against a trusted HTML manifest:
+
+```bash
+npm install --save-dev playwright
+npx playwright install chromium
+npx onlymapjs check-layout ./map.html
+```
+
+The command serves the manifest and its relative assets on loopback, tests
+360/640/768/1024px map layouts, prints JSON diagnostics, and exits nonzero on
+layout or disclosure failures. It executes the page's scripts, so do not run
+it against untrusted HTML.
 
 ## Browser/E2E Testing
 

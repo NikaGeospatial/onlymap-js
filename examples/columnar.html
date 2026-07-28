@@ -20,7 +20,7 @@
 <head>
   <meta charset="utf-8" />
   <title>OnlyMapJS — Columnar / GeoArrow example</title>
-  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.4.3/dist/onlymap.standalone.js"></script>
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.4.6/dist/onlymap.standalone.js"></script>
   <link rel="stylesheet" href="nav.css" />
 </head>
 <body>
@@ -40,7 +40,8 @@
     <a href="story.html">Map story</a>
   </header>
 
-  <om-map center="[-150, 35]" zoom="2.2" basemap="maplibre">
+  <om-map center="[-150, 35]" zoom="2.2" basemap="maplibre"
+          style="--om-widget-fold-breakpoint:768px">
 
     <!-- Shapefile (real Natural Earth 110m): geometry from .shp, attributes
          joined from the .dbf sidecar — country outlines under everything. -->

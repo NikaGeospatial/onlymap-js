@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<!--
+  Temporal filtering example — a deterministic snapshot of the official
+  USGS M2.5+ monthly GeoJSON feed, downloaded 2026-07-24:
+  https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.geojson
+
+  The time controller is an ordinary custom widget. It moves a user-selected
+  date range across the layer's numeric `time` field via the public
+  filter-layer action; deck.gl's DataFilterExtension applies the range on
+  the GPU, while ctx.stats reads the same declarative filter so the map and
+  statistics cannot disagree.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Time series example</title>
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.4.6/dist/onlymap.standalone.js"></script>
+  <link rel="stylesheet" href="nav.css" />
+</head>
+<body>
+
+  <header class="nav">
+    <strong>OnlyMapJS examples</strong>
+    <a href="index.html">Overview</a>
+    <a href="widgets.html">Widgets</a>
+    <a href="behaviors-overlays.html">Behaviors &amp; overlays</a>
+    <a href="basemap.html">Basemap</a>
+    <a href="columnar.html">Columnar / GeoArrow</a>
+    <a href="raster.html">Raster / GeoTIFF</a>
+    <a href="time-series.html" class="current">Time series</a>
+    <a href="story.html">Map story</a>
+  </header>
+
+  <om-map center="[12, 18]" zoom="1.35" basemap="positron">
+
+    <om-layer id="earthquakes" type="GeoJsonLayer"
+              data="./data/usgs-earthquakes-month.geojson"
+              label="M2.5+ earthquakes" color="#dc2626"
+              get-fill-color="scale($mag, sequential, ['#fde68a', '#dc2626'], domain=[2.5, 7.5])"
+              get-point-radius="scale($mag, sqrt, [3, 22], domain=[2.5, 7.5])"
+              point-radius-units="pixels" point-radius-min-pixels="3"
+              opacity="0.82" filled stroked="false" pickable visible="false"
+              filter-field="time" filter-range="[0, 9999999999999]"></om-layer>
+
+    <om-widget id="magnitude-legend" type="legend" title="Magnitude" position="top-right"
+               style="display:none;" aria-hidden="true"></om-widget>
+
+    <om-widget id="time-series-title" position="top-left" order="-10">
+      <style>
+        .series-title { width:245px; box-sizing:border-box; padding:10px 14px;
+                        border:1px solid rgba(255,255,255,.45); border-radius:10px;
+                        background:rgba(17,24,39,.9); color:#fff;
+                        box-shadow:0 4px 18px rgba(0,0,0,.22);
+                        font:700 15px/1.25 system-ui,sans-serif; letter-spacing:.01em;
+                        backdrop-filter:blur(8px); }
+        @media (max-width:480px) {
+          .series-title { width:160px; padding-inline:11px; }
+        }
+      </style>
+      <div class="series-title">Time Series Visualization on OnlyMapJS</div>
+    </om-widget>
+
+    <!-- A separate statistics widget watches `layers` because moving the
+         temporal window changes filter-range, not the underlying data. -->
+    <om-widget id="time-series-stats" position="top-left" watch="data:earthquakes layers"
+               style="display:none;" aria-hidden="true">
+      <style>
+        .stats { width: 245px; box-sizing: border-box; padding: 12px 14px; border-radius: 10px;
+                 background: rgba(255,255,255,.94); color: #172033; box-shadow: 0 3px 14px rgba(0,0,0,.2);
+                 font: 12px/1.35 system-ui, sans-serif; backdrop-filter: blur(8px); }
+        .stats h3 { margin: 0 0 8px; font-size: 14px; }
+        .row { display: flex; justify-content: space-between; gap: 18px; margin: 4px 0; }
+        .row b { font-variant-numeric: tabular-nums; }
+        .source { display: block; margin-top: 9px; padding-top: 7px; border-top: 1px solid #d8deea;
+                  color: #475569; font-size: 10px; }
+        .source a { color: #3157c8; }
+        @media (max-width: 480px) {
+          .stats { width: 160px; padding-inline: 11px; }
+          .row { gap: 7px; }
+        }
+      </style>
+      <section class="stats" aria-live="polite">
+        <h3>Active date range</h3>
+        <div class="row"><span>Timespan</span><b id="timespan">—</b></div>
+        <div class="row"><span>Earthquakes</span><b id="event-count">—</b></div>
+        <div class="row"><span>Maximum</span><b id="max-mag">—</b></div>
+        <div class="row"><span>Average</span><b id="mean-mag">—</b></div>
+        <div class="row"><span>Most recent</span><b id="latest-time">—</b></div>
+        <small class="source">
+          Source: <a href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php"
+                     target="_blank" rel="noopener">U.S. Geological Survey</a><br/>
+          M2.5+ monthly feed snapshot · 24 Jul 2026
+        </small>
+      </section>
+      <script type="om/widget">
+        this.watch = ["data:earthquakes", "layers"];
+        this.render = (ctx) => {
+          const range = ctx.layers.find((layer) => layer.id === "earthquakes")?.filter?.range;
+          const magnitude = ctx.stats("earthquakes", "mag");
+          const time = ctx.stats("earthquakes", "time");
+          const duration = range ? Math.max(0, range[1] - range[0]) : 0;
+          const totalHours = Math.round(duration / 3600000);
+          const days = Math.floor(totalHours / 24);
+          const hours = totalHours % 24;
+          this.$("#timespan").textContent = range
+            ? [days && days + (days === 1 ? " day" : " days"), hours && hours + (hours === 1 ? " hour" : " hours")]
+                .filter(Boolean).join(" ") || "0 hours"
+            : "—";
+          this.$("#event-count").textContent = String(magnitude.count);
+          this.$("#max-mag").textContent = magnitude.count ? "M " + magnitude.max.toFixed(1) : "—";
+          this.$("#mean-mag").textContent = magnitude.count ? "M " + magnitude.mean.toFixed(2) : "—";
+          this.$("#latest-time").textContent = time.count
+            ? new Date(time.max).toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "UTC" })
+            : "—";
+        };
+      </script>
+    </om-widget>
+
+    <!-- Time axis + playback. The margin lifts this managed bottom-center
+         widget above the story player, provider attribution, and license
+         badge at both desktop and narrow widths. -->
+    <om-widget id="time-series-controls" position="bottom-center"
+               style="display:none; margin-bottom:82px;" aria-hidden="true"
+               watch="data:earthquakes">
+      <style>
+        .timeline { width: min(680px, calc(100vw - 32px)); box-sizing: border-box; padding: 12px 14px;
+                    border-radius: 12px; background: rgba(17,24,39,.94); color: #f8fafc;
+                    box-shadow: 0 4px 20px rgba(0,0,0,.3); font: 12px/1.3 system-ui, sans-serif;
+                    backdrop-filter: blur(10px); }
+        .headline { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+        .headline strong { font-size: 13px; }
+        #window-label { color: #bfdbfe; font-variant-numeric: tabular-nums; text-align: right; }
+        .controls { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 11px; }
+        #play { min-width: 82px; border: 0; border-radius: 7px; padding: 7px 11px; cursor: pointer;
+                background: #3b82f6; color: #fff; font: 600 12px system-ui, sans-serif; }
+        #play:hover { background: #2563eb; }
+        .range-sliders { display:grid; gap:5px; }
+        .range-row { display:grid; grid-template-columns:34px 1fr 88px; align-items:center; gap:7px; }
+        .range-row > span { color:#cbd5e1; font-size:10px; font-weight:600; text-transform:uppercase; }
+        .range-row output { color:#bfdbfe; font-size:10px; text-align:right; font-variant-numeric:tabular-nums; }
+        .range-row input { width:100%; min-width:0; accent-color:#60a5fa; cursor:ew-resize; }
+        .axis { display: flex; justify-content: space-between; margin: 5px 0 0 93px; color: #94a3b8;
+                font-size: 10px; font-variant-numeric: tabular-nums; }
+        @media (max-width: 560px) {
+          .headline { align-items: flex-start; flex-direction: column; gap: 3px; }
+          .controls { grid-template-columns: 1fr; }
+          #play { width: 100%; }
+          .axis { margin-left: 0; }
+        }
+      </style>
+      <section class="timeline">
+        <div class="headline">
+          <strong>Earthquakes through time</strong>
+          <span id="window-label">Loading monthly series…</span>
+        </div>
+        <div class="controls">
+          <button id="play" type="button" aria-label="Play earthquake timeline">▶ Play</button>
+          <div class="range-sliders">
+            <label class="range-row">
+              <span>Start</span>
+              <input id="start-slider" type="range" aria-label="Earthquake date range start" />
+              <output id="start-value" for="start-slider">—</output>
+            </label>
+            <label class="range-row">
+              <span>End</span>
+              <input id="end-slider" type="range" aria-label="Earthquake date range end" />
+              <output id="end-value" for="end-slider">—</output>
+            </label>
+          </div>
+        </div>
+        <div class="axis"><span id="axis-start">—</span><span id="axis-end">—</span></div>
+      </section>
+      <script type="om/widget">
+        this.watch = ["data:earthquakes"];
+        this.render = async (ctx) => {
+          if (this.state.ready) return;
+          const rows = await ctx.data("earthquakes", { filtered: false });
+          const times = rows
+            .map((row) => Number(row?.properties?.time))
+            .filter(Number.isFinite)
+            .sort((a, b) => a - b);
+          if (!times.length) return;
+
+          const HOUR = 60 * 60 * 1000;
+          const WINDOW = 48 * HOUR;
+          const STEP = 6 * HOUR;
+          const min = times[0];
+          const max = times[times.length - 1];
+          const startSlider = this.$("#start-slider");
+          const endSlider = this.$("#end-slider");
+          const button = this.$("#play");
+          const label = this.$("#window-label");
+          const shortDate = (ms) => new Date(ms).toLocaleDateString(
+            "en", { month: "short", day: "numeric", timeZone: "UTC" }
+          );
+          const dateTime = (ms) => new Date(ms).toLocaleString(
+            "en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" }
+          ) + " UTC";
+          const sliderDate = (ms) => new Date(ms).toLocaleString(
+            "en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" }
+          );
+
+          for (const slider of [startSlider, endSlider]) {
+            slider.min = String(min);
+            slider.max = String(max);
+            slider.step = String(STEP);
+          }
+          startSlider.value = String(min);
+          endSlider.value = String(Math.min(max, min + WINDOW));
+          this.$("#axis-start").textContent = shortDate(min);
+          this.$("#axis-end").textContent = shortDate(max);
+
+          const applyWindow = (changed) => {
+            let start = Number(startSlider.value);
+            let end = Number(endSlider.value);
+            if (start > end) {
+              if (changed === "start") {
+                end = start;
+                endSlider.value = String(end);
+              } else {
+                start = end;
+                startSlider.value = String(start);
+              }
+            }
+            label.textContent = dateTime(start) + " — " + dateTime(end);
+            this.$("#start-value").textContent = sliderDate(start);
+            this.$("#end-value").textContent = sliderDate(end);
+            ctx.emit("filter-layer", { layer: "earthquakes", field: "time", range: [start, end] });
+          };
+          const stop = (ended = false) => {
+            if (this.state.timer) clearInterval(this.state.timer);
+            this.state.timer = null;
+            this.state.playing = false;
+            button.textContent = ended ? "↻ Replay" : "▶ Play";
+            button.setAttribute("aria-label", ended ? "Replay earthquake timeline" : "Play earthquake timeline");
+            if (ended) {
+              this.dispatchEvent(new CustomEvent("time-series-playback-ended"));
+            }
+          };
+          const tick = () => {
+            if (!this.isConnected) return stop();
+            const start = Number(startSlider.value);
+            const end = Number(endSlider.value);
+            const duration = end - start;
+            const nextEnd = Math.min(max, end + STEP);
+            const nextStart = Math.max(min, nextEnd - duration);
+            startSlider.value = String(nextStart);
+            endSlider.value = String(nextEnd);
+            applyWindow();
+            if (nextEnd >= max) stop(true);
+          };
+
+          startSlider.addEventListener("input", () => {
+            stop();
+            applyWindow("start");
+          });
+          endSlider.addEventListener("input", () => {
+            stop();
+            applyWindow("end");
+          });
+          button.addEventListener("click", () => {
+            if (this.state.playing) {
+              stop();
+              return;
+            }
+            if (Number(endSlider.value) >= max) {
+              const duration = Number(endSlider.value) - Number(startSlider.value);
+              startSlider.value = String(min);
+              endSlider.value = String(Math.min(max, min + duration));
+            }
+            this.state.playing = true;
+            button.textContent = "❚❚ Pause";
+            button.setAttribute("aria-label", "Pause earthquake timeline");
+            tick();
+            if (this.state.playing) this.state.timer = setInterval(tick, 120);
+          });
+
+          this.state.ready = true;
+          applyWindow();
+        };
+      </script>
+    </om-widget>
+
+    <!-- Capability tour. Each card contains a small, highlighted excerpt
+         from the real markup/script above; the tour explains the page by
+         showing the code that actually powers it. -->
+    <om-overlay id="time-series-intro" anchor="[12, 18]" anchor-offset="center" visible="false">
+      <style>
+        .card { width:min(390px,calc(100vw - 32px)); box-sizing:border-box; padding:14px;
+                border-radius:11px; background:rgba(255,255,255,.97); color:#172033;
+                box-shadow:0 6px 24px rgba(0,0,0,.28); font:650 13px/1.4 system-ui,sans-serif;
+                text-align:center; }
+      </style>
+      <div class="card">OnlyMapJS makes time series visualizations easy and flexible.</div>
+    </om-overlay>
+
+    <om-overlay id="time-series-layer-card" anchor="[12, 18]" anchor-offset="center" visible="false">
+      <style>
+        .card { transform:translate(calc(50vw - 207px),calc(-50vh + 248px));
+                width:min(390px,calc(100vw - 32px)); box-sizing:border-box; padding:14px;
+                border-radius:11px; background:rgba(255,255,255,.97); color:#172033;
+                box-shadow:0 6px 24px rgba(0,0,0,.28); font:13px/1.4 system-ui,sans-serif; }
+        .caption { margin-bottom:10px; font-weight:650; }
+        pre { margin:0; padding:11px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:#111827; color:#dbeafe; font:10.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .tag { color:#7dd3fc; } .attr { color:#c4b5fd; } .value { color:#86efac; }
+        .key { color:#fbbf24; font-weight:700; }
+        @media (max-width:700px) { .card { transform:translate(0,35px); } }
+      </style>
+      <div class="card">
+        <div class="caption">This layer was constructed using the <code>om-layer</code> component.</div>
+        <pre><code><span class="tag">&lt;om-layer</span> <span class="attr">id</span>=<span class="value">"earthquakes"</span>
+  <span class="attr">type</span>=<span class="key">"GeoJsonLayer"</span>
+  <span class="attr">data</span>=<span class="value">"usgs-earthquakes.geojson"</span>
+  <span class="attr">get-fill-color</span>=<span class="value">"scale($mag, sequential, …)"</span>
+  <span class="attr">filter-field</span>=<span class="key">"time"</span>
+  <span class="attr">filter-range</span>=<span class="value">"[start, end]"</span><span class="tag">&gt;
+&lt;/om-layer&gt;</span></code></pre>
+      </div>
+    </om-overlay>
+
+    <om-overlay id="time-series-stats-card" anchor="[12, 18]" anchor-offset="center" visible="false">
+      <style>
+        .card { transform:translate(calc(-50vw + 484px),calc(-50vh + 258px));
+                width:min(430px,calc(100vw - 32px)); box-sizing:border-box; padding:14px;
+                border-radius:11px; background:rgba(255,255,255,.97); color:#172033;
+                box-shadow:0 6px 24px rgba(0,0,0,.28); font:13px/1.4 system-ui,sans-serif; }
+        .caption { margin-bottom:10px; font-weight:650; }
+        pre { margin:0; padding:11px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:#111827; color:#dbeafe; font:10.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .tag { color:#7dd3fc; } .attr { color:#c4b5fd; } .value { color:#86efac; }
+        .key { color:#fbbf24; font-weight:700; } .method { color:#f9a8d4; }
+        @media (max-width:700px) { .card { transform:translate(0,35px); } }
+      </style>
+      <div class="card">
+        <div class="caption">Widgets can be customized to display whatever you want about your data in the current range.</div>
+        <pre><code><span class="tag">&lt;om-widget</span>
+  <span class="attr">watch</span>=<span class="key">"data:earthquakes layers"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;script</span> <span class="attr">type</span>=<span class="value">"om/widget"</span><span class="tag">&gt;</span>
+    <span class="key">this.render</span> = (ctx) =&gt; {
+      const stats = ctx.<span class="method">stats</span>(
+        <span class="value">"earthquakes"</span>, <span class="value">"mag"</span>
+      );
+    };
+  <span class="tag">&lt;/script&gt;
+&lt;/om-widget&gt;</span></code></pre>
+      </div>
+    </om-overlay>
+
+    <om-overlay id="time-series-slider-card" anchor="[12, 18]" anchor-offset="center" visible="false">
+      <style>
+        .card { transform:translate(0,calc(50vh - 343px));
+                width:min(500px,calc(100vw - 32px)); box-sizing:border-box; padding:14px;
+                border-radius:11px; background:rgba(255,255,255,.97); color:#172033;
+                box-shadow:0 6px 24px rgba(0,0,0,.28); font:13px/1.4 system-ui,sans-serif; }
+        .caption { margin-bottom:10px; font-weight:650; }
+        pre { margin:0; padding:11px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:#111827; color:#dbeafe; font:10.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .tag { color:#7dd3fc; } .attr { color:#c4b5fd; } .value { color:#86efac; }
+        .key { color:#fbbf24; font-weight:700; } .method { color:#f9a8d4; }
+        @media (max-width:700px) { .card { transform:translate(0,35px); } }
+      </style>
+      <div class="card">
+        <div class="caption">You can even set the date range interactively using natively supported interfaces.</div>
+        <pre><code><span class="tag">&lt;input</span> <span class="attr">id</span>=<span class="value">"start-slider"</span>
+  <span class="attr">type</span>=<span class="key">"range"</span><span class="tag"> /&gt;</span>
+<span class="tag">&lt;input</span> <span class="attr">id</span>=<span class="value">"end-slider"</span>
+  <span class="attr">type</span>=<span class="key">"range"</span><span class="tag"> /&gt;</span>
+
+ctx.<span class="method">emit</span>(<span class="value">"filter-layer"</span>, {
+  field: <span class="key">"time"</span>, range: [start, end]
+});</code></pre>
+      </div>
+    </om-overlay>
+
+    <om-overlay id="time-series-action-card" anchor="[12, 18]" anchor-offset="center" visible="false">
+      <style>
+        .card { width:min(390px,calc(100vw - 32px)); box-sizing:border-box; padding:14px;
+                border-radius:11px; background:rgba(255,255,255,.97); color:#172033;
+                box-shadow:0 6px 24px rgba(0,0,0,.28); font:650 13px/1.4 system-ui,sans-serif;
+                text-align:center; }
+      </style>
+      <div class="card">Let's see it in action now:</div>
+    </om-overlay>
+
+    <om-overlay id="time-series-cta-card" anchor="[12, 18]" anchor-offset="center" visible="false">
+      <style>
+        .card { display:grid; grid-template-columns:minmax(175px,.85fr) minmax(235px,1.15fr);
+                gap:14px; align-items:center; width:min(520px,calc(100vw - 32px));
+                box-sizing:border-box; padding:14px 18px; border-radius:11px;
+                background:rgba(255,255,255,.97); color:#172033;
+                box-shadow:0 6px 24px rgba(0,0,0,.28); font:14px/1.4 system-ui,sans-serif; }
+        .package { color:#2d5be3; font-weight:700; }
+        pre { margin:0; padding:10px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:#111827; color:#dbeafe; font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .command { color:#fbbf24; } .package-code { color:#86efac; font-weight:700; }
+        @media (max-width:700px) { .card { grid-template-columns:1fr; width:min(340px,calc(100vw - 32px)); } }
+      </style>
+      <div class="card">
+        <div>Try it today: Check out OnlyMapJS on npm at <span class="package">@nika-js/onlymap</span></div>
+        <pre><code><span class="command">npm install</span> <span class="package-code">@nika-js/onlymap</span></code></pre>
+      </div>
+    </om-overlay>
+
+    <om-story id="time-series-tour" interrupt="pause">
+      <om-step duration="3500ms" action="show-overlay" target="time-series-intro"></om-step>
+      <om-step action="hide-overlay" target="time-series-intro"></om-step>
+      <om-step action="toggle-layer" layer="earthquakes" visible="true"></om-step>
+      <om-step duration="4500ms" action="show-overlay" target="time-series-layer-card"></om-step>
+      <om-step action="hide-overlay" target="time-series-layer-card"></om-step>
+      <om-step duration="4500ms" action="show-overlay" target="time-series-stats-card"></om-step>
+      <om-step action="hide-overlay" target="time-series-stats-card"></om-step>
+      <om-step duration="4500ms" action="show-overlay" target="time-series-slider-card"></om-step>
+      <om-step action="hide-overlay" target="time-series-slider-card"></om-step>
+      <om-step duration="2000ms" action="show-overlay" target="time-series-action-card"></om-step>
+      <om-step action="hide-overlay" target="time-series-action-card"></om-step>
+    </om-story>
+
+    <om-widget type="player" story="time-series-tour" position="bottom-left"></om-widget>
+
+    <om-behavior on="hover" layer="earthquakes" action="show-tooltip"
+                 template="#earthquake-tooltip"></om-behavior>
+
+  </om-map>
+
+  <template id="earthquake-tooltip">
+    <div style="max-width:260px; padding:7px 10px; border-radius:7px; background:#111827; color:#fff;
+                box-shadow:0 3px 12px rgba(0,0,0,.3); font:12px/1.35 system-ui,sans-serif;">
+      <strong>M {{mag}}</strong> · {{place}}
+    </div>
+  </template>
+
+  <script type="module">
+    // The story player is the one persistent control. Everything it explains
+    // starts hidden, then appears at the same timestamp as its code card.
+    await customElements.whenDefined("om-story");
+    const tour = document.querySelector("#time-series-tour");
+    const callToAction = document.querySelector("#time-series-cta-card");
+    const stagedWidgets = {
+      legend: document.querySelector("#magnitude-legend"),
+      stats: document.querySelector("#time-series-stats"),
+      controls: document.querySelector("#time-series-controls"),
+    };
+    const setVisible = (widget, visible) => {
+      widget.style.display = visible ? "" : "none";
+      widget.setAttribute("aria-hidden", String(!visible));
+    };
+    const revealStage = (time) => {
+      setVisible(stagedWidgets.legend, time >= 3500);
+      setVisible(stagedWidgets.stats, time >= 8000);
+      setVisible(stagedWidgets.controls, time >= 12500);
+    };
+    let storyStartedScrub = false;
+    const timelineButton = () => stagedWidgets.controls.shadowRoot?.querySelector("#play");
+    tour.addEventListener("om-story-tick", (event) => {
+      const { t, state } = event.detail;
+      revealStage(t);
+
+      // Crossing into the final beat presses the real temporal controller.
+      // Rewinding the story stops only a scrub that the story itself began.
+      if (t < 17000 && storyStartedScrub) {
+        const button = timelineButton();
+        if (button?.getAttribute("aria-label") === "Pause earthquake timeline") button.click();
+        storyStartedScrub = false;
+      }
+      if (t < 17000) callToAction.setAttribute("visible", "false");
+      if (t >= 17000 && state === "playing" && !storyStartedScrub) {
+        const button = timelineButton();
+        if (button) {
+          if (button.getAttribute("aria-label") !== "Pause earthquake timeline") button.click();
+          storyStartedScrub = true;
+        }
+      }
+    });
+    stagedWidgets.controls.addEventListener("time-series-playback-ended", () => {
+      if (storyStartedScrub) callToAction.setAttribute("visible", "true");
+    });
+    revealStage(0);
+  </script>
+
+</body>
+</html>

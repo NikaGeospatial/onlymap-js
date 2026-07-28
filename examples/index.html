@@ -2,7 +2,7 @@
 <!--
   Runnable examples — unlike ../../examples/ (aspirational spec-consistency
   docs pointing at a CDN package and fictional data), these load the live
-  dev source (https://unpkg.com/@nika-js/onlymap@0.4.3/dist/onlymap.standalone.js) and the real datasets in ../data/, so you
+  dev source (https://unpkg.com/@nika-js/onlymap@0.4.6/dist/onlymap.standalone.js) and the real datasets in ../data/, so you
   can actually open and click through them. Same shared nav bar on every
   page for quick switching; this page is just the landing/overview.
 -->
@@ -26,9 +26,11 @@
     <strong>OnlyMapJS examples</strong>
     <a href="index.html" class="current">Overview</a>
     <a href="widgets.html">Widgets</a>
+    <a href="widget-manager.html">Widget manager</a>
     <a href="behaviors-overlays.html">Behaviors &amp; overlays</a>
     <a href="basemap.html">Basemap</a>
     <a href="columnar.html">Columnar / GeoArrow</a>
+    <a href="time-series.html">Time series</a>
     <a href="raster.html">Raster / GeoTIFF</a>
     <a href="draw.html">Draw</a>
     <a href="scenegraph.html">3D models</a>
@@ -44,11 +46,15 @@
 
   <main>
     <h1>OnlyMapJS examples</h1>
-    <p>Each page below is a real, runnable manifest — open it, pan/zoom/click around. They import the library straight from source (<code>https://unpkg.com/@nika-js/onlymap@0.4.3/dist/onlymap.standalone.js</code>), the same way <code>dev/index.html</code> does, so they always reflect the current implementation.</p>
+    <p>Each page below is a real, runnable manifest — open it, pan/zoom/click around. They import the library straight from source (<code>https://unpkg.com/@nika-js/onlymap@0.4.6/dist/onlymap.standalone.js</code>), the same way <code>dev/index.html</code> does, so they always reflect the current implementation.</p>
 
     <a class="card" href="widgets.html">
       <h3>Widgets</h3>
       <p>Legend, zoom-controls, scale-bar, and a live Vega-Lite chart that updates as you pan.</p>
+    </a>
+    <a class="card" href="widget-manager.html">
+      <h3>Responsive widget manager</h3>
+      <p>An interactive v0.4.4 test bench for per-side auto-fold drawers, map-width breakpoints, <code>fold="never"</code>, hide-all, clustering, and RTL placement.</p>
     </a>
     <a class="card" href="behaviors-overlays.html">
       <h3>Behaviors &amp; overlays</h3>
@@ -61,6 +67,10 @@
     <a class="card" href="columnar.html">
       <h3>Columnar / GeoArrow</h3>
       <p>A week of real USGS earthquakes from an Arrow IPC file — same $field manifest, zero row objects on the render path, apache-arrow lazy-loaded on first use.</p>
+    </a>
+    <a class="card" href="time-series.html">
+      <h3>Time series</h3>
+      <p>A month of public-domain USGS earthquakes explored through a moving 48-hour window, with a temporal slider, playback, GPU filtering, and synchronized statistics.</p>
     </a>
     <a class="card" href="raster.html">
       <h3>Raster / GeoTIFF</h3>

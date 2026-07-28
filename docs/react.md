@@ -56,6 +56,7 @@ Actions that mutate manifest attributes (`toggle-layer`, `show-overlay`, `fade`,
 | `center` `zoom` `pitch` `bearing` | Initial camera; later prop changes move the camera (instant). While they're unchanged, user panning is never fought. |
 | `basemap` | Same contract as the attribute — a preset name (`"positron"`, `"dark-matter"`, `"osm"`, …), a style URL, or omit for standalone deck.gl. Changing the prop switches live (camera + layers survive); `basemapKey` supplies the MapTiler key. See [docs/basemaps.md](basemaps.md). |
 | `headless` | `true` or `{ width, height }` — no renderer, real projection math (tests under jsdom/happy-dom). |
+| `widgetStyle` / `widgetsHidden` | Layout-token sugar and hide-all. Hide-all preserves component state and hides authored managed widgets; provider attribution and the license badge remain visible. |
 | `onReady` | Renderer up + first commit + no data URL still loading. |
 | `onViewStateChange` | Every camera change, with the current `CameraState`. |
 | `onRuntimeError` | deck.gl-level failures in the structured validation shape. |
@@ -75,7 +76,7 @@ Give it a size (`style`/`className`) — it renders a `position: relative` div.
 
 ### `<OmWidget>`
 
-A positioning shell: `position="top-left|top-right|bottom-left|bottom-right"` + your JSX. Widgets sharing a corner stack; the shell re-enables pointer events over the map.
+A positioning shell: one of the eight logical, RTL-aware managed slots (`top-start`, `top-center`, `top-end`, `center-start`, `center-end`, `bottom-start`, `bottom-center`, `bottom-end`), a legacy corner alias, or `manual`, plus your JSX. Same-slot widgets stack with flush edges and a shared gap. At map widths ≤640px, managed widgets move into accessible per-side drawers; set `fold="never"` on essential controls, `widgetsFold={false}` on `<OmMap>` to opt out, or customize `--om-widget-fold-breakpoint`. Provider attribution is an in-flow member of `bottom-end`; the license badge is an in-flow member of `bottom-start`, so required chrome and your JSX never cover each other. The shell re-enables pointer events over the map.
 
 ### `<OmOverlay>`
 

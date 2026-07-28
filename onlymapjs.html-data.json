@@ -163,6 +163,15 @@
           "description": "Hide-all: every widget goes visibility:hidden (state survives — no removal) except attribution and widgets-toggle, which never hide. Toggle via the set-widgets-visible action or <om-widget type=\"widgets-toggle\">; transient UI, not an undo step; story-scrub-capturable."
         },
         {
+          "name": "widgets-fold",
+          "description": "Responsive auto-fold is on by default at map widths ≤ --om-widget-fold-breakpoint (640px): managed widgets move into one accessible drawer per map side. Set \"off\" to disable.",
+          "values": [
+            {
+              "name": "off"
+            }
+          ]
+        },
+        {
           "name": "widgets-dim",
           "description": "Set \"off\" to disable collision-dim: by default a slot dims (--om-widget-opacity-dimmed, 0.35) while an open <om-overlay> popup covers it, rather than the popup dodging.",
           "values": [
@@ -1720,6 +1729,15 @@
           "values": [
             {
               "name": "false"
+            }
+          ]
+        },
+        {
+          "name": "fold",
+          "description": "Set \"never\" to keep an essential control outside responsive side drawers on narrow maps.",
+          "values": [
+            {
+              "name": "never"
             }
           ]
         },

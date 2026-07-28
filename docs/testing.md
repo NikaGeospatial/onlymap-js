@@ -111,7 +111,7 @@ it("panning away empties viewport-scoped widgets", async () => {
 });
 ```
 
-The harness API: `pick` (synthetic picks fed through the exact code path real deck.gl picks take — columnar layers pick object-less by index, exactly like live), `clearSelection` (hover-off; runs the tooltip auto-hide path), `emit` (any action, same payload contract as `ctx.emit`/`data-emit`), `setView`, `layers()` (the live IR), `flush`, `unmount`. Every verb settles the library's internal batching before resolving — **you never write a sleep**.
+The harness API: `pick` (synthetic picks fed through the exact code path real deck.gl picks take — columnar layers pick object-less by index, exactly like live), `clearSelection` (hover-off; runs the tooltip auto-hide path), `mapPoint` (a click/hover map coordinate through the real onMapPoint path — fires `om-map-point`, drives the draw controller), `emit` (any action, same payload contract as `ctx.emit`/`data-emit`), `setView`, `layers()` (the live IR), `flush`, `unmount`. Every verb settles the library's internal batching before resolving — **you never write a sleep**.
 
 **Remote data:** mock `fetch` and the harness waits for it via the readiness signal:
 
@@ -128,6 +128,18 @@ A *failing* fetch also settles readiness (the layer is just empty) — `mountFor
 ## Tier 3 — visual: Playwright
 
 Keep this thin — two to five tests — because the logic is already covered below. The library gives you three tools that remove the usual flakiness:
+
+For a no-test-code widget layout check, install Playwright and run:
+
+```bash
+npm install --save-dev playwright
+npx playwright install chromium
+npx onlymapjs check-layout public/dashboard.html
+```
+
+`check-layout` serves the manifest over loopback HTTP (so relative data URLs work), executes it in an isolated headless Chromium context, opens responsive drawers, and checks real geometry/hit-testing at 360, 640, 768, and 1024px. It prints one JSON diagnostic per problem and exits 0 when clean or 1 on layout errors. Because it executes the page, only run it on manifests you trust. Point it at a **browser-runnable** manifest — one that imports the built library (`@nika-js/onlymap`) — not a framework dev-server page that relies on on-the-fly transpilation (a page importing raw `.ts` will fail to render a canvas, and the tool reports exactly that).
+
+To run the same audit inside your own Playwright suite instead of the CLI, import it: `auditLayout(page, { widths })` returns the `LayoutDiagnostic[]` (the CLI is a thin wrapper over it), and `settleLayout(page)` awaits the render/fonts/attribution settle contract. Both come from `@nika-js/onlymap`.
 
 1. **`await mapEl.ready`** — resolves when the renderer initialized *and* the first reconcile ran *and* every declared `data` URL settled. Never `waitForTimeout`.
 2. **`mapEl.projectInternal([lng, lat])`** — derive click/hover pixels from the map's own projection instead of hardcoding coordinates.
