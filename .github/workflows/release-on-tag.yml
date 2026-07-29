@@ -24,13 +24,11 @@ jobs:
             echo "Release $TAG already exists — skipping."
             exit 0
           fi
-          gh release create "$TAG" \
-            --repo "$GITHUB_REPOSITORY" \
+          {
+            printf 'Published on npm: https://www.npmjs.com/package/@nika-js/onlymap/v/%s\n\n' "$VERSION"
+            printf '```bash\nnpm install @nika-js/onlymap@%s\n```\n\n' "$VERSION"
+            printf 'This repository mirrors the documentation, runnable examples, and agent skill for that version — the installable package lives on npm.\n'
+          } > release-notes.md
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
             --title "@nika-js/onlymap $VERSION" \
-            --notes "Published on npm: https://www.npmjs.com/package/@nika-js/onlymap/v/$VERSION
-
-\`\`\`bash
-npm install @nika-js/onlymap@$VERSION
-\`\`\`
-
-This repository mirrors the documentation, runnable examples, and agent skill for that version — the installable package lives on npm."
+            --notes-file release-notes.md
