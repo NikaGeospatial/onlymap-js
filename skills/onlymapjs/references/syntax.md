@@ -16,8 +16,8 @@ Vite/npm project:
 Static CDN page (raw-file CDNs only — unpkg/jsDelivr; never esm.sh or another rebundling CDN, which duplicates the WebGL runtime and breaks layer shaders):
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.0/dist/onlymapjs.css">
-<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.0"></script>
+<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.1/dist/onlymapjs.css">
+<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.1"></script>
 ```
 
 Always include `onlymapjs.css` — it carries the MapLibre basemap styles and the no-JS fallback rules (`<om-fallback>` / default banner). For the fallback to work in script-disabled previews it must load without JavaScript: a real `<link rel="stylesheet">` or inlined `<style>` on no-build pages (a bundler-emitted stylesheet is fine in npm projects).
@@ -156,9 +156,25 @@ External layer classes become manifest types via `OmMap.registerLayer({type, dec
 | WebSocket            | `data="wss://feed" key="id" flush="250ms" source="decoder"` | Upsert-by-key stream.                                         |
 | Polling              | `data="/api/fleet.json" refresh="5s"`                       | Snapshot replace.                                             |
 | Draw store           | `data="draw:sketch"`                                        | Written by draw widget.                                       |
+| Tiled layer          | `type="TileLayer" data="…/{z}/{x}/{y}.png"` or `type="MVTLayer" data="…/{z}/{x}/{y}.pbf"` | A `{z}/{x}/{y}` template is deck's tile URL, NOT rows — passed through verbatim (never fetched/parsed). See below. |
 
 
 Data URLs accept any scheme the runtime's `fetch` supports — desktop webviews (Tauri, Electron) pass asset-protocol URLs (`asset://localhost/…`, custom schemes) straight in; format detection reads the path extension either way.
+
+### Tiled layers (TileLayer, MVTLayer)
+
+deck's `TileLayer` and `MVTLayer` take their `data` prop as a `{z}/{x}/{y}` URL template — a string deck expands per tile, not a document to fetch and parse. OnlyMapJS detects the template and passes it through to deck verbatim (a normal `data` URL is still fetched + parsed):
+
+```html
+<!-- Raster XYZ overlay: a default BitmapLayer sublayer renders the image tiles. -->
+<om-layer id="wx" type="TileLayer" data="https://tiles.example.com/{z}/{x}/{y}.png" opacity="0.6"></om-layer>
+
+<!-- Vector tiles: MVTLayer self-renders; get-* accessors apply to the decoded features. -->
+<om-layer id="roads" type="MVTLayer" data="https://tiles.example.com/{z}/{x}/{y}.pbf"
+            get-line-color="'#38bdf8'" line-width-min-pixels="1"></om-layer>
+```
+
+`$field` accessors on an `MVTLayer` read the tile feature's `properties`. A tiled layer has no local rows, so `ctx.data()`/`ctx.stats()`/`filter-*` do not apply to it. For a raster `TileLayer` pointing at a non-image endpoint (vector tiles, custom decoding), register a custom layer with your own `renderSubLayers` via `OmMap.registerLayer`.
 
 CityJSON (3DBAG, PLATEAU, swisstopo) decodes to one of two shapes, chosen by the `data` URL — there is no CityJSON layer type:
 

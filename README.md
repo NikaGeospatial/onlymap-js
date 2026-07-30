@@ -46,7 +46,7 @@ deck.gl is the best WebGL data-visualization engine there is — and OnlyMapJS i
 |---|---|---|
 | Setup | `new Deck({...})`, canvas + basemap sync wiring | one `<om-map>` element (or `<OmMap>` in React) |
 | State | your reducers/stores drive `setProps` | the manifest **is** the state — edit an attribute, the map reconciles; undo/redo built in |
-| Data loading | fetch + parse + reload yourself | `data="…"` — GeoJSON, CSV, Arrow/GeoArrow, Shapefile, KML, CityJSON, WebSocket streams, polled REST; GeoTIFF/COG rasters via `type="COGLayer"` |
+| Data loading | fetch + parse + reload yourself | `data="…"` — GeoJSON, CSV, Arrow/GeoArrow, Shapefile, KML, CityJSON, WebSocket streams, polled REST, tiled XYZ/vector (`TileLayer`/`MVTLayer`); GeoTIFF/COG rasters via `type="COGLayer"` |
 | Accessors | JS functions + `updateTriggers` bookkeeping | `get-*` expressions; update triggers derived automatically |
 | UI | build legends/popups/filters from scratch | built-in widgets, overlays, behaviors — declarative |
 | Testing | mock WebGL or ship untested | `OmMap.validate`, IR snapshots, headless behavioral harness |
@@ -69,7 +69,7 @@ Or with no build step at all, straight from a CDN:
 
 The bare package URL serves `dist/onlymap.standalone.js`, a single-file bundle built for exactly this (jsDelivr too). Use a CDN that serves the package's raw files — **not** a rebundling CDN like esm.sh, which re-splits the bundle into duplicate copies of the deck.gl/luma.gl runtime and breaks every layer's shader compilation.
 
-Then `npx @nika-js/onlymap init` wires up VS Code IntelliSense and `!`-prefixed manifest snippets for your project. The library ships with 590 unit/behavioral tests and 58 Playwright GPU tests.
+Then `npx @nika-js/onlymap init` wires up VS Code IntelliSense and `!`-prefixed manifest snippets for your project. The library ships with 595 unit/behavioral tests and 58 Playwright GPU tests.
 
 The [examples](https://github.com/NikaGeospatial/onlymapjs/tree/main/examples) are the best tour: widgets, behaviors & overlays, basemaps, columnar/Arrow data, manual drawing, 3D models, scene lighting (with the native lighting widget), DEM terrain, a live WebSocket ship feed, and a polled driver fleet.
 
@@ -115,6 +115,7 @@ Built-ins: `scale()` (types: `sequential`, `diverging`, `threshold`, `sqrt`, `lo
 | **GeoTIFF / COG raster** | `<om-layer type="COGLayer" src="./dem.tif" min="0" max="1900" colormap="viridis">` | Cloud-Optimized GeoTIFFs stream tiles by Range request (lazy chunk); min/max restretch + colormap swaps are GPU uniforms, nodata → transparent, legend ramp derives automatically; plain 8-bit RGB COGs need no attributes at all |
 | **WebSocket stream** | `data="wss://feed" key="id" flush="250ms" source="myFormat"` | upsert-by-key, burst coalescing, auto-reconnect; decode any format via `OmMap.registerSource` |
 | **Polled REST snapshot** | `data="/api/fleet.json" refresh="5s"` | full-snapshot replace per poll; outages keep the last good data |
+| **Tiled layer (XYZ / vector)** | `<om-layer type="TileLayer" data="…/{z}/{x}/{y}.png">` or `type="MVTLayer"` | a `{z}/{x}/{y}` `data` template is deck's tile URL — passed through, never fetched as rows; raster `TileLayer` gets a built-in `BitmapLayer` renderer, `MVTLayer` self-renders vector tiles (`get-*` accessors apply to tile features) |
 | **Draw store** | `data="draw:sketch"` | live in-memory GeoJSON feature store written by `<om-widget type="draw" target="sketch">` |
 
 Private endpoints: `OmMap.configureData({ headers, credentials, fetch })` — applied to every fetch including refreshes. Credentials stay out of markup by design. Full guide: [docs/live-data.md](docs/live-data.md).
