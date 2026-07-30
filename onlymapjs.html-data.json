@@ -1600,6 +1600,15 @@
               "name": "draw-save"
             },
             {
+              "name": "measure-mode"
+            },
+            {
+              "name": "measure-clear"
+            },
+            {
+              "name": "measure-units"
+            },
+            {
               "name": "set-basemap"
             },
             {
@@ -1663,6 +1672,9 @@
             },
             {
               "name": "draw"
+            },
+            {
+              "name": "measure"
             },
             {
               "name": "basemap-switcher"
@@ -1767,7 +1779,7 @@
         },
         {
           "name": "modes",
-          "description": "Draw widget: space-separated tools to show.",
+          "description": "Draw widget: space-separated tools (point line polygon). Measure widget: space-separated modes (distance area).",
           "values": [
             {
               "name": "point line polygon"
@@ -1780,6 +1792,15 @@
             },
             {
               "name": "polygon"
+            },
+            {
+              "name": "distance area"
+            },
+            {
+              "name": "distance"
+            },
+            {
+              "name": "area"
             }
           ]
         },
@@ -1801,6 +1822,21 @@
         {
           "name": "autosave",
           "description": "Draw widget: localStorage key — mirrors the sketch and restores it on reload."
+        },
+        {
+          "name": "units",
+          "description": "Measure / scale-bar widget: unit system for length and area.",
+          "values": [
+            {
+              "name": "metric"
+            },
+            {
+              "name": "imperial"
+            },
+            {
+              "name": "nautical"
+            }
+          ]
         },
         {
           "name": "options",
@@ -1936,6 +1972,15 @@
             },
             {
               "name": "draw-save"
+            },
+            {
+              "name": "measure-mode"
+            },
+            {
+              "name": "measure-clear"
+            },
+            {
+              "name": "measure-units"
             },
             {
               "name": "set-basemap"

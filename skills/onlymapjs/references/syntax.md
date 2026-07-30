@@ -16,8 +16,8 @@ Vite/npm project:
 Static CDN page (raw-file CDNs only — unpkg/jsDelivr; never esm.sh or another rebundling CDN, which duplicates the WebGL runtime and breaks layer shaders):
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.1/dist/onlymapjs.css">
-<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.1"></script>
+<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.4/dist/onlymapjs.css">
+<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.4"></script>
 ```
 
 Always include `onlymapjs.css` — it carries the MapLibre basemap styles and the no-JS fallback rules (`<om-fallback>` / default banner). For the fallback to work in script-disabled previews it must load without JavaScript: a real `<link rel="stylesheet">` or inlined `<style>` on no-build pages (a bundler-emitted stylesheet is fine in npm projects).
@@ -151,6 +151,8 @@ External layer classes become manifest types via `OmMap.registerLayer({type, dec
 | Arrow / GeoArrow IPC | `data="./big.arrow"`                                        | Points stay columnar; lines/polygons become GeoJSON features. |
 | Shapefile            | `data="./countries.shp"`                                    | Loads sidecars and joins `.dbf` attributes.                   |
 | KML                  | `data="./tour.kml"`                                         | Placemarks become GeoJSON features.                           |
+| GPX                  | `data="./hike.gpx"` (opt. `#waypoints`/`#tracks`/`#routes`) | Waypoints/tracks/routes → GeoJSON features, each tagged `_gpxKind`; a URL fragment selects one part (no fragment = all). |
+| FlatGeobuf           | `data="./cities.fgb"`                                       | Cloud-native binary vector — whole-file decode to GeoJSON features (bbox-streaming is a later phase). |
 | CityJSON             | `data="./tile.city.json"`                                   | 3D city models → extruded footprints, or `?om-surfaces=1` for real per-face roof geometry; see below. |
 | CityJSONSeq          | `data="./tile.city.jsonl"`                                  | Same, streamed line by line as it downloads.                  |
 | WebSocket            | `data="wss://feed" key="id" flush="250ms" source="decoder"` | Upsert-by-key stream.                                         |
@@ -266,10 +268,11 @@ Built-ins:
 - `legend` — symbology-aware by default: it parses each layer's `get-fill-color`. A `sequential`/`diverging` `scale()` renders as a gradient ramp with the domain ends labeled; a `threshold` scale as discrete class ranges (`< b1`, `b1 – b2`, `≥ bN`); an equality ternary chain (`$f == 'a' ? '#c1' : $f == 'b' ? '#c2' : '#fallback'`) as a category palette with an "other" row. Any other expression falls back to the single `color` swatch — so writing the canonical shapes buys a self-describing legend for free.
 - `layer-switcher`
 - `zoom-controls`
-- `scale-bar`
+- `scale-bar` — `units="metric|imperial|nautical"` (default metric) picks the length system; snaps to a nice round distance.
 - `attribution`
 - `filter`
 - `draw`
+- `measure` — geodesic ruler: `modes="distance area"` (space-separated; default both), `units="metric|imperial|nautical"`. Click the map to place points; live per-segment + total labels render on the map, and a totals panel + a `units` toggle sit in the widget. Distance is haversine on the WGS84 mean sphere (≤0.56% vs. the true geodesic); area is the spherical-excess integral. Nautical shows nmi for length and falls back to metric for area. Reuses the draw capture stack (measure and draw are mutually exclusive); the geometry is ephemeral (never saved, never an undo step). Consume the reading programmatically via the `om-measure` event on `<om-map>` (`detail = {mode, units, totalMeters, segments, areaMeters2, perimeterMeters, poleWarning}`).
 - `vega-lite`
 - `player`
 - `basemap-switcher` — radio list of presets; `options="positron dark-matter osm"` (default: every keyless registered preset)

@@ -192,6 +192,44 @@ Use `PopupLayer` instead of many `<om-overlay>` elements for labels/badges at sc
              autosave="onlymapjs-sketch"></om-widget>
 ```
 
+## Capture Raw Map Clicks (measure tool, drop-a-pin, custom AOI)
+
+For anything the `draw` widget doesn't cover — a distance/area measurer, dropping
+a pin at the clicked coordinate, a custom rectangle/circle AOI — read the
+**`om-map-point`** event. It gives you the map coordinate of every click and
+hover. Do NOT reach into deck.gl (`getMap()`, `deckInstance`, `deck.viewManager`)
+or unproject canvas pixels — none of that is exposed on `<om-map>`.
+
+```html
+<om-map center="[103.8, 1.35]" zoom="11" basemap="positron">
+  <!-- The pins the user drops, driven by a draw store you write into. -->
+  <om-layer id="pins" type="GeoJsonLayer" data="draw:measure"
+              get-fill-color="[239,68,68,220]" point-radius-min-pixels="5"
+              get-line-color="[239,68,68,220]" line-width-min-pixels="2"
+              stroked filled></om-layer>
+</om-map>
+
+<script type="module">
+  import "@nika-js/onlymap";
+  const map = document.querySelector("om-map");
+  const pts = [];
+
+  map.addEventListener("om-map-point", (e) => {
+    const { coordinate, kind } = e.detail;   // [lng, lat] | null ; "click" | "hover"
+    if (!coordinate || kind !== "click") return;
+    pts.push(coordinate);
+    // ...compute distance (haversine), update your own panel, etc.
+    // Push geometry into the "measure" draw store so it renders as a layer:
+    // OmMap.getStore("data:pins") / a draw controller, or your own <om-layer> data.
+  });
+</script>
+```
+
+Notes: `coordinate` is `null` when the click lands off the globe; `kind` is
+`"hover"` for the live pointer (use it for a rubber-band segment) and `"click"`
+for a committed point. The programmatic twin is the `MapController` `onMapPoint`
+option; test it headlessly with `h.mapPoint(coordinate, kind)`.
+
 ## Story/Tour
 
 ```html

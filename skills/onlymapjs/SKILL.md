@@ -23,7 +23,7 @@ Use OnlyMapJS as a declarative HTML map library. Write custom elements such as `
 </script>
 ```
 
-For no-build CDN pages, use the single-file standalone bundle from a raw-file CDN — `https://unpkg.com/@nika-js/onlymap@0.5.1` (the bare package URL serves `dist/onlymap.standalone.js`) — plus `<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.1/dist/onlymapjs.css">`. Never a rebundling CDN (esm.sh, skypack): re-bundling duplicates the deck.gl/luma.gl runtime and every layer fails shader compilation.
+For no-build CDN pages, use the single-file standalone bundle from a raw-file CDN — `https://unpkg.com/@nika-js/onlymap@0.5.4` (the bare package URL serves `dist/onlymap.standalone.js`) — plus `<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.4/dist/onlymapjs.css">`. Never a rebundling CDN (esm.sh, skypack): re-bundling duplicates the deck.gl/luma.gl runtime and every layer fails shader compilation.
 
 ## React Projects
 
@@ -74,6 +74,8 @@ Load the smallest reference needed for the task:
 - Live entity updates -> `wss://` stream with `key` and optional `source` decoder.
 - REST snapshot that changes over time -> `refresh="5s"`.
 - User sketching -> `data="draw:sketch"` layer plus `<om-widget type="draw" target="sketch">`.
+- Measure geodesic distance or area (a ruler / area tool) -> `<om-widget type="measure" modes="distance area" units="metric|imperial|nautical">`. Click the map to place points; it shows live per-segment + total labels and dispatches an `om-measure` event (`detail` = the readout). Reuses the draw capture stack, so measure and draw are mutually exclusive. Do NOT hand-roll distance math off canvas pixels; the `scale-bar` widget also takes `units` now.
+- Capture raw map clicks/hovers yourself (measure distance, drop a pin where the user clicks, a custom rectangle/circle AOI, snap-to-feature) -> listen for the **`om-map-point`** DOM event on `<om-map>`: `mapEl.addEventListener('om-map-point', e => { const { coordinate, kind } = e.detail; /* [lng,lat] or null; kind is "click"|"hover" */ })`. It fires on EVERY click/hover including empty-map clicks. NEVER read deck.gl internals (`getMap()`, `deckInstance`, `deck.viewManager`) or unproject canvas pixels by hand — those are not on `<om-map>` and will silently return nothing. The built-in `draw` widget covers polygon/line/point sketching; `om-map-point` is for tools it doesn't. (`MapController` twin: the `onMapPoint` option. See patterns.md.)
 - Page may travel as a file (shared, emailed, downloaded) or be embedded -> add an `<om-fallback>` child to `<om-map>`. Chat-app and email previews render HTML with JavaScript disabled (iOS QuickLook), so the map cannot boot there; the fallback is what recipients see instead. It is hidden automatically once the map boots. Good practice on every complete page — without one, the stylesheet shows a generic text-only banner.
 
 ## Output Expectations
