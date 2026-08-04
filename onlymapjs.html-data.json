@@ -282,6 +282,9 @@
               "name": "IconLayer"
             },
             {
+              "name": "ImageOverlay"
+            },
+            {
               "name": "LineLayer"
             },
             {
@@ -430,19 +433,19 @@
         },
         {
           "name": "get-position",
-          "description": "Accessor for deck.gl getPosition — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getPosition — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-fill-color",
-          "description": "Accessor for deck.gl getFillColor — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getFillColor — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-line-color",
-          "description": "Accessor for deck.gl getLineColor — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getLineColor — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-radius",
-          "description": "Accessor for deck.gl getRadius — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getRadius — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "radius",
@@ -526,7 +529,7 @@
         },
         {
           "name": "highlight-color",
-          "description": "Accessor for deck.gl highlightColor — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl highlightColor — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "radius-scale",
@@ -558,15 +561,15 @@
         },
         {
           "name": "get-line-width",
-          "description": "Accessor for deck.gl getLineWidth — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getLineWidth — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-pixel-offset",
-          "description": "Accessor for deck.gl getPixelOffset — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getPixelOffset — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-point-radius",
-          "description": "Accessor for deck.gl getPointRadius — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getPointRadius — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "point-radius-units",
@@ -578,7 +581,7 @@
         },
         {
           "name": "get-elevation",
-          "description": "Accessor for deck.gl getElevation — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getElevation — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "extruded",
@@ -638,23 +641,23 @@
         },
         {
           "name": "get-icon",
-          "description": "Accessor for deck.gl getIcon — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getIcon — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-icon-angle",
-          "description": "Accessor for deck.gl getIconAngle — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getIconAngle — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-icon-color",
-          "description": "Accessor for deck.gl getIconColor — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getIconColor — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-icon-pixel-offset",
-          "description": "Accessor for deck.gl getIconPixelOffset — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getIconPixelOffset — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-icon-size",
-          "description": "Accessor for deck.gl getIconSize — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getIconSize — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "text-size-max-pixels",
@@ -722,43 +725,43 @@
         },
         {
           "name": "get-text",
-          "description": "Accessor for deck.gl getText — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getText — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-text-angle",
-          "description": "Accessor for deck.gl getTextAngle — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getTextAngle — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-text-color",
-          "description": "Accessor for deck.gl getTextColor — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getTextColor — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-text-pixel-offset",
-          "description": "Accessor for deck.gl getTextPixelOffset — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getTextPixelOffset — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-text-size",
-          "description": "Accessor for deck.gl getTextSize — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getTextSize — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-text-anchor",
-          "description": "Accessor for deck.gl getTextAnchor — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getTextAnchor — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-text-alignment-baseline",
-          "description": "Accessor for deck.gl getTextAlignmentBaseline — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getTextAlignmentBaseline — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-text-background-color",
-          "description": "Accessor for deck.gl getTextBackgroundColor — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getTextBackgroundColor — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-text-border-color",
-          "description": "Accessor for deck.gl getTextBorderColor — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getTextBorderColor — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-text-border-width",
-          "description": "Accessor for deck.gl getTextBorderWidth — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getTextBorderWidth — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "line-joint-rounded",
@@ -790,7 +793,7 @@
         },
         {
           "name": "get-polygon",
-          "description": "Accessor for deck.gl getPolygon — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getPolygon — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "full3d",
@@ -798,15 +801,15 @@
         },
         {
           "name": "get-subtext",
-          "description": "Accessor for deck.gl getSubtext — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getSubtext — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-color",
-          "description": "Accessor for deck.gl getColor — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getColor — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-size",
-          "description": "Accessor for deck.gl getSize — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getSize — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "layout",
@@ -826,15 +829,15 @@
         },
         {
           "name": "get-orientation",
-          "description": "Accessor for deck.gl getOrientation — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getOrientation — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-scale",
-          "description": "Accessor for deck.gl getScale — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getScale — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-translation",
-          "description": "Accessor for deck.gl getTranslation — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getTranslation — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "size-scale",
@@ -854,7 +857,7 @@
         },
         {
           "name": "get-transform-matrix",
-          "description": "Accessor for deck.gl getTransformMatrix — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getTransformMatrix — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "tileset",
@@ -878,7 +881,7 @@
         },
         {
           "name": "get-point-color",
-          "description": "Accessor for deck.gl getPointColor — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getPointColor — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "loader",
@@ -886,7 +889,55 @@
         },
         {
           "name": "src",
-          "description": "deck.gl geotiff."
+          "description": "deck.gl src."
+        },
+        {
+          "name": "georeference",
+          "description": "deck.gl georeference."
+        },
+        {
+          "name": "sensor-width-mm",
+          "description": "deck.gl sensorWidthMm."
+        },
+        {
+          "name": "sensor-height-mm",
+          "description": "deck.gl sensorHeightMm."
+        },
+        {
+          "name": "focal-length-mm",
+          "description": "deck.gl focalLengthMm."
+        },
+        {
+          "name": "bounds",
+          "description": "deck.gl bounds."
+        },
+        {
+          "name": "metadata",
+          "description": "deck.gl metadata."
+        },
+        {
+          "name": "depth-test",
+          "description": "deck.gl parameters.depthTest."
+        },
+        {
+          "name": "image",
+          "description": "deck.gl image."
+        },
+        {
+          "name": "desaturate",
+          "description": "deck.gl desaturate."
+        },
+        {
+          "name": "transparent-color",
+          "description": "deck.gl transparentColor."
+        },
+        {
+          "name": "tint-color",
+          "description": "deck.gl tintColor."
+        },
+        {
+          "name": "texture-parameters",
+          "description": "deck.gl textureParameters."
         },
         {
           "name": "min",
@@ -906,31 +957,31 @@
         },
         {
           "name": "get-source-position",
-          "description": "Accessor for deck.gl getSourcePosition — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getSourcePosition — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-target-position",
-          "description": "Accessor for deck.gl getTargetPosition — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getTargetPosition — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-source-color",
-          "description": "Accessor for deck.gl getSourceColor — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getSourceColor — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-target-color",
-          "description": "Accessor for deck.gl getTargetColor — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getTargetColor — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-width",
-          "description": "Accessor for deck.gl getWidth — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getWidth — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-height",
-          "description": "Accessor for deck.gl getHeight — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getHeight — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-tilt",
-          "description": "Accessor for deck.gl getTilt — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getTilt — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "great-circle",
@@ -957,32 +1008,8 @@
           "description": "deck.gl widthMaxPixels."
         },
         {
-          "name": "image",
-          "description": "deck.gl image."
-        },
-        {
-          "name": "bounds",
-          "description": "deck.gl bounds."
-        },
-        {
           "name": "_image-coordinate-system",
           "description": "deck.gl _imageCoordinateSystem."
-        },
-        {
-          "name": "desaturate",
-          "description": "deck.gl desaturate."
-        },
-        {
-          "name": "transparent-color",
-          "description": "deck.gl transparentColor."
-        },
-        {
-          "name": "tint-color",
-          "description": "deck.gl tintColor."
-        },
-        {
-          "name": "texture-parameters",
-          "description": "deck.gl textureParameters."
         },
         {
           "name": "disk-resolution",
@@ -1026,7 +1053,7 @@
         },
         {
           "name": "get-angle",
-          "description": "Accessor for deck.gl getAngle — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getAngle — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "joint-rounded",
@@ -1046,11 +1073,11 @@
         },
         {
           "name": "get-path",
-          "description": "Accessor for deck.gl getPath — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getPath — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-normal",
-          "description": "Accessor for deck.gl getNormal — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getNormal — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "_normalize",
@@ -1066,15 +1093,15 @@
         },
         {
           "name": "get-background-color",
-          "description": "Accessor for deck.gl getBackgroundColor — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getBackgroundColor — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-border-color",
-          "description": "Accessor for deck.gl getBorderColor — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getBorderColor — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-border-width",
-          "description": "Accessor for deck.gl getBorderWidth — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getBorderWidth — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "background-border-radius",
@@ -1134,23 +1161,23 @@
         },
         {
           "name": "get-alignment-baseline",
-          "description": "Accessor for deck.gl getAlignmentBaseline — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getAlignmentBaseline — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-content-box",
-          "description": "Accessor for deck.gl getContentBox — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getContentBox — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-pentagon",
-          "description": "Accessor for deck.gl getPentagon — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getPentagon — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-geohash",
-          "description": "Accessor for deck.gl getGeohash — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getGeohash — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-hexagons",
-          "description": "Accessor for deck.gl getHexagons — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getHexagons — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "high-precision",
@@ -1162,7 +1189,7 @@
         },
         {
           "name": "get-hexagon",
-          "description": "Accessor for deck.gl getHexagon — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getHexagon — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "extent",
@@ -1226,11 +1253,11 @@
         },
         {
           "name": "get-quadkey",
-          "description": "Accessor for deck.gl getQuadkey — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getQuadkey — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-s2-token",
-          "description": "Accessor for deck.gl getS2Token — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getS2Token — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "elevation-data",
@@ -1266,7 +1293,7 @@
         },
         {
           "name": "get-timestamps",
-          "description": "Accessor for deck.gl getTimestamps — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getTimestamps — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "grid-origin",
@@ -1274,7 +1301,7 @@
         },
         {
           "name": "get-weight",
-          "description": "Accessor for deck.gl getWeight — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getWeight — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "gpu-aggregation",
@@ -1302,11 +1329,11 @@
         },
         {
           "name": "get-color-value",
-          "description": "Accessor for deck.gl getColorValue — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getColorValue — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-color-weight",
-          "description": "Accessor for deck.gl getColorWeight — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getColorWeight — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "color-aggregation",
@@ -1334,11 +1361,11 @@
         },
         {
           "name": "get-elevation-value",
-          "description": "Accessor for deck.gl getElevationValue — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getElevationValue — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "get-elevation-weight",
-          "description": "Accessor for deck.gl getElevationWeight — expression language: $field, scale(), arithmetic."
+          "description": "Accessor for deck.gl getElevationWeight — expression language: $field, scale(), formatDate(), arithmetic."
         },
         {
           "name": "elevation-aggregation",
@@ -1768,6 +1795,40 @@
         {
           "name": "field",
           "description": "Data field (filter / vega-lite widgets)."
+        },
+        {
+          "name": "format",
+          "description": "Filter value-label format. Use date for epoch-millisecond fields; default number.",
+          "values": [
+            {
+              "name": "number"
+            },
+            {
+              "name": "date"
+            }
+          ]
+        },
+        {
+          "name": "date-style",
+          "description": "Filter date label style when format=\"date\".",
+          "values": [
+            {
+              "name": "date"
+            },
+            {
+              "name": "datetime"
+            },
+            {
+              "name": "time"
+            },
+            {
+              "name": "iso"
+            }
+          ]
+        },
+        {
+          "name": "time-zone",
+          "description": "Filter date label time zone when format=\"date\": UTC (default), local, or an IANA zone such as Asia/Singapore."
         },
         {
           "name": "story",

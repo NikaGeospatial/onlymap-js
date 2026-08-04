@@ -16,8 +16,8 @@ Vite/npm project:
 Static CDN page (raw-file CDNs only — unpkg/jsDelivr; never esm.sh or another rebundling CDN, which duplicates the WebGL runtime and breaks layer shaders):
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.5/dist/onlymapjs.css">
-<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.5"></script>
+<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.7/dist/onlymapjs.css">
+<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.7"></script>
 ```
 
 Always include `onlymapjs.css` — it carries the MapLibre basemap styles and the no-JS fallback rules (`<om-fallback>` / default banner). For the fallback to work in script-disabled previews it must load without JavaScript: a real `<link rel="stylesheet">` or inlined `<style>` on no-build pages (a bundler-emitted stylesheet is fine in npm projects).
@@ -81,9 +81,20 @@ get-position="[$lon, $lat]"
 get-radius="$population * 0.001"
 get-fill-color="$value > 100 ? [255,0,0] : [0,128,255]"
 get-fill-color="scale($depth, sequential, ['#ffffcc','#800026'], domain=[0,700])"
+get-text="formatDate($time, 'datetime', 'UTC')"
 ```
 
 `$field` works on flat rows, GeoJSON properties, columnar JSON, CSV/TSV columns, and Arrow point columns.
+
+Date formatting is a safe built-in rather than an opt-in to arbitrary JavaScript:
+
+```html
+get-text="formatDate($time)"
+get-text="formatDate($time, 'date')"
+get-text="formatDate($time, 'datetime', 'Asia/Singapore')"
+```
+
+`formatDate(value, style?, timeZone?)` accepts epoch-millisecond numbers/numeric strings or ISO date strings. Numeric values are always milliseconds—multiply Unix seconds by 1000 before formatting. Styles are `date`, `datetime` (default), `time`, and `iso`; the default time zone is `UTC`, while `local` opts into the viewer's zone and IANA names select a specific zone. Invalid values produce an empty string. Restricted expressions still reject `new Date()`, `Intl`, and instance-method calls.
 
 Smart shorthands:
 
@@ -102,13 +113,24 @@ Filtering:
 filter-field="magnitude" filter-range="[4, 10]"
 ```
 
+For an epoch-millisecond filter, format the built-in widget's numeric labels declaratively:
+
+```html
+<om-layer id="quakes" type="GeoJsonLayer" data="./quakes.geojson"
+          filter-field="time" filter-range="[1782889284760, 1785480717910]"></om-layer>
+<om-widget type="filter" layer="quakes" field="time"
+           format="date" date-style="datetime" time-zone="UTC"></om-widget>
+```
+
+`format` is `number` (default) or `date`. With `format="date"`, `date-style` uses the same four styles as `formatDate()` and `time-zone` defaults to `UTC`.
+
 
 
 ### Built-In Layer Types
 
 Use the `type` value exactly:
 
-`A5Layer`, `ArcLayer`, `BitmapLayer`, `COGLayer`, `ColumnLayer`, `ContourLayer`, `GeoJsonLayer`, `GeohashLayer`, `GreatCircleLayer`, `GridCellLayer`, `GridLayer`, `H3ClusterLayer`, `H3HexagonLayer`, `HeatmapLayer`, `HexagonLayer`, `IconLayer`, `LineLayer`, `MVTLayer`, `PathLayer`, `PointCloudLayer`, `PolygonLayer`, `PopupLayer`, `QuadkeyLayer`, `S2Layer`, `ScatterplotLayer`, `ScenegraphLayer`, `ScreenGridLayer`, `SimpleMeshLayer`, `SolidPolygonLayer`, `TerrainLayer`, `TextLayer`, `Tile3DLayer`, `TileLayer`, `TripsLayer`.
+`A5Layer`, `ArcLayer`, `BitmapLayer`, `COGLayer`, `ColumnLayer`, `ContourLayer`, `GeoJsonLayer`, `GeohashLayer`, `GreatCircleLayer`, `GridCellLayer`, `GridLayer`, `H3ClusterLayer`, `H3HexagonLayer`, `HeatmapLayer`, `HexagonLayer`, `IconLayer`, `ImageOverlay`, `LineLayer`, `MVTLayer`, `PathLayer`, `PointCloudLayer`, `PolygonLayer`, `PopupLayer`, `QuadkeyLayer`, `S2Layer`, `ScatterplotLayer`, `ScenegraphLayer`, `ScreenGridLayer`, `SimpleMeshLayer`, `SolidPolygonLayer`, `TerrainLayer`, `TextLayer`, `Tile3DLayer`, `TileLayer`, `TripsLayer`.
 
 Common choices:
 
@@ -119,6 +141,7 @@ Common choices:
 - Tiles: `TileLayer`, `MVTLayer`, `Tile3DLayer`.
 - 3D models: `ScenegraphLayer`, `SimpleMeshLayer`, `PointCloudLayer`, `Tile3DLayer`.
 - GeoTIFF/COG rasters: `COGLayer`.
+- Geotagged drone JPEGs: `ImageOverlay`.
 
 
 
@@ -136,6 +159,23 @@ Common choices:
 - `nodata` — overrides the source's nodata sentinel; nodata pixels render transparent.
 - Plain 8-bit RGB COGs (satellite truecolor) need no styling attributes at all.
 - Restretch/recolor (min/max/colormap edits) are GPU uniform updates — tiles are not refetched. The legend widget renders the colormap ramp automatically when `colormap` + `min`/`max` are authored.
+
+### ImageOverlay (drone JPEG)
+
+```html
+<om-layer id="photo" type="ImageOverlay"
+          src="./DJI_0123.jpg" georeference="exif"
+          opacity="0.8"></om-layer>
+```
+
+- `src` (required) — a JPEG with GPS/relative-altitude/camera/focal-length EXIF and DJI gimbal XMP.
+- `georeference="exif"` — fetches through `OmMap.configureData`, computes a flat-ground WGS84 footprint, and bakes yaw/roll into the pixels. `map.ready` waits for it.
+- Verified camera paths include DJI FC300S and M30T, including M30T JPEGs carrying a 180° gimbal-roll correction.
+- Unknown camera: supply `sensor-width-mm` + `sensor-height-mm` together. If EXIF lacks focal length, also supply `focal-length-mm`. Values are physical millimetres and must be positive.
+- Persisted/preprocessed form: omit `georeference` and set `bounds="[west,south,east,north]"`; `src` may be the processed PNG. Optional JSON `metadata` passes through. Explicit bounds perform no EXIF fetch.
+- `depth-test` defaults false. `opacity`, `visible`, and `pickable` behave like other layers.
+- The public `await OmMap.resolveImageOverlay(fileOrUrl, options?)` returns `{image, bounds, metadata}` for upload/persistence.
+- Visualization-grade only: no terrain, lens-distortion, calibration, or perspective-correct four-corner orthorectification. Use `COGLayer` for large orthomosaics.
 
 External layer classes become manifest types via `OmMap.registerLayer({type, deckClass, props})`. Build them on `@nika-js/onlymap/deck` (the bundled `CompositeLayer`/`TileLayer`/… re-exports — a separately-installed deck.gl is a different class hierarchy and breaks in the renderer); function-valued props ride the subclass's `static defaultProps`; register at module top level before the manifest mounts. Full recipe: docs/custom-layers.md.
 
@@ -299,6 +339,8 @@ Examples:
 ```html
 <om-widget type="legend" position="bottom-right" title="Layers" interactive></om-widget>
 <om-widget type="filter" layer="quakes" field="magnitude" position="top-left"></om-widget>
+<om-widget type="filter" layer="quakes" field="time" format="date"
+           date-style="datetime" time-zone="UTC" position="bottom-center"></om-widget>
 <om-widget type="draw" target="sketch" modes="point line polygon" save="both"></om-widget>
 <om-widget type="basemap-switcher" options="positron dark-matter liberty osm" position="top-right"></om-widget>
 ```
@@ -306,11 +348,11 @@ Examples:
 ### Custom widgets & event emission
 
 **Reach for a built-in first.** A plain value/time slider is a built-in:
-`<om-widget type="filter" layer="quakes" field="time">` — it renders the slider
-AND wires the `filter-layer` action for you (pair it with the layer's
-`filter-field`). Author a custom widget ONLY for bespoke UI or logic the
-built-ins don't cover — most "it looked right but didn't work" widgets should
-have been a `type="filter"`/`legend`/`vega-lite` built-in.
+`<om-widget type="filter" layer="quakes" field="time" format="date">` — it
+renders readable date labels AND wires the `filter-layer` action for you (pair
+it with the layer's `filter-field`). Author a custom widget ONLY for bespoke UI
+or logic the built-ins don't cover — most "it looked right but didn't work"
+widgets should have been a `type="filter"`/`legend`/`vega-lite` built-in.
 
 A custom widget is an `<om-widget>` with **no `type`** plus inline HTML and a
 `<script type="om/widget">` block. The script is full JS, evaluated ONCE at
@@ -554,4 +596,3 @@ For 3D Tiles LOD/refinement experiments, use:
             maximum-memory-usage="256"
             view-distance-scale="0.85"></om-layer>
 ```
-

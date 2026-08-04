@@ -4,17 +4,20 @@
   USGS M2.5+ monthly GeoJSON feed, downloaded 2026-07-24:
   https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.geojson
 
-  The time controller is an ordinary custom widget. It moves a user-selected
-  date range across the layer's numeric `time` field via the public
-  filter-layer action; deck.gl's DataFilterExtension applies the range on
-  the GPU, while ctx.stats reads the same declarative filter so the map and
-  statistics cannot disagree.
+  The playback controller is an ordinary custom widget because it needs a
+  moving two-handle window. A plain time filter needs no custom script:
+  <om-widget type="filter" layer="earthquakes" field="time"
+             format="date" date-style="datetime" time-zone="UTC">
+  Date labels elsewhere can use get-text="formatDate($time, 'datetime', 'UTC')".
+  This controller moves a user-selected range via the public filter-layer
+  action; deck.gl applies it on the GPU, while ctx.stats reads the same
+  declarative filter so the map and statistics cannot disagree.
 -->
 <html>
 <head>
   <meta charset="utf-8" />
   <title>OnlyMapJS — Time series example</title>
-  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.5/dist/onlymap.standalone.js"></script>
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.7/dist/onlymap.standalone.js"></script>
   <link rel="stylesheet" href="nav.css" />
 </head>
 <body>

@@ -46,7 +46,7 @@ deck.gl is the best WebGL data-visualization engine there is — and OnlyMapJS i
 |---|---|---|
 | Setup | `new Deck({...})`, canvas + basemap sync wiring | one `<om-map>` element (or `<OmMap>` in React) |
 | State | your reducers/stores drive `setProps` | the manifest **is** the state — edit an attribute, the map reconciles; undo/redo built in |
-| Data loading | fetch + parse + reload yourself | `data="…"` — GeoJSON, CSV, Arrow/GeoArrow, Shapefile, KML, GPX, FlatGeobuf, GeoParquet, CityJSON, WebSocket streams, polled REST, tiled XYZ/vector (`TileLayer`/`MVTLayer`); GeoTIFF/COG rasters via `type="COGLayer"` |
+| Data loading | fetch + parse + reload yourself | `data="…"` — GeoJSON, CSV, Arrow/GeoArrow, Shapefile, KML, GPX, FlatGeobuf, GeoParquet, CityJSON, WebSocket streams, polled REST, tiled XYZ/vector (`TileLayer`/`MVTLayer`); GeoTIFF/COG rasters via `COGLayer`; geotagged drone JPEGs via `ImageOverlay` |
 | Accessors | JS functions + `updateTriggers` bookkeeping | `get-*` expressions; update triggers derived automatically |
 | UI | build legends/popups/filters from scratch | built-in widgets, overlays, behaviors — declarative |
 | Testing | mock WebGL or ship untested | `OmMap.validate`, IR snapshots, headless behavioral harness |
@@ -69,7 +69,7 @@ Or with no build step at all, straight from a CDN:
 
 The bare package URL serves `dist/onlymap.standalone.js`, a single-file bundle built for exactly this (jsDelivr too). Use a CDN that serves the package's raw files — **not** a rebundling CDN like esm.sh, which re-splits the bundle into duplicate copies of the deck.gl/luma.gl runtime and breaks every layer's shader compilation.
 
-Then `npx @nika-js/onlymap init` wires up VS Code IntelliSense and `!`-prefixed manifest snippets for your project. The library ships with 630 unit/behavioral tests and 58 Playwright GPU tests.
+Then `npx @nika-js/onlymap init` wires up VS Code IntelliSense and `!`-prefixed manifest snippets for your project. The library ships with 664 unit/behavioral tests and 58 Playwright GPU tests.
 
 The [examples](https://github.com/NikaGeospatial/onlymapjs/tree/main/examples) are the best tour: widgets, behaviors & overlays, basemaps, columnar/Arrow data, manual drawing, 3D models, scene lighting (with the native lighting widget), DEM terrain, a live WebSocket ship feed, and a polled driver fleet.
 
@@ -80,7 +80,7 @@ A handful of elements, one rule: **attributes are kebab-case versions of deck.gl
 | Element | Role |
 |---|---|
 | `<om-map>` | The map. `center`, `zoom`, `pitch`, `bearing`; `basemap` takes a free preset (`positron`, `liberty`, `dark-matter`, `osm`, …), a style URL, or `"none"` (standalone canvas) — and switches **live**; `validate` for a live on-page error panel. Give it a height: a custom element is `display:inline` by default, so the library injects a `display:block` default (fills a sized parent, else a 400px floor) to keep a bare map visible, but set an explicit height (`om-map { height: 100vh }`) for real layout — any height you set wins outright, including one below the floor. A map that still collapses warns in the console; `hidden` and `display:none` maps stay hidden and stay quiet. |
-| `<om-layer>` | Any of **34 layer types** by name — all of deck.gl's core, geo, aggregation, and mesh layers (Scatterplot, GeoJson, Arc, Path, Heatmap, Hexagon, Trips, Tile, Tile3D, Scenegraph, …) plus the built-in `PopupLayer` for WebGL badges/labels at scale and the native `COGLayer` for GeoTIFF rasters. `id` required; `label`/`color` feed the legend. |
+| `<om-layer>` | Any of **35 layer types** by name — all of deck.gl's core, geo, aggregation, and mesh layers (Scatterplot, GeoJson, Arc, Path, Heatmap, Hexagon, Trips, Tile, Tile3D, Scenegraph, …) plus `PopupLayer`, the native `COGLayer` for GeoTIFF rasters, and `ImageOverlay` for georeferenced drone JPEGs. `id` required; `label`/`color` feed the legend. |
 | `<om-widget>` | UI panels. Built-ins: `legend` (symbology-aware: color scales render as gradient ramps or class ranges, categorical ternaries as discrete palettes), `layer-switcher`, `basemap-switcher`, `lighting`, `zoom-controls`, `undo-redo`, `scale-bar` (metric/imperial/nautical `units`), `attribution`, `filter`, `draw`, `measure` (geodesic distance + area — live labels, `units` toggle, an `om-measure` readout event), `vega-lite` (live charts). Or write your own inline with HTML + a `<script type="om/widget">`. Adjacent compact button widgets (`zoom-controls`, `undo-redo`, `widgets-toggle`) **auto-cluster** into one control group (opt out per widget with `cluster="false"`), and `<om-map widgets-hidden>` / the `set-widgets-visible` action / `<om-widget type="widgets-toggle">` hide all authored chrome without destroying it — provider attribution and the license badge never hide. **Placement is managed**: `position` takes one of 8 logical, RTL-aware slots (`top-start`, `top-center`, `top-end`, `center-start`, `center-end`, `bottom-start`, `bottom-center`, `bottom-end`; legacy corner names alias) — same-slot widgets stack with flush edges and a shared gap, `order` sets in-slot ordering, and `position="manual"` opts out entirely (a plain block you style yourself, even outside the map). At map widths ≤640px, managed widgets automatically move into accessible top/end/bottom/start drawers; `fold="never"` keeps an essential control out, `widgets-fold="off"` disables folding, and `--om-widget-fold-breakpoint` changes the map-width threshold. Provider attribution is an in-flow member of `bottom-end` and the license badge of `bottom-start`, so neither covers a widget. A slot dims automatically while an open popup covers it (`widgets-dim="off"` to disable), except slots containing required chrome. Themeable from plain page CSS via custom properties: `om-map { --om-widget-bg: #111827; --om-widget-fg: #f9fafb; }` (also `-muted`, `-border`, `-hover-bg`, `-accent`), plus layout tokens (`--om-widget-inset-x/-y`, `--om-widget-gap-x/-y`, `--om-widget-opacity`, `--om-widget-radius`) or the no-CSS sugar `<om-map widget-style="gap:10 opacity:0.9">`. |
 | `<om-overlay>` | Rich HTML anchored to a map location — a static `anchor="[lng, lat]"`, the current selection, or a feature's own geometry via `anchor-layer`/`anchor-feature-id`. `{{field}}` interpolates the picked feature, HTML-escaped by default. |
 | `<om-behavior>` | Declarative interactions: `on="click|hover|drag|load|data-loaded"` → a named action. |
@@ -96,9 +96,21 @@ get-position="[$lon, $lat]"
 get-radius="$population * 0.001"
 get-fill-color="$value > 100 ? [255,0,0] : [0,128,255]"
 get-fill-color="scale($depth, sequential, ['#ffffcc','#800026'], domain=[0,700])"
+get-text="formatDate($time, 'datetime', 'UTC')"
 ```
 
-Built-ins: `scale()` (types: `sequential`, `diverging`, `threshold`, `sqrt`, `log`, `pow` — explicit `domain=` required), `colorRamp()`, `clamp()`, `lerp()`, and `Math.*`. Multi-line accessors go in a `<script type="om/accessors">` block; genuinely arbitrary JS needs an explicit `js` opt-in on the layer. Untrusted (agent-written) expressions are safe by construction: the compiler is an AST whitelist, not an eval.
+Built-ins: `scale()` (types: `sequential`, `diverging`, `threshold`, `sqrt`, `log`, `pow` — explicit `domain=` required), `colorRamp()`, `clamp()`, `lerp()`, `formatDate()`, and `Math.*`. `formatDate(value, style?, timeZone?)` turns epoch-millisecond or ISO values into readable labels; styles are `date`, `datetime` (default), `time`, and `iso`, with `UTC` as the default zone (`local` or an IANA zone such as `Asia/Singapore` are explicit alternatives). Multi-line accessors go in a `<script type="om/accessors">` block; genuinely arbitrary JS needs an explicit `js` opt-in on the layer. Untrusted (agent-written) expressions are safe by construction: the compiler is an AST whitelist, not an eval.
+
+Date-valued filter sliders use the same contract without a custom widget:
+
+```html
+<om-layer id="quakes" type="GeoJsonLayer" data="./quakes.geojson"
+          filter-field="time" filter-range="[1782889284760,1785480717910]"></om-layer>
+<om-widget type="filter" layer="quakes" field="time"
+           format="date" date-style="datetime" time-zone="UTC"></om-widget>
+```
+
+Numeric timestamps are always epoch **milliseconds**, never guessed as seconds. Invalid date values render as an empty label rather than crashing an accessor or widget.
 
 ### Data sources
 
@@ -113,6 +125,7 @@ Built-ins: `scale()` (types: `sequential`, `diverging`, `threshold`, `sqrt`, `lo
 | **KML** | `data="./tour.kml"` | placemarks → GeoJSON features; other formats plug in via `OmMap.registerFormat` |
 | **CityJSON / CityJSONSeq** | `data="./tile.city.json"` + `extruded get-elevation="$roof_height"` | semantic 3D city models (3DBAG, PLATEAU) → extruded footprints with derived `roof_height`/`eaves_height`/`ridge_height`/`roof_area`; national grids reprojected automatically (NL/CH/DE/JP/AT/SG); `.city.jsonl` streams in as it downloads; lazy chunk — see [docs/3d-assets.md](docs/3d-assets.md#semantic-city-models-cityjson) |
 | **GeoTIFF / COG raster** | `<om-layer type="COGLayer" src="./dem.tif" min="0" max="1900" colormap="viridis">` | Cloud-Optimized GeoTIFFs stream tiles by Range request (lazy chunk); min/max restretch + colormap swaps are GPU uniforms, nodata → transparent, legend ramp derives automatically; plain 8-bit RGB COGs need no attributes at all |
+| **Drone JPEG image overlay** | `<om-layer type="ImageOverlay" src="./survey.jpg" georeference="exif">` | Reads GPS, relative altitude, camera, focal length, and DJI gimbal XMP; computes a WGS84 footprint, bakes yaw/roll into the pixels, and renders through `BitmapLayer`. Persist the processed image plus returned bounds for reloads — see [docs/image-overlays.md](docs/image-overlays.md) |
 | **WebSocket stream** | `data="wss://feed" key="id" flush="250ms" source="myFormat"` | upsert-by-key, burst coalescing, auto-reconnect; decode any format via `OmMap.registerSource` |
 | **Polled REST snapshot** | `data="/api/fleet.json" refresh="5s"` | full-snapshot replace per poll; outages keep the last good data |
 | **Tiled layer (XYZ / vector)** | `<om-layer type="TileLayer" data="…/{z}/{x}/{y}.png">` or `type="MVTLayer"` | a `{z}/{x}/{y}` `data` template is deck's tile URL — passed through, never fetched as rows; raster `TileLayer` gets a built-in `BitmapLayer` renderer, `MVTLayer` self-renders vector tiles (`get-*` accessors apply to tile features) |
@@ -256,7 +269,7 @@ Plus `OmMap.snapshotIR(html)` to lock down what a manifest *means* in a snapshot
 
 ## Programmatic surface
 
-- **`OmMap.*`** — `validate`, `snapshotIR`, `registerLayer`, `registerWidget`, `registerAction`, `registerSource`, `registerFormat`, `registerBasemap`, `configureBasemap`, `configureData`, `configureTelemetry`, `configureLicense`, `getLayerSchema`
+- **`OmMap.*`** — `validate`, `snapshotIR`, `resolveImageOverlay`, `registerLayer`, `registerWidget`, `registerAction`, `registerSource`, `registerFormat`, `registerBasemap`, `configureBasemap`, `configureData`, `configureTelemetry`, `configureLicense`, `getLayerSchema`
 - **`@nika-js/onlymap/deck`** — the bundled deck.gl classes (`CompositeLayer`, `TileLayer`, …) for building custom layer types: shims must extend the same class hierarchy the core renders with, not a second installed deck.gl copy. Recipe: [docs/custom-layers.md](docs/custom-layers.md)
 - **On a `<om-map>` element** — `ready` (promise), `flyTo(coords, zoom?)`, `setLayerVisible(id, bool)`, `getLayers()`, `emit(action, payload)`, `snapshot(opts?)` (canvas-only PNG of basemap + layers at device pixels — DOM widgets/overlays and provider attribution are NOT captured, so exports must render credits themselves; `{as: "blob"}` for files, default dataURL); the `om-view-changed` event fires once the camera settles (debounced; `detail` = `{longitude, latitude, zoom, pitch, bearing, origin}`, where `origin` is `"user"` for gesture-driven bursts vs `"programmatic"` for API/story moves — the echo-suppression signal for state sync) — the camera-persistence hook; the `om-map-point` event (`detail = {coordinate: [lng,lat]|null, kind: "click"|"hover"}`) fires on every click/hover with the map coordinate, including empty-map clicks picks discard — the hook for custom capture tools the built-in draw widget doesn't cover; the `om-tileset-load` event (`detail = {layerId, tileset}`) surfaces a `Tile3DLayer`'s live deck `Tileset3D` for tools that need the real tileset (e.g. region export), not the IR; `document.querySelector("om-map")` is fully typed
 - **`MapController`** — the framework-grade programmatic front-end (typed `LayerDescriptor`s → the same reconcile core, no DOM manifest): `setLayers`, `watch`, `emit`, camera methods, `injectPick`, `ready`, `snapshot`, an `onViewChange(view, origin)` option (the `om-view-changed` twin), plus `onMapPoint` / `onTilesetLoad` options (the `om-map-point` / `om-tileset-load` twins). The React adapter rides it; usable directly from vanilla TS or other frameworks
@@ -290,6 +303,6 @@ Mapbox GL basemaps, depth-interleaved 3D compositing, globe projection, SSE tran
 
 | | |
 |---|---|
-| [docs/react.md](docs/react.md) · [docs/basemaps.md](docs/basemaps.md) · [docs/testing.md](docs/testing.md) · [docs/live-data.md](docs/live-data.md) · [docs/3d-assets.md](docs/3d-assets.md) · [docs/stories.md](docs/stories.md) · [docs/telemetry.md](docs/telemetry.md) | Consumer guides |
+| [docs/react.md](docs/react.md) · [docs/basemaps.md](docs/basemaps.md) · [docs/testing.md](docs/testing.md) · [docs/live-data.md](docs/live-data.md) · [docs/image-overlays.md](docs/image-overlays.md) · [docs/3d-assets.md](docs/3d-assets.md) · [docs/stories.md](docs/stories.md) · [docs/telemetry.md](docs/telemetry.md) | Consumer guides |
 | [llms.txt](llms.txt) | The agent-facing quick reference |
 | `skills/onlymapjs` | Installable LLM skill for OnlyMapJS authoring |

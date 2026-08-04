@@ -23,7 +23,7 @@ Use OnlyMapJS as a declarative HTML map library. Write custom elements such as `
 </script>
 ```
 
-For no-build CDN pages, use the single-file standalone bundle from a raw-file CDN — `https://unpkg.com/@nika-js/onlymap@0.5.5` (the bare package URL serves `dist/onlymap.standalone.js`) — plus `<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.5/dist/onlymapjs.css">`. Never a rebundling CDN (esm.sh, skypack): re-bundling duplicates the deck.gl/luma.gl runtime and every layer fails shader compilation.
+For no-build CDN pages, use the single-file standalone bundle from a raw-file CDN — `https://unpkg.com/@nika-js/onlymap@0.5.7` (the bare package URL serves `dist/onlymap.standalone.js`) — plus `<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.7/dist/onlymapjs.css">`. Never a rebundling CDN (esm.sh, skypack): re-bundling duplicates the deck.gl/luma.gl runtime and every layer fails shader compilation.
 
 ## React Projects
 
@@ -52,6 +52,8 @@ Load the smallest reference needed for the task:
 - Attribute names are kebab-case: `get-fill-color`, `radius-units`, `line-width-min-pixels`.
 - Accessor values are expressions: `get-position="[$lon, $lat]"`.
 - `scale()` always needs an explicit `domain=`.
+- Format epoch-millisecond or ISO fields with the safe `formatDate()` built-in, e.g. `get-text="formatDate($time, 'datetime', 'UTC')"`. Do not use `new Date()`, `Intl`, or method calls in restricted expressions.
+- For a built-in filter over epoch milliseconds, add `format="date"` with optional `date-style="date|datetime|time|iso"` and `time-zone="UTC|local|<IANA zone>"`; do not hand-roll a time slider only to format its labels.
 - ScatterplotLayer points need an explicit size — `radius="6" radius-units="pixels"`, `get-radius="..."`, or `radius-min-pixels="..."`: deck's default is 1 METER, sub-pixel at city zooms, and validation warns on layers with no radius source.
 - Prefer canonical color expressions — a `sequential`/`diverging`/`threshold` `scale()` or an equality ternary chain — over hand-rolled arithmetic: the legend widget parses these shapes and renders a matching gradient ramp / class ranges / category palette automatically.
 - Inline handlers such as `onclick` are wrong. Use `data-emit`, `<om-behavior>`, or widget scripts.
@@ -70,6 +72,7 @@ Load the smallest reference needed for the task:
 - Keep mobile chrome usable -> rely on the default map-width auto-fold into per-side drawers; mark only essential controls `fold="never"`. Use `widgets-fold="off"` only when the user explicitly wants fixed wide-layout chrome.
 - Group adjacent map buttons (zoom + undo + toggle into one control group) -> just place compact button widgets in the same `position` slot; they auto-cluster. `cluster="false"` opts one out. Do NOT build a wrapper widget.
 - GeoTIFF/COG raster (DEM, satellite imagery, NDVI) -> `<om-layer type="COGLayer" src="…tif">` with `min`/`max`/`colormap` for single-band data (see syntax.md — `src`, not `data`).
+- Geotagged drone JPEG -> `<om-layer type="ImageOverlay" src="…jpg" georeference="exif">`; for saved/collaborative maps persist the processed image and reconstruct with explicit `bounds` (see syntax.md; this is visualization-grade, not orthorectification).
 - CityJSON/CityJSONSeq per-face surfaces mode (`?om-surfaces=1`) -> always pair the `SolidPolygonLayer` with a companion `<om-layer type="PathLayer">` using `get-path="$outline"` to make roof/wall edges visible. This mode is unlit and `SolidPolygonLayer`'s own `wireframe` prop does nothing here (deck only builds wireframe geometry when `extruded: true`); the `PathLayer` is the only way to see face edges. Give it the same `filter-field`/`filter-range` as the fill layer so filtered-out buildings' outlines disappear too. See syntax.md.
 - Live entity updates -> `wss://` stream with `key` and optional `source` decoder.
 - REST snapshot that changes over time -> `refresh="5s"`.
