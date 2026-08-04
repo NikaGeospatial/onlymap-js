@@ -16,8 +16,8 @@ Vite/npm project:
 Static CDN page (raw-file CDNs only — unpkg/jsDelivr; never esm.sh or another rebundling CDN, which duplicates the WebGL runtime and breaks layer shaders):
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.10/dist/onlymapjs.css">
-<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.10"></script>
+<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.11/dist/onlymapjs.css">
+<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.11"></script>
 ```
 
 Always include `onlymapjs.css` — it carries the MapLibre basemap styles and the no-JS fallback rules (`<om-fallback>` / default banner). For the fallback to work in script-disabled previews it must load without JavaScript: a real `<link rel="stylesheet">` or inlined `<style>` on no-build pages (a bundler-emitted stylesheet is fine in npm projects).
@@ -137,7 +137,7 @@ For an epoch-millisecond filter, format the built-in widget's numeric labels dec
 
 Use the `type` value exactly:
 
-`A5Layer`, `ArcLayer`, `BitmapLayer`, `COGLayer`, `ColumnLayer`, `ContourLayer`, `GeoJsonLayer`, `GeohashLayer`, `GreatCircleLayer`, `GridCellLayer`, `GridLayer`, `H3ClusterLayer`, `H3HexagonLayer`, `HeatmapLayer`, `HexagonLayer`, `IconLayer`, `ImageOverlay`, `LineLayer`, `MVTLayer`, `PathLayer`, `PointCloudLayer`, `PolygonLayer`, `PopupLayer`, `QuadkeyLayer`, `S2Layer`, `ScatterplotLayer`, `ScenegraphLayer`, `ScreenGridLayer`, `SimpleMeshLayer`, `SolidPolygonLayer`, `TerrainLayer`, `TextLayer`, `Tile3DLayer`, `TileLayer`, `TripsLayer`.
+`A5Layer`, `ArcLayer`, `BitmapLayer`, `COGLayer`, `ColumnLayer`, `ContourLayer`, `GeoJsonLayer`, `GeohashLayer`, `GreatCircleLayer`, `GridCellLayer`, `GridLayer`, `H3ClusterLayer`, `H3HexagonLayer`, `HeatmapLayer`, `HexagonLayer`, `IconLayer`, `ImageOverlay`, `LineLayer`, `MVTLayer`, `PathLayer`, `PointCloudLayer`, `PolygonLayer`, `PopupLayer`, `QuadkeyLayer`, `S2Layer`, `ScatterplotLayer`, `ScenegraphLayer`, `ScreenGridLayer`, `SimpleMeshLayer`, `SolidPolygonLayer`, `TerrainLayer`, `TextLayer`, `Tile3DLayer`, `TileLayer`, `TripsLayer`, `ZarrLayer`.
 
 Common choices:
 
@@ -148,6 +148,7 @@ Common choices:
 - Tiles: `TileLayer`, `MVTLayer`, `Tile3DLayer`.
 - 3D models: `ScenegraphLayer`, `SimpleMeshLayer`, `PointCloudLayer`, `Tile3DLayer`.
 - GeoTIFF/COG rasters: `COGLayer`.
+- Zarr / GeoZarr rasters (chunked N-D arrays): `ZarrLayer`.
 - Geotagged drone JPEGs: `ImageOverlay`.
 
 
@@ -166,6 +167,37 @@ Common choices:
 - `nodata` — overrides the source's nodata sentinel; nodata pixels render transparent.
 - Plain 8-bit RGB COGs (satellite truecolor) need no styling attributes at all.
 - Restretch/recolor (min/max/colormap edits) are GPU uniform updates — tiles are not refetched. The legend widget renders the colormap ramp automatically when `colormap` + `min`/`max` are authored.
+
+### ZarrLayer (Zarr / GeoZarr rasters)
+
+Chunked, N-dimensional array data (climate/weather grids, datacubes) rendered on the GPU. Same raster styling as COGLayer — `min`/`max`/`colormap`/`nodata` reuse the identical pipeline and legend.
+
+```html
+<!-- GeoZarr-compliant store: georeferences itself -->
+<om-layer id="sst" type="ZarrLayer"
+          src="./ocean.zarr" variable="analysed_sst" select="time=0"
+          colormap="viridis" min="270" max="305"></om-layer>
+
+<!-- Plain (non-GeoZarr) store: georeference it in the manifest -->
+<om-layer id="temp" type="ZarrLayer"
+          src="./ecmwf.zarr" variable="temperature_2m" select="init_time=0, lead_time=0, ensemble_member=0"
+          bounds="[-180, -90, 180, 90]" crs="EPSG:4326" spatial-dims="latitude longitude"
+          colormap="turbo" min="-40" max="50"></om-layer>
+```
+
+- `src` (required) — the `.zarr` store URL. NOT `data`: like COGLayer, chunks stream through the layer's own reader (zarrita); they are never parsed rows.
+- `variable` — the array within the store to render.
+- `select` — pin every NON-spatial dimension: `"time=0"`, `"init_time=0, lead_time=0, ensemble_member=0"`. The two spatial dims are handled for you. A 2-D array needs no `select`.
+- **GeoZarr** stores (with the spatial/geo-proj/multiscales conventions) georeference themselves — no `bounds`/`crs` needed.
+- **Plain Zarr** (common for real-world public stores) needs manual georeferencing: `bounds="[west,south,east,north]"`, `crs="EPSG:4326"`, and `spatial-dims="<yName> <xName>"` (the two spatial dimension names). Validation errors if you give `bounds` without `crs` + `spatial-dims`.
+- `min`/`max`/`colormap`/`nodata` and the auto legend work exactly as in COGLayer. Non-spatial-dim chunking can make some stores heavy to read — pin dimensions the store chunks finely over.
+
+**External / remote stores.** `src` may be any absolute URL — `src="https://…/store.zarr"` — with everything else identical. Two requirements:
+
+- **CORS.** zarrita fetches the store directly from the browser, so the host must send `Access-Control-Allow-Origin` (public open-data buckets on S3/GCS/source.coop usually do). Verify with `curl -I -H "Origin: https://x" <src>/zarr.json` and look for the header; a store without CORS is browser-blocked with no workaround short of a proxy.
+- **Public only, for now.** `ZarrLayer` opens the store with zarrita's own fetch, NOT `OmMap.configureData` — so a store needing an auth header/token is not yet supported (a documented follow-up). Public stores work out of the box.
+
+No server setup is needed: a static host serves Zarr's extensionless chunk keys (`c/0/0`) natively. (In local dev only, Vite's dev server can't, so the repo ships a dev-only middleware — irrelevant to real hosting.)
 
 ### ImageOverlay (drone JPEG)
 

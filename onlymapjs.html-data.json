@@ -337,6 +337,9 @@
             },
             {
               "name": "TripsLayer"
+            },
+            {
+              "name": "ZarrLayer"
             }
           ]
         },
@@ -962,6 +965,22 @@
         {
           "name": "nodata",
           "description": "deck.gl nodataOverride."
+        },
+        {
+          "name": "variable",
+          "description": "deck.gl variable."
+        },
+        {
+          "name": "select",
+          "description": "deck.gl select."
+        },
+        {
+          "name": "crs",
+          "description": "deck.gl crs."
+        },
+        {
+          "name": "spatial-dims",
+          "description": "deck.gl spatialDims."
         },
         {
           "name": "get-source-position",
