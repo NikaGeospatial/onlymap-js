@@ -16,8 +16,8 @@ Vite/npm project:
 Static CDN page (raw-file CDNs only — unpkg/jsDelivr; never esm.sh or another rebundling CDN, which duplicates the WebGL runtime and breaks layer shaders):
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.9/dist/onlymapjs.css">
-<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.9"></script>
+<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.10/dist/onlymapjs.css">
+<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.10"></script>
 ```
 
 Always include `onlymapjs.css` — it carries the MapLibre basemap styles and the no-JS fallback rules (`<om-fallback>` / default banner). For the fallback to work in script-disabled previews it must load without JavaScript: a real `<link rel="stylesheet">` or inlined `<style>` on no-build pages (a bundler-emitted stylesheet is fine in npm projects).
@@ -111,6 +111,13 @@ Filtering:
 
 ```html
 filter-field="magnitude" filter-range="[4, 10]"
+```
+
+Dashed lines (on path-stroking layers — `PathLayer`, `GeoJsonLayer`, `PolygonLayer`, `TripsLayer`):
+
+```html
+dash="[6, 3]"               <!-- 6-long dash, 3-long gap, in line-width units -->
+dash="6 3" dash-justified   <!-- SVG-style values; justify so each segment starts/ends on a dash -->
 ```
 
 For an epoch-millisecond filter, format the built-in widget's numeric labels declaratively:

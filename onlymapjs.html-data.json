@@ -397,6 +397,14 @@
           "description": "JSON array of categories to keep."
         },
         {
+          "name": "dash",
+          "description": "Dashed line pattern \"[dashLength, gapLength]\" (or \"6 3\") in line-width units. PathLayer/GeoJsonLayer/PolygonLayer/TripsLayer."
+        },
+        {
+          "name": "dash-justified",
+          "description": "Stretch each segment's dashes to start and end on a dash (boolean)."
+        },
+        {
           "name": "highlighted-id",
           "description": "Feature id to highlight (set by the highlight-feature action)."
         },

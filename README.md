@@ -147,6 +147,8 @@ Built-in actions wire to picks, widget buttons (`data-emit`), or script (`ctx.em
 
 GPU filtering is declarative — `filter-field="magnitude" filter-range="[4,10]"` — updates live from the built-in `filter` slider widget, and widget statistics stay coherent with what the map shows (`ctx.stats` respects the active filter unless you opt out).
 
+Dashed lines are one attribute — `dash="[6, 3]"` (or `dash="6 3"`, plus optional `dash-justified`) on a `PathLayer`/`GeoJsonLayer`/`PolygonLayer`/`TripsLayer` — wired through deck's `PathStyleExtension` under the hood.
+
 ### Widgets get a real runtime API
 
 Custom widget scripts receive `ctx`: layer metadata, `viewport` (bounds/zoom/project), the current `selection`, `emit()`, and data access — `ctx.data(id)`, `ctx.dataInViewport(id)`, `ctx.stats(id, field)` (count/min/max/mean/stddev/percentiles/histogram, viewport-scoped on request). Declare `watch` tokens (`data:quakes viewport selection layers`) and the runtime re-renders you only when relevant state changes. `vegaEmbed` and `d3` are available as globals for charts.
