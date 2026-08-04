@@ -10,10 +10,19 @@ Use `OmMap.validate(htmlString)` before finalizing agent-written maps.
 import { OmMap } from "@nika-js/onlymap";
 
 const result = OmMap.validate(html);
-if (!result.valid) {
-  console.log(result.errors);
+// `valid` reflects ERRORS ONLY. Warnings (e.g. `Unknown attribute "get-radius"
+// on GeoJsonLayer — likely a typo`) mean a prop is being silently dropped and
+// the layer renders wrong-but-"valid", so act on BOTH lists — never stop at
+// `valid: true`.
+for (const entry of [...result.errors, ...result.warnings]) {
+  console.log(entry.severity, entry.attribute, entry.message, "→", entry.fix);
 }
 ```
+
+An `Unknown attribute` warning is usually a wrong-for-this-layer prop — check
+`onlymapjs.html-data.json` for the layer's real attributes (e.g. `GeoJsonLayer`
+points use `get-point-radius`/`point-radius-units`, not `ScatterplotLayer`'s
+`get-radius`/`radius-units`).
 
 Errors and warnings have:
 

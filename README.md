@@ -34,7 +34,7 @@
 
 That's a complete app: a no-token MapLibre basemap, data-driven colors and sizes, a legend, and a click-for-details popup. Edit any attribute on the live DOM and the map updates — the manifest *is* the state.
 
-It's also designed to be written **by AI agents**: HTML is a reliable generation target, [`llms.txt`](llms.txt) teaches the format, and `OmMap.validate()` returns structured errors with actionable fixes — a real feedback loop instead of a blank canvas.
+It's also designed to be written **by AI agents**: HTML is a reliable generation target, [`llms.txt`](llms.txt) teaches the format, and `OmMap.validate()` returns structured errors **and warnings** with actionable fixes — a real feedback loop instead of a blank canvas (heed both: an "unknown attribute" warning means a prop is being silently dropped).
 
 > ⚠️ **Status: v0.2.** Proprietary — free for non-commercial use with attribution; commercial licensing terms are in [LICENSE.md](LICENSE.md). APIs may still move before 1.0.
 
@@ -46,7 +46,7 @@ deck.gl is the best WebGL data-visualization engine there is — and OnlyMapJS i
 |---|---|---|
 | Setup | `new Deck({...})`, canvas + basemap sync wiring | one `<om-map>` element (or `<OmMap>` in React) |
 | State | your reducers/stores drive `setProps` | the manifest **is** the state — edit an attribute, the map reconciles; undo/redo built in |
-| Data loading | fetch + parse + reload yourself | `data="…"` — GeoJSON, CSV, Arrow/GeoArrow, Shapefile, KML, GPX, FlatGeobuf, CityJSON, WebSocket streams, polled REST, tiled XYZ/vector (`TileLayer`/`MVTLayer`); GeoTIFF/COG rasters via `type="COGLayer"` |
+| Data loading | fetch + parse + reload yourself | `data="…"` — GeoJSON, CSV, Arrow/GeoArrow, Shapefile, KML, GPX, FlatGeobuf, GeoParquet, CityJSON, WebSocket streams, polled REST, tiled XYZ/vector (`TileLayer`/`MVTLayer`); GeoTIFF/COG rasters via `type="COGLayer"` |
 | Accessors | JS functions + `updateTriggers` bookkeeping | `get-*` expressions; update triggers derived automatically |
 | UI | build legends/popups/filters from scratch | built-in widgets, overlays, behaviors — declarative |
 | Testing | mock WebGL or ship untested | `OmMap.validate`, IR snapshots, headless behavioral harness |

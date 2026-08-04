@@ -339,7 +339,7 @@
         },
         {
           "name": "data",
-          "description": "Data URL (JSON, GeoJSON, CSV/TSV, Arrow/GeoArrow IPC, Shapefile .shp, KML) or wss:// stream; omit for inline <script type=\"application/json\">."
+          "description": "Data URL (JSON, GeoJSON, CSV/TSV, Arrow/GeoArrow IPC, Shapefile .shp, KML, GPX, FlatGeobuf .fgb, GeoParquet .parquet, CityJSON) or wss:// stream; omit for inline <script type=\"application/json\">."
         },
         {
           "name": "label",

@@ -16,8 +16,8 @@ Vite/npm project:
 Static CDN page (raw-file CDNs only — unpkg/jsDelivr; never esm.sh or another rebundling CDN, which duplicates the WebGL runtime and breaks layer shaders):
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.4/dist/onlymapjs.css">
-<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.4"></script>
+<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.5/dist/onlymapjs.css">
+<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.5"></script>
 ```
 
 Always include `onlymapjs.css` — it carries the MapLibre basemap styles and the no-JS fallback rules (`<om-fallback>` / default banner). For the fallback to work in script-disabled previews it must load without JavaScript: a real `<link rel="stylesheet">` or inlined `<style>` on no-build pages (a bundler-emitted stylesheet is fine in npm projects).
@@ -153,6 +153,7 @@ External layer classes become manifest types via `OmMap.registerLayer({type, dec
 | KML                  | `data="./tour.kml"`                                         | Placemarks become GeoJSON features.                           |
 | GPX                  | `data="./hike.gpx"` (opt. `#waypoints`/`#tracks`/`#routes`) | Waypoints/tracks/routes → GeoJSON features, each tagged `_gpxKind`; a URL fragment selects one part (no fragment = all). |
 | FlatGeobuf           | `data="./cities.fgb"`                                       | Cloud-native binary vector — whole-file decode to GeoJSON features (bbox-streaming is a later phase). |
+| GeoParquet           | `data="./data.parquet"` (or `.geoparquet`)                 | Cloud-native columnar vector — all-Point files stay columnar, lines/polygons become GeoJSON features; needs the `geo` metadata (WKB geometry) and CRS84/EPSG:4326 (a projected CRS errors — reproject first). |
 | CityJSON             | `data="./tile.city.json"`                                   | 3D city models → extruded footprints, or `?om-surfaces=1` for real per-face roof geometry; see below. |
 | CityJSONSeq          | `data="./tile.city.jsonl"`                                  | Same, streamed line by line as it downloads.                  |
 | WebSocket            | `data="wss://feed" key="id" flush="250ms" source="decoder"` | Upsert-by-key stream.                                         |
@@ -302,7 +303,24 @@ Examples:
 <om-widget type="basemap-switcher" options="positron dark-matter liberty osm" position="top-right"></om-widget>
 ```
 
-Custom widget:
+### Custom widgets & event emission
+
+**Reach for a built-in first.** A plain value/time slider is a built-in:
+`<om-widget type="filter" layer="quakes" field="time">` — it renders the slider
+AND wires the `filter-layer` action for you (pair it with the layer's
+`filter-field`). Author a custom widget ONLY for bespoke UI or logic the
+built-ins don't cover — most "it looked right but didn't work" widgets should
+have been a `type="filter"`/`legend`/`vega-lite` built-in.
+
+A custom widget is an `<om-widget>` with **no `type`** plus inline HTML and a
+`<script type="om/widget">` block. The script is full JS, evaluated ONCE at
+connect with `this` bound to the `<om-widget>` element: set `this.watch` (a
+list of re-render triggers) and `this.render = (ctx) => {…}`. `vegaEmbed`/`d3`
+are available. Content renders in shadow DOM — reach it with `this.$(selector)`
+and `this.root`.
+
+**Read map state** through `ctx` (the `render` argument), re-rendering when a
+watched token fires:
 
 ```html
 <om-widget position="top-left">
@@ -317,20 +335,60 @@ Custom widget:
 </om-widget>
 ```
 
-Widget context:
+- `ctx.layers`, `ctx.data(id)`, `ctx.dataInViewport(id)`,
+  `ctx.stats(id, field, { scope: "viewport" })`, `ctx.selection`,
+  `ctx.viewport`, `ctx.history` (`{ canUndo, canRedo }`).
+- Watch tokens: `data:<layerId>`, `viewport`, `selection`, `layers` (add/remove,
+  visibility, filter changes), `basemap`, `lighting`, `terrain`, `history`,
+  `widgets` (`widgets-hidden` hide-all toggle).
 
-- `ctx.layers`
-- `ctx.data(id)`
-- `ctx.dataInViewport(id)`
-- `ctx.stats(id, field, { scope: "viewport" })`
-- `ctx.selection`
-- `ctx.viewport`
-- `ctx.history` — `{ canUndo, canRedo }`; re-render on changes via the `history` watch token
-- `ctx.emit(action, payload)`
+**Drive the map — the emission contract.** This is the part authors get wrong.
+A widget NEVER mutates the map directly and NEVER dispatches its own
+`CustomEvent` hoping the map listens. It **emits a registered action**, exactly
+two ways:
 
-Watch tokens: `data:<layerId>`, `viewport`, `selection`, `layers` (fires on layer add/remove, visibility, and filter changes), `basemap`, `lighting`, `terrain`, `history`, `widgets` (fires on a `widgets-hidden` hide-all toggle).
+1. **Declarative `data-emit`** (no script): `data-emit="<action>"` + `data-*`
+   payload keys on an element. Fires on **click** (non-form elements) or
+   **change** (form controls — `input`/`select`/`textarea`, whose `.value` is
+   auto-merged into the payload). `data-*` keys camelCase (`data-feature-id` →
+   `featureId`) and arrive as **strings** — fine for `toggle-layer`/`fly-to`,
+   but a numeric/array payload (a slider's `range: [min, max]`) needs `ctx.emit`.
+   ```html
+   <button data-emit="toggle-layer" data-layer="quakes">Toggle quakes</button>
+   ```
 
-Use `this.$()` and `this.root`; widgets render in shadow DOM.
+2. **Programmatic `ctx.emit(action, payload)`** — for typed payloads. Wire it
+   INSIDE `render` so `ctx` is in scope, assigning `.oninput`/`.onclick`
+   (idempotent across re-renders; prefer over `addEventListener`, which stacks a
+   fresh listener every render):
+   ```html
+   <om-widget position="bottom-center">
+     <input id="day" type="range" min="1" max="14" step="1" value="1">
+     <script type="om/widget">
+       this.render = (ctx) => {
+         this.$("#day").oninput = (e) => {
+           const d = Number(e.target.value);
+           ctx.emit("filter-layer", { layer: "quakes", field: "day", range: [d, d] });
+         };
+       };
+     </script>
+   </om-widget>
+   ```
+
+**NEVER inline handlers** (`onclick="…"`, `oninput="ctx.emit(…)"`): `ctx` is not
+a global, they execute in page scope, and CSP blocks them — the widget looks
+right and silently emits nothing. This is the #1 custom-widget failure, and
+validation errors on it.
+
+**Actions a widget can emit** (payload keys): `filter-layer`
+`{layer, field?, range:[min,max]}` (value/time sliders), `toggle-layer`
+`{layer, visible?}`, `fly-to` `{center:[lng,lat], zoom?, pitch?, bearing?,
+duration?}`, `zoom-to-feature` `{layer, featureId, duration?}`, `set-basemap`
+`{basemap}`, `set-lighting`/`set-terrain`, `highlight-feature`
+`{layer, featureId}`, `show-overlay`/`hide-overlay` `{target}`,
+`story-play`/`story-pause`/`story-seek` `{story, t?}`, `undo`/`redo`,
+`zoom-in`/`zoom-out`, `set-widgets-visible` `{visible}`. Register your own with
+`OmMap.registerAction(name, (payload, mapEl) => …)`.
 
 ### `<om-overlay>`
 
