@@ -40,7 +40,7 @@ OmMap.registerSource("ais", {
 });
 ```
 
-Register the plugin in the same module script that imports the library (registration is also tolerated late — plugins resolve lazily — but same-task is the tidy order). Runnable example: [`examples/ais.html`](../examples/ais.html), which speaks aisstream.io's real message format against a simulated feed.
+Register the plugin in the same module script that imports the library (registration is also tolerated late — plugins resolve lazily — but same-task is the tidy order). Runnable example: [`examples/maps/transport-logistics/bay-area-shipping.html`](../examples/maps/transport-logistics/bay-area-shipping.html), which speaks aisstream.io's real message format against a simulated feed.
 
 ## Polling (`refresh`)
 
@@ -54,7 +54,7 @@ Register the plugin in the same module script that imports the library (registra
 - **Failures don't blank the map**: a failing refresh keeps the last good snapshot and keeps polling, warning once per outage and once on recovery. The *initial* load settles `om-map-ready` even on error.
 - Interval floor is 250ms. Works for Arrow (`.arrow`) URLs too — re-fetched and re-parsed per poll.
 
-Runnable example: [`examples/fleet.html`](../examples/fleet.html) — 20 drivers polled at 1s from an **auth-protected** endpoint.
+Runnable example: [`examples/maps/transport-logistics/san-francisco-last-mile.html`](../examples/maps/transport-logistics/san-francisco-last-mile.html) — 20 drivers polled at 1s from an **auth-protected** endpoint.
 
 ## Authenticated endpoints — `configureData`
 

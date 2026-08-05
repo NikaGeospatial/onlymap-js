@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<!--
+  MVTLayer is the vector half of the tile story. Where TileLayer receives a
+  picture per tile, this one receives GEOMETRY per tile — roads, coastlines,
+  building footprints — and draws it with your accessors, at your colours, at
+  any zoom. Reach for it when the map has to stay styleable and pickable at
+  street level without you loading a country's worth of GeoJSON.
+
+  `data` takes the same {z}/{x}/{y} template a raster tile layer takes. Nothing
+  else is different: the URL is handed to deck.gl, never fetched as rows.
+
+  The map: OpenStreetMap's own vector tiles over Venice. Every canal, quay and
+  building comes out of the tiles as real geometry, drawn here in one cyan
+  palette. Zoom in — new detail arrives with each level.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Add vector tiles</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #0a1220;
+      --om-widget-fg: #e0f2fe;
+      --om-widget-muted: #7c93ad;
+      --om-widget-border: #1c2f45;
+      --om-widget-hover-bg: #122032;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[12.334, 45.4375]" zoom="13.6" basemap="none">
+
+    <!-- MVTLayer renders the tiles itself, so unlike a raster TileLayer it
+         takes the ordinary polygon, line and point accessors and applies them
+         to every feature in every tile.
+
+         Colours here are constant, which is what turns a whole city into one
+         drawing. To style by feature instead, set binary="false" and read the
+         feature's own tile properties in an accessor — `$layerName` tells you
+         which tile layer a feature came from, `water` and `buildings` among
+         them.
+
+         min-zoom and max-zoom are the levels the SERVICE publishes, not the
+         zooms you allow the user. Below the maximum, deck.gl over-zooms the
+         deepest tiles rather than asking for tiles that do not exist.
+
+         MVTLayer extrudes. When the tiles carry a height property, add
+         `extruded` with get-elevation and elevation-scale and the building
+         footprints stand up as solids — 3D buildings with no model files and
+         no extra data. Pitch the map so the height reads.
+
+         The path carries a schema version — `shortbread_v1` here. Read the
+         URL from your own config rather than hard-code it, so a service
+         change is a config edit and not a release. Every public tile service
+         also wants visible attribution; OpenStreetMap's is a condition of
+         use, not a courtesy. -->
+
+    <om-layer id="osm" type="MVTLayer"
+              data="https://vector.openstreetmap.org/shortbread_v1/{z}/{x}/{y}.mvt"
+              label="OpenStreetMap vector tiles" color="#38bdf8"
+              min-zoom="0" max-zoom="14"
+              filled stroked
+              get-fill-color="[13, 42, 66, 190]"
+              get-line-color="[56, 189, 248]"
+              get-line-width="1.4"
+              line-width-units="pixels" line-width-min-pixels="0.7"
+              get-point-radius="1.6" point-radius-units="pixels"
+              opacity="0.95"
+              pickable></om-layer>
+
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: rgba(10,18,32,.9); color: #dbeafe; padding: 10px 14px;
+                 border-radius: 8px; font-size: 13px; max-width: 260px; line-height: 1.45; }
+        .panel b { color: #7dd3fc; }
+      </style>
+      <div class="panel">
+        <b>Venice as vectors.</b> No basemap is loaded — every line on screen
+        came out of a vector tile and is styled by the attributes on one layer.
+      </div>
+    </om-widget>
+
+    <om-widget type="attribution"
+               text="Vector tiles © OpenStreetMap contributors, ODbL"
+               position="bottom-start"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

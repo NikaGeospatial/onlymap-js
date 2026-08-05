@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<!--
+  A SPATIAL INDEX cuts the Earth into numbered cells, so a location becomes a
+  short text id. Bin your rows by that id upstream and the map needs no
+  geometry at all: one accessor names the id column, and the layer works out
+  where each cell sits and what shape it is.
+
+  Which index you use is usually decided for you — by the warehouse, the vendor
+  feed, or the team that binned the data. deck.gl ships a layer for each of the
+  four common ones, and the shapes differ enough to matter, so this page puts
+  the same 21,337 power stations through all four.
+
+  The map: pick an index in the panel on the left. Quadkey squares stretch
+  badly toward the poles, being Mercator tiles. Geohash rectangles narrow as
+  they climb. S2 cells stay square-ish, being faces of a cube pushed onto a
+  sphere. A5 pentagons hold near-equal area everywhere, which is what makes
+  counts comparable between cells.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Draw spatial index cells</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #11131b;
+      --om-widget-fg: #f3f4f8;
+      --om-widget-muted: #8b90a3;
+      --om-widget-border: #262a36;
+      --om-widget-hover-bg: #1c202a;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[15, 30]" zoom="1.5" basemap="dark-matter">
+
+    <!-- One accessor per index is the whole difference between these four
+         layers: get-s2-token, get-geohash, get-quadkey, get-pentagon. Each
+         reads a column of ids and needs nothing else to place a cell.
+
+         An id carries its own level, so none of these layers takes a cell
+         size — the file decides how coarse the map is. These are S2 level 4,
+         geohash precision 2, quadkey zoom 5 and A5 resolution 3, binned to
+         land in the same size range.
+
+         All four share one threshold scale, so a colour means the same thing
+         from index to index and the legend holds still when you switch.
+
+         Load cell ids from a format that carries its own column types — Arrow
+         here, or JSON. A quadkey like 02301 is TEXT, and a CSV reader types a
+         column of digits as numbers: the leading zero goes, and the cell goes
+         with it.
+
+         All four extrude. Add `extruded` with get-elevation and
+         elevation-scale and the cells stand up as 3D bars — `gigawatts` is in
+         these files and is the natural height. `wireframe` outlines their
+         sides. Give the map some pitch first, and expect a tall cell to hide
+         the ones behind it. -->
+    <om-layer id="s2" type="S2Layer"
+              data="../../data/plants-cells-s2.arrow"
+              label="S2 — level 4"
+              get-s2-token="$s2"
+              get-fill-color="scale($plants, threshold,
+                                    ['#172554', '#1d4ed8', '#22d3ee', '#facc15', '#f97316'],
+                                    domain=[5, 25, 90, 300])"
+              stroked get-line-color="[15, 23, 42, 160]" line-width-min-pixels="0.6"
+              opacity="0.85" pickable></om-layer>
+
+    <om-layer id="geohash" type="GeohashLayer"
+              data="../../data/plants-cells-geohash.arrow"
+              label="Geohash — precision 2" visible="false"
+              get-geohash="$geohash"
+              get-fill-color="scale($plants, threshold,
+                                    ['#172554', '#1d4ed8', '#22d3ee', '#facc15', '#f97316'],
+                                    domain=[5, 25, 90, 300])"
+              stroked get-line-color="[15, 23, 42, 160]" line-width-min-pixels="0.6"
+              opacity="0.85" pickable></om-layer>
+
+    <om-layer id="quadkey" type="QuadkeyLayer"
+              data="../../data/plants-cells-quadkey.arrow"
+              label="Quadkey — zoom 5" visible="false"
+              get-quadkey="$quadkey"
+              get-fill-color="scale($plants, threshold,
+                                    ['#172554', '#1d4ed8', '#22d3ee', '#facc15', '#f97316'],
+                                    domain=[5, 25, 90, 300])"
+              stroked get-line-color="[15, 23, 42, 160]" line-width-min-pixels="0.6"
+              opacity="0.85" pickable></om-layer>
+
+    <!-- A5 ids are hex strings. Pass the string straight through — the layer
+         widens it to the 64-bit cell id itself. -->
+    <om-layer id="a5" type="A5Layer"
+              data="../../data/plants-cells-a5.arrow"
+              label="A5 — resolution 3" visible="false"
+              get-pentagon="$a5"
+              get-fill-color="scale($plants, threshold,
+                                    ['#172554', '#1d4ed8', '#22d3ee', '#facc15', '#f97316'],
+                                    domain=[5, 25, 90, 300])"
+              stroked get-line-color="[15, 23, 42, 160]" line-width-min-pixels="0.6"
+              opacity="0.85" pickable></om-layer>
+
+    <!-- The four indexes are alternatives, not layers to stack, so the switch
+         is a radio group rather than the legend's checkboxes. `toggle-layer`
+         FLIPS a layer's visibility rather than setting it, so one pick emits
+         the action twice: once for the index going out, once for the one
+         coming in. `this.state` is the per-instance stash that remembers
+         which one is on. -->
+    <om-widget position="top-left">
+      <style>
+        .panel { background: rgba(17,19,27,.9); color: #e6e8ef; padding: 10px 14px;
+                 border-radius: 8px; font-size: 13px; max-width: 265px; line-height: 1.45; }
+        .panel b { color: #facc15; }
+        .schemes { display: grid; gap: 5px; margin: 10px 0 0; padding: 10px 0 0;
+                   border: 0; border-top: 1px solid #262a36; }
+        .schemes label { display: flex; gap: 7px; align-items: center; cursor: pointer; }
+        .schemes input { accent-color: #facc15; cursor: pointer; }
+      </style>
+      <div class="panel">
+        <b>One dataset, four grids.</b> Colour is how many power stations fall
+        in the cell. Switch index and watch the same data change shape. Hover a
+        cell for its tally.
+        <fieldset class="schemes">
+          <label><input type="radio" name="scheme" value="s2" checked> S2 — level 4</label>
+          <label><input type="radio" name="scheme" value="geohash"> Geohash — precision 2</label>
+          <label><input type="radio" name="scheme" value="quadkey"> Quadkey — zoom 5</label>
+          <label><input type="radio" name="scheme" value="a5"> A5 — resolution 3</label>
+        </fieldset>
+      </div>
+      <script type="om/widget">
+        this.watch = [];
+        this.render = (ctx) => {
+          this.state.shown = "s2";
+          for (const radio of this.$$('input[name="scheme"]')) {
+            radio.onchange = () => {
+              ctx.emit("toggle-layer", { layer: this.state.shown });
+              ctx.emit("toggle-layer", { layer: radio.value });
+              this.state.shown = radio.value;
+            };
+          }
+        };
+      </script>
+    </om-widget>
+
+    <!-- The legend reads its classes off get-fill-color, so the five colours
+         and their breaks are never written twice. -->
+    <om-widget type="legend" title="Power stations per cell" position="top-right"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <om-behavior on="hover" layer="s2" action="show-tooltip" template="#cell-tip"></om-behavior>
+    <om-behavior on="hover" layer="geohash" action="show-tooltip" template="#cell-tip"></om-behavior>
+    <om-behavior on="hover" layer="quadkey" action="show-tooltip" template="#cell-tip"></om-behavior>
+    <om-behavior on="hover" layer="a5" action="show-tooltip" template="#cell-tip"></om-behavior>
+
+    <om-widget type="attribution"
+               text="Power stations © World Resources Institute, Global Power Plant Database v1.3, CC BY 4.0"
+               position="bottom-start"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <template id="cell-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#11131b; color:#f3f4f8;
+                border:1px solid #262a36; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>{{plants}} power stations</b><br />
+      <span style="color:#8b90a3">{{gigawatts}} GW installed</span>
+    </div>
+  </template>
+
+</body>
+</html>

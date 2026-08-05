@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<!--
+  Lighting is what turns extruded shapes into a solid you can read. Without
+  it every face takes the same fill and a block of buildings flattens into one
+  silhouette; with a sun in the scene, each face shades by the angle it turns
+  to that sun, and the massing becomes legible.
+
+  The `lighting` attribute picks a preset. The lighting-* attributes override
+  one number at a time, and `lighting-sun-date` goes further: give it a date
+  and a time and the sun is placed by real solar position, which is what makes
+  a shadow study possible rather than a guess.
+
+  The map: twelve real building footprints south of Market in San Francisco,
+  extruded to their heights. Drag the sliders on the right to move the sun by
+  hand, or press a time of day on the left to place it from the calendar.
+  Every control writes an attribute, so Cmd/Ctrl-Z steps back through them.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Light the scene</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <!-- `daylight` is a bright outdoor sun with strong directional shading.
+       The other presets are `studio` (softer, for inspecting a model),
+       `flat` (ambient only, no direction) and `custom` (daylight's numbers as
+       a seed for your own lighting-* overrides). -->
+  <om-map center="[-122.3990, 37.7902]" zoom="15.7" pitch="55" bearing="20"
+          basemap="positron" lighting="daylight">
+
+    <!-- `extruded` turns polygons into solids and get-elevation supplies the
+         height in metres. Leave `stroked` off on an extruded layer — an
+         outline drawn on the roof reads as a seam once the walls are up. -->
+    <om-layer id="blocks" type="GeoJsonLayer" label="City blocks" color="#8ca6cc"
+                extruded filled stroked="false" wireframe="false"
+                get-elevation="$height"
+                get-fill-color="'#a8bdd6'"
+                pickable auto-highlight
+                highlight-color="[255, 224, 138, 140]">
+      <script type="application/json">
+        { "type": "FeatureCollection", "features": [
+          { "type": "Feature", "properties": { "name": "Mission Square", "height": 140 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.39941,37.79034],[-122.39959,37.79048],[-122.39912,37.79085],[-122.39873,37.79054],[-122.39919,37.79017],[-122.39921,37.79018],[-122.39925,37.79022],[-122.39939,37.79032],[-122.39941,37.79034]]] } },
+          { "type": "Feature", "properties": { "name": "Howard Row", "height": 65 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.4018,37.7909],[-122.40182,37.79097],[-122.40088,37.79109],[-122.4008,37.7907],[-122.401,37.79068],[-122.40104,37.79089],[-122.40112,37.79088],[-122.40111,37.79086],[-122.40113,37.79081],[-122.4012,37.7908],[-122.40124,37.79084],[-122.40124,37.79087],[-122.40152,37.79083],[-122.40148,37.79062],[-122.40174,37.79059],[-122.40174,37.79061],[-122.4018,37.7909]]] } },
+          { "type": "Feature", "properties": { "name": "Tehama Block", "height": 90 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.40161,37.79053],[-122.4015,37.79054],[-122.40108,37.79059],[-122.4011,37.79067],[-122.401,37.79068],[-122.4008,37.7907],[-122.40073,37.79032],[-122.40103,37.79029],[-122.40146,37.79024],[-122.40146,37.79028],[-122.40156,37.79027],[-122.40161,37.79053]]] } },
+          { "type": "Feature", "properties": { "name": "Natoma Tower", "height": 175 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.39806,37.79089],[-122.39855,37.79128],[-122.39824,37.79152],[-122.39775,37.79113],[-122.39806,37.79089]]] } },
+          { "type": "Feature", "properties": { "name": "Clementina Yard", "height": 45 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.39827,37.78845],[-122.39853,37.78826],[-122.39863,37.78835],[-122.39865,37.78833],[-122.39892,37.78854],[-122.39856,37.78882],[-122.39846,37.78874],[-122.39848,37.78873],[-122.39837,37.78864],[-122.39835,37.78865],[-122.39818,37.78852],[-122.39821,37.7885],[-122.39821,37.78851],[-122.39828,37.78846],[-122.39827,37.78845]]] } },
+          { "type": "Feature", "properties": { "name": "Shipley Court", "height": 110 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.40061,37.79165],[-122.40048,37.79167],[-122.40048,37.7917],[-122.40032,37.79172],[-122.40032,37.79171],[-122.40029,37.79159],[-122.40026,37.79146],[-122.40021,37.79147],[-122.40019,37.79135],[-122.40067,37.7913],[-122.40067,37.7913],[-122.40068,37.79134],[-122.40069,37.79133],[-122.40074,37.79156],[-122.40075,37.79167],[-122.40075,37.79167],[-122.40062,37.79168],[-122.40061,37.79165]]] } },
+          { "type": "Feature", "properties": { "name": "Folsom Works", "height": 70 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.40008,37.78933],[-122.39999,37.7894],[-122.39975,37.78959],[-122.39953,37.78943],[-122.3994,37.78932],[-122.39963,37.78913],[-122.39972,37.78919],[-122.39977,37.78915],[-122.39984,37.78921],[-122.39988,37.78918],[-122.40008,37.78933]]] } },
+          { "type": "Feature", "properties": { "name": "Harriet Terrace", "height": 55 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.40015,37.79136],[-122.40022,37.79173],[-122.40023,37.79173],[-122.40014,37.79174],[-122.39981,37.79178],[-122.39979,37.79167],[-122.39978,37.79165],[-122.39974,37.79141],[-122.40003,37.79138],[-122.40015,37.79136]]] } },
+          { "type": "Feature", "properties": { "name": "Hawthorne Hall", "height": 125 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.39641,37.79042],[-122.39649,37.79049],[-122.39635,37.79059],[-122.39635,37.79058],[-122.39626,37.79065],[-122.39618,37.79059],[-122.39615,37.7906],[-122.39599,37.79046],[-122.39599,37.79044],[-122.39588,37.79035],[-122.39613,37.79016],[-122.39643,37.7904],[-122.39641,37.79042]]] } },
+          { "type": "Feature", "properties": { "name": "Perry Lofts", "height": 85 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.40063,37.78964],[-122.40045,37.78979],[-122.40008,37.78949],[-122.40032,37.78931],[-122.40067,37.78959],[-122.40062,37.78963],[-122.40063,37.78964]]] } },
+          { "type": "Feature", "properties": { "name": "Rincon Point", "height": 150 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.40096,37.78936],[-122.40079,37.78949],[-122.40062,37.78936],[-122.40062,37.7891],[-122.40079,37.78897],[-122.40096,37.7891],[-122.40096,37.78936]]] } },
+          { "type": "Feature", "properties": { "name": "Minna Depot", "height": 40 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.39921,37.79199],[-122.3996,37.79194],[-122.39965,37.79219],[-122.39918,37.79225],[-122.39914,37.79207],[-122.39922,37.79206],[-122.39921,37.79199]]] } }
+        ] }
+      </script>
+    </om-layer>
+
+    <!-- The built-in lighting widget: preset radios plus ambient, sun,
+         azimuth, elevation and camera sliders. Every control writes a
+         lighting-* attribute through set-lighting, so a story step, a hand
+         edit and an undo all land in the same place and the widget re-syncs
+         to whatever the attributes now say. -->
+    <om-widget type="lighting" position="top-right"></om-widget>
+
+    <!-- lighting-sun-date is the shadow-study control: give it an instant and
+         the azimuth and elevation are computed from solar position, so the
+         sun stands where it really stood. Times are UTC — San Francisco is
+         eight hours behind it in winter, seven in summer. A preset click with
+         no date clears the override and returns to the plain preset. -->
+    <om-widget position="top-left">
+      <style>
+        .sun { background: #fff; border: 1px solid #d7dee8; border-radius: 10px;
+               padding: 11px 13px; font-size: 12px; color: #1f2937;
+               box-shadow: 0 2px 12px rgba(15,23,42,.14); }
+        .sun h4 { margin: 0 0 8px; font-size: 11px; letter-spacing: .06em;
+                  text-transform: uppercase; color: #64748b; }
+        .sun button { display: block; width: 100%; margin: 4px 0; padding: 6px 9px;
+                      border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc;
+                      color: #1f2937; font: 12px system-ui, sans-serif; cursor: pointer; }
+        .sun button:hover { background: #eef2f7; }
+      </style>
+      <div class="sun">
+        <h4>Time of day</h4>
+        <button data-emit="set-lighting" data-lighting="daylight"
+                data-sun-date="2026-06-21T15:00:00Z">Summer morning</button>
+        <button data-emit="set-lighting" data-lighting="daylight"
+                data-sun-date="2026-06-21T20:00:00Z">Summer midday</button>
+        <button data-emit="set-lighting" data-lighting="daylight"
+                data-sun-date="2026-12-22T00:30:00Z">Winter dusk</button>
+        <button data-emit="set-lighting" data-lighting="daylight">Reset</button>
+      </div>
+    </om-widget>
+
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <om-behavior on="hover" layer="blocks" action="show-tooltip"
+                 template="#block-tooltip"></om-behavior>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <template id="block-tooltip">
+    <div style="background:#1f2937; color:#f8fafc; padding:5px 9px; border-radius:5px;
+                font:12px system-ui, sans-serif;">
+      <b>{{name}}</b> — {{height}} m
+    </div>
+  </template>
+
+</body>
+</html>

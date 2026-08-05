@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<!--
+  CityJSON is a data format, not a layer type: point `data` at a .city.json
+  file and you get ordinary rows with `$field` accessors, already reprojected
+  to lon/lat. Reach for it when you have a semantic city model — 3DBAG,
+  PLATEAU, swisstopo — and want its attributes, not just its shapes.
+
+  One file gives either of TWO shapes, chosen by the URL. Plain, it gives one
+  footprint per building with heights measured off the roof surfaces: cheap,
+  lit, flat on top. Add `?om-surfaces=1` and it gives one row per face, each
+  at its own real height, which is what makes a pitched roof look pitched.
+
+  The map: 120 buildings from a 3DBAG tile over Delft at level of detail 2.2.
+  Both shapes are loaded — tick the boxes in the Layers panel to swap between
+  them, and hover any surface for its record.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Load a CityJSON model</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #14171c;
+      --om-widget-fg: #f2f5f8;
+      --om-widget-muted: #808b99;
+      --om-widget-border: #262c34;
+      --om-widget-hover-bg: #1e242c;
+      --om-widget-accent: #ff8a3d;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- pitch and bearing at load — a city model seen from straight above is
+       just its footprints. lighting="studio" is a preset, so roof planes pick
+       up shading without a light rig of your own. -->
+  <om-map center="[4.368337, 52.001121]" zoom="16.2" pitch="58" bearing="25"
+          basemap="dark-matter" lighting="studio">
+
+    <!-- `?om-surfaces=1` gives one row per face, each with its real 3D ring in
+         `$polygon`. `full3d` is what makes those rings triangulate: without it
+         a wall is measured flat, where its area is nearly zero, and the face
+         disappears. Faces keep their CityJSON semantics, so `$surface_type` is
+         there to colour by. -->
+    <om-layer id="surfaces" type="SolidPolygonLayer" label="Real LoD 2.2 surfaces"
+              data="../../data/3dbag-tile.city.json?om-surfaces=1"
+              get-polygon="$polygon" full3d
+              get-fill-color="$surface_type == 'RoofSurface' ? '#ff7a2f' : $surface_type == 'WallSurface' ? '#6f7d90' : $surface_type == 'GroundSurface' ? '#2b323b' : '#55606e'"
+              pickable></om-layer>
+
+    <!-- `$outline` is the same face's outer ring, ready for a PathLayer. Pair
+         one with every surfaces layer — the fill is flat-shaded, so without
+         edges neighbouring roof planes merge into one blob. Two layers on one
+         URL cost a single fetch; the parsed result is cached. -->
+    <om-layer id="surface-edges" type="PathLayer" label="Surface edges"
+              data="../../data/3dbag-tile.city.json?om-surfaces=1"
+              get-path="$outline"
+              get-color="[10, 12, 15]"
+              width-min-pixels="1"
+              pickable="false"></om-layer>
+
+    <!-- The SAME file with no query: one footprint per building, plus derived
+         `$roof_height`, `$eaves_height`, `$ridge_height` and `$roof_area`,
+         which win over any same-named attribute in the source. This is the
+         ordinary extrusion path, so it is lit — at the cost of a flat top. -->
+    <om-layer id="footprints" type="GeoJsonLayer" label="Extruded footprints"
+              data="../../data/3dbag-tile.city.json"
+              extruded filled stroked="false" visible="false"
+              get-elevation="$roof_height"
+              color="#ff8a3d"
+              pickable></om-layer>
+
+    <!-- `interactive` turns each legend row into a checkbox that emits
+         toggle-layer — the whole mode swap, with no script to write. -->
+    <om-widget type="legend" title="Layers" interactive position="top-end"></om-widget>
+
+    <!-- Reach for the built-in legend's swatches when your fill is a scale(),
+         and write the key by hand when colour comes off a field like
+         `$surface_type` — as it does here. -->
+    <om-widget position="bottom-end">
+      <style>
+        .key { padding: 11px 13px; border-radius: 10px; min-width: 132px;
+               background: var(--om-widget-bg); border: 1px solid var(--om-widget-border);
+               color: var(--om-widget-fg); box-shadow: 0 4px 18px rgba(0,0,0,.5);
+               font: 11.5px/1.2 system-ui, sans-serif; }
+        .key h4 { margin: 0 0 8px; font-size: 12px; }
+        .row { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+        .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+        .row span { color: #c3ccd8; }
+      </style>
+      <div class="key">
+        <h4>Surface</h4>
+        <div class="row"><i class="sw" style="background:#ff7a2f"></i><span>Roof</span></div>
+        <div class="row"><i class="sw" style="background:#6f7d90"></i><span>Wall</span></div>
+        <div class="row"><i class="sw" style="background:#2b323b"></i><span>Ground</span></div>
+      </div>
+    </om-widget>
+    
+    <om-widget type="attribution"
+               text="Building models © 3DBAG (3dbag.nl), CC BY 4.0"
+               position="bottom-start"></om-widget>
+
+    <om-behavior on="hover" layer="surfaces" action="show-tooltip" template="#surface-tip"></om-behavior>
+    <om-behavior on="hover" layer="footprints" action="show-tooltip" template="#footprint-tip"></om-behavior>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <!-- Heights marked derived are computed during decoding from the roof
+       vertices; the b3_ fields are 3DBAG's own. -->
+  <template id="surface-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#14171c; color:#f2f5f8;
+                border:1px solid #262c34; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>{{surface_type}}</b> · {{cityobject_type}} · LoD {{lod}}<br />
+      built {{oorspronkelijkbouwjaar}} · roof type {{b3_dak_type}}<br />
+      <span style="color:#808b99">derived</span> eaves {{eaves_height}} m · roof {{roof_height}} m · ridge {{ridge_height}} m
+    </div>
+  </template>
+
+  <template id="footprint-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#14171c; color:#f2f5f8;
+                border:1px solid #262c34; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>{{cityobject_type}}</b> · LoD {{lod}}<br />
+      built {{oorspronkelijkbouwjaar}} · roof type {{b3_dak_type}}<br />
+      <span style="color:#808b99">derived</span> roof {{roof_height}} m · area {{roof_area}} m²
+    </div>
+  </template>
+
+</body>
+</html>

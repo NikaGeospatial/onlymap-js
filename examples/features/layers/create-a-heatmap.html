@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!--
+  A heatmap turns thousands of points into a continuous density surface.
+  Use it to answer "where is there a lot of this?" — not to read any single
+  point, which the smoothing deliberately hides.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Create a heatmap</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <om-map center="[150, 10]" zoom="1.1" basemap="dark-matter">
+
+    <!-- The data is a GeoJSON FeatureCollection of points, so $geometry.coordinates
+         reads each feature's position straight out of its geometry.
+
+         get-weight is what separates a heatmap from a dot density plot: without
+         it every quake counts the same, so a cluster of tremors outweighs one
+         major event. Weighting by magnitude makes the surface mean something.
+
+         radius-pixels is in SCREEN space, so the surface keeps its look as you
+         zoom. Raise intensity to make hot spots hotter; raise threshold to cut
+         the faint haze at the edges. -->
+    <om-layer id="quakes" type="HeatmapLayer"
+              data="../../data/usgs-earthquakes-month.geojson"
+              label="Earthquake energy (last 30 days)" color="#e57130"
+              get-position="$geometry.coordinates"
+              get-weight="$mag"
+              radius-pixels="34"
+              intensity="1.2"
+              threshold="0.05"
+              color-range="[[13,48,100],[26,102,161],[63,167,178],[161,208,133],[248,222,96],[229,113,48]]"></om-layer>
+
+    <om-widget type="legend" position="top-right"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: rgba(15,23,42,.85); color: #e2e8f0; padding: 10px 14px;
+                 border-radius: 8px; font-size: 13px; max-width: 250px; line-height: 1.45; }
+      </style>
+      <div class="panel">
+        1,960 earthquakes worldwide, weighted by magnitude. The Pacific Ring of
+        Fire draws itself. Individual events are not readable here — that is the trade a
+        heatmap makes.
+      </div>
+    </om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

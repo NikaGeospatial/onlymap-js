@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <!--
   Runnable examples — unlike ../../examples/ (aspirational spec-consistency
-  docs pointing at a CDN package and fictional data), these load the live
-  dev source (https://unpkg.com/@nika-js/onlymap@0.5.12/dist/onlymap.standalone.js) and the real datasets in ../data/, so you
+  docs pointing at a CDN package and fictional data), these import straight
+  from the live dev source and load the real datasets under dev/data, so you
   can actually open and click through them. Same shared nav bar on every
   page for quick switching; this page is just the landing/overview.
 -->
@@ -10,7 +10,6 @@
 <head>
   <meta charset="utf-8" />
   <title>OnlyMapJS — Examples</title>
-  <link rel="stylesheet" href="nav.css" />
   <style>
     main { padding: 84px 24px 24px; max-width: 640px; }
     .card { display: block; padding: 16px 18px; margin-bottom: 12px; border-radius: 10px;
@@ -25,96 +24,100 @@
   <header class="nav">
     <strong>OnlyMapJS examples</strong>
     <a href="index.html" class="current">Overview</a>
-    <a href="widgets.html">Widgets</a>
-    <a href="widget-manager.html">Widget manager</a>
-    <a href="behaviors-overlays.html">Behaviors &amp; overlays</a>
-    <a href="basemap.html">Basemap</a>
-    <a href="columnar.html">Columnar / GeoArrow</a>
-    <a href="time-series.html">Time series</a>
-    <a href="raster.html">Raster / GeoTIFF</a>
-    <a href="cityjson.html">CityJSON</a>
-    <a href="draw.html">Draw</a>
-    <a href="measure.html">Measure</a>
-    <a href="scenegraph.html">3D models</a>
-    <a href="lighting.html">Scene lighting</a>
-    <a href="terrain.html">Terrain</a>
-    <a href="google-3d-tiles.html">Google 3D Tiles</a>
-    <a href="google-3d-flyby.html">3D Flyby</a>
-    <a href="ais.html">Live AIS</a>
-    <a href="fleet.html">Fleet (polling)</a>
-    <a href="story.html">Map story</a>
+    <a href="./features/widgets/add-widgets.html">Widgets</a>
+    <a href="./features/widgets/use-responsive-widget-manager.html">Widget manager</a>
+    <a href="./features/interaction/wire-up-behaviors-and-overlays.html">Behaviors &amp; overlays</a>
+    <a href="./features/getting-started/choose-a-basemap.html">Basemap</a>
+    <a href="./features/sources/load-columnar-data.html">Columnar data</a>
+    <a href="./features/interaction/time-series.html">Time series</a>
+    <a href="./features/rasters/display-a-geotiff.html">GeoTIFF / COG</a>
+    <a href="./features/widgets/draw-manually.html">Draw</a>
+    <a href="./features/widgets/measure-distance-and-area.html">Measure</a>
+    <a href="./features/terrain-3d/place-a-3d-model.html">3D models</a>
+    <a href="./features/terrain-3d/light-the-scene.html">Scene lighting</a>
+    <a href="./features/terrain-3d/add-terrain.html">Terrain</a>
+    <a href="./features/terrain-3d/google-3d-tiles.html">Google 3D Tiles</a>
+    <a href="./features/stories/google-3d-flyby.html">3D Flyby</a>
+    <a href="./features/terrain-3d/load-a-cityjson-model.html">CityJSON</a>
+    <a href="./maps/transport-logistics/bay-area-shipping.html">Live AIS</a>
+    <a href="./maps/transport-logistics/san-francisco-last-mile.html">Fleet (polling)</a>
+    <a href="./features/stories/build-a-map-story.html">Map story</a>
     <a href="https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/react.md">React adapter</a>
   </header>
 
   <main>
     <h1>OnlyMapJS examples</h1>
-    <p>Each page below is a real, runnable manifest — open it, pan/zoom/click around. They import the library straight from source (<code>https://unpkg.com/@nika-js/onlymap@0.5.12/dist/onlymap.standalone.js</code>), the same way <code>dev/index.html</code> does, so they always reflect the current implementation.</p>
+    <p>Each page below is a real, runnable manifest — open it, pan/zoom/click around. They import the library straight from source, the same way <code>dev/index.html</code> does, so they always reflect the current implementation.</p>
 
-    <a class="card" href="widgets.html">
+    <a class="card" href="./features/widgets/add-widgets.html">
       <h3>Widgets</h3>
       <p>Legend, zoom-controls, scale-bar, and a live Vega-Lite chart that updates as you pan.</p>
     </a>
-    <a class="card" href="widget-manager.html">
+    <a class="card" href="./features/widgets/use-responsive-widget-manager.html">
       <h3>Responsive widget manager</h3>
       <p>An interactive v0.4.4 test bench for per-side auto-fold drawers, map-width breakpoints, <code>fold="never"</code>, hide-all, clustering, and RTL placement.</p>
     </a>
-    <a class="card" href="behaviors-overlays.html">
+    <a class="card" href="./features/interaction/wire-up-behaviors-and-overlays.html">
       <h3>Behaviors &amp; overlays</h3>
       <p>Click a region for a rich popup, hover a point for a tooltip, and drive a layer's filter with a slider.</p>
     </a>
-    <a class="card" href="basemap.html">
+    <a class="card" href="./features/getting-started/choose-a-basemap.html">
       <h3>Basemap</h3>
       <p>Free basemap presets (OpenFreeMap, CARTO, OSM) with live switching — layers and camera survive the swap.</p>
     </a>
-    <a class="card" href="columnar.html">
-      <h3>Columnar / GeoArrow</h3>
+    <a class="card" href="./features/sources/load-columnar-data.html">
+      <h3>Columnar data</h3>
       <p>A week of real USGS earthquakes from an Arrow IPC file — same $field manifest, zero row objects on the render path, apache-arrow lazy-loaded on first use.</p>
     </a>
-    <a class="card" href="time-series.html">
+    <a class="card" href="./features/interaction/time-series.html">
       <h3>Time series</h3>
       <p>A month of public-domain USGS earthquakes explored through a moving 48-hour window, with a temporal slider, playback, GPU filtering, and synchronized statistics.</p>
     </a>
-    <a class="card" href="raster.html">
-      <h3>Raster / GeoTIFF</h3>
-      <p>A Cloud-Optimized GeoTIFF streamed by Range request through the native COGLayer — min/max restretch and colormap swaps are GPU uniforms (no tile refetch), nodata filters to transparent, and the legend renders the ramp automatically.</p>
+    <a class="card" href="./features/rasters/display-a-geotiff.html">
+      <h3>GeoTIFF / COG</h3>
+      <p>Real 38 m elevation over the Grand Canyon, streamed from a Cloud-Optimized GeoTIFF by Range request through the native COGLayer — min/max restretch and colormap swaps are GPU uniforms (no tile refetch), nodata filters to transparent, and the legend renders the ramp automatically.</p>
     </a>
-    <a class="card" href="cityjson.html">
+    <a class="card" href="./features/terrain-3d/load-a-cityjson-model.html">
       <h3>CityJSON</h3>
-      <p>A real 3DBAG tile — CityJSON 2.0, quantized vertices, compound CRS EPSG:7415, LoD 2.2 semantic surfaces — decoded to extruded footprints with derived eaves/roof/ridge heights, so it renders lit on the ordinary GeoJsonLayer path. CityJSONSeq streams in as it downloads.</p>
+      <p>A real 3DBAG tile — CityJSON 2.0, quantized vertices, compound CRS EPSG:7415, LoD 2.2 semantic surfaces — drawn either as true per-face geometry or as extruded footprints with derived eaves/roof/ridge heights. CityJSONSeq streams in as it downloads.</p>
     </a>
-    <a class="card" href="draw.html">
+    <a class="card" href="./features/widgets/measure-distance-and-area.html">
+      <h3>Measure</h3>
+      <p>Geodesic distance and area straight off the map — haversine lengths, spherical-excess areas, live per-segment labels, and a metric/imperial/nautical toggle.</p>
+    </a>
+    <a class="card" href="./features/widgets/draw-manually.html">
       <h3>Draw</h3>
       <p>Sketch points, lines and polygons directly on the map with the draw toolbar — captured into a live layer and saved as a local GeoJSON file, no backend.</p>
     </a>
-    <a class="card" href="scenegraph.html">
+    <a class="card" href="./features/terrain-3d/place-a-3d-model.html">
       <h3>3D models</h3>
       <p>GLB models instanced on the basemap via ScenegraphLayer — the browser half of an IFC/CAD asset pipeline, no three.js required.</p>
     </a>
-    <a class="card" href="lighting.html">
+    <a class="card" href="./features/terrain-3d/light-the-scene.html">
       <h3>Scene lighting</h3>
       <p>Extruded buildings under the lighting* attributes — the native lighting widget swaps presets and tunes ambient/sun/azimuth live; a sun-date button drives a solar-position sun. Every change is undoable.</p>
     </a>
-    <a class="card" href="terrain.html">
+    <a class="card" href="./features/terrain-3d/add-terrain.html">
       <h3>Terrain</h3>
       <p>The keyless AWS terrarium DEM raises Yosemite in 3D; vector layers drape onto the surface automatically, with per-layer drape/offset/off control and live exaggeration.</p>
     </a>
-    <a class="card" href="google-3d-tiles.html">
+    <a class="card" href="./features/terrain-3d/google-3d-tiles.html">
       <h3>Google 3D Tiles</h3>
       <p>Google Photorealistic 3D Tiles rendered through Tile3DLayer. Requires a browser-restricted Map Tiles API key.</p>
     </a>
-    <a class="card" href="google-3d-flyby.html">
+    <a class="card" href="./features/stories/google-3d-flyby.html">
       <h3>3D Flyby</h3>
       <p>A story-driven Google Photorealistic 3D Tiles flyby across nearby places, with dwell time to inspect tile loading and LOD refinement.</p>
     </a>
-    <a class="card" href="ais.html">
+    <a class="card" href="./maps/transport-logistics/bay-area-shipping.html">
       <h3>Live AIS</h3>
       <p>A live WebSocket ship feed (simulated, aisstream.io format) — upsert-by-key, throttled flushes, widgets updating per flush.</p>
     </a>
-    <a class="card" href="fleet.html">
+    <a class="card" href="./maps/transport-logistics/san-francisco-last-mile.html">
       <h3>Fleet (polling)</h3>
       <p>Drivers from an auth-protected REST snapshot endpoint, re-polled with refresh="1s" — the Grab-style transport, with configureData supplying the bearer token.</p>
     </a>
-    <a class="card" href="story.html">
+    <a class="card" href="./features/stories/build-a-map-story.html">
       <h3>Map story</h3>
       <p>A guided tour as a manifest: <code>om-story</code> steps fire the same actions behaviors use, with a player widget, seek/scrub, and pause-on-grab.</p>
     </a>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<!--
+  Point `data` at an extension nothing claims and the error names the way out:
+  registerFormat. It takes a `match` test and a `parse` function, and from then
+  on that extension is a first-class format — the layer, the accessors, the
+  legend and the tooltips are written exactly as they would be for GeoJSON.
+
+  Reach for it when your data already exists in a shape the library does not
+  ship: a warehouse export, an instrument's own file, an internal wire format.
+  The companion is registerSource, which does the same job for a live socket.
+
+  The map: every country, drawn from a .wkt file — the plain-text geometry a
+  PostGIS, DuckDB or BigQuery export drops out as. Nothing in the manifest
+  below knows that; the twenty lines above it are what makes .wkt a format.
+  Hover a country, or drag the population slider — a built-in widget reading
+  fields a plugin produced is the proof that it produced ordinary rows.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Extend the data layer</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #10131b;
+      --om-widget-fg: #f3f6fb;
+      --om-widget-muted: #868fa3;
+      --om-widget-border: #262d3a;
+      --om-widget-hover-bg: #1b2029;
+    }
+  </style>
+
+  <script type="module">
+    import { OmMap } from "https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js";
+
+    // A WKT ring is "x y, x y, …" — the same numbers GeoJSON holds, written
+    // as text. Split on whitespace and you have a coordinate pair.
+    const ring = (text) => text.trim().split(",").map((pair) => pair.trim().split(/\s+/).map(Number));
+
+    // Register BEFORE the manifest mounts — a type that arrives after the map
+    // has reconciled is not retried. Your formats are tested ahead of the
+    // built-ins, so a match test can also override a shipped parser.
+    OmMap.registerFormat({
+      // `match` sees the URL and the Content-Type. Claim narrowly: anything
+      // this returns true for stops reaching every other parser.
+      match: (url) => url.split(/[?#]/)[0].endsWith(".wkt"),
+
+      // `parse` gets the raw Response and returns rows. GeoJSON features are
+      // rows the runtime already understands, so build those and $name,
+      // picking, filters and legends all work with no further wiring.
+      parse: async (res) => {
+        const [header, ...lines] = (await res.text()).trim().split("\n");
+        const fields = header.split(";").slice(0, -1);
+        return lines.map((line) => {
+          const cells = line.split(";");
+          const wkt = cells[cells.length - 1];
+          const rings = [...wkt.matchAll(/\(([^()]+)\)/g)].map((m) => ring(m[1]));
+          const properties = Object.fromEntries(
+            fields.map((f, i) => [f, isNaN(cells[i]) ? cells[i] : Number(cells[i])]),
+          );
+          return {
+            type: "Feature",
+            properties,
+            geometry: wkt.startsWith("MULTIPOLYGON")
+              ? { type: "MultiPolygon", coordinates: rings.map((r) => [r]) }
+              : { type: "Polygon", coordinates: rings },
+          };
+        });
+      },
+    });
+
+    // The live-data twin. registerSource names a decoder for a wss:// feed —
+    // the transport, reconnect and upsert-by-key are handled for you, and the
+    // plugin only turns one message into one entity. Select it from the layer
+    // with source="fleet". `stream-live-positions` runs one against a feed.
+    //
+    // OmMap.registerSource("fleet", {
+    //   onOpen: (send) => send(JSON.stringify({ subscribe: "vehicles" })),
+    //   decode: (msg) => msg.type === "position" ? { id: msg.id, lon: msg.lon, lat: msg.lat } : null,
+    // });
+  </script>
+</head>
+<body>
+
+  <om-map center="[10, 26]" zoom="1.9" basemap="dark-matter">
+
+    <!-- Nothing here is WKT-aware. This is the same markup a .geojson file
+         would take, which is the point: a format plugs in underneath the
+         manifest, never into it. -->
+    <om-layer id="countries" type="GeoJsonLayer"
+              data="../../data/world-countries.wkt"
+              label="GDP per capita (US$)" color="#38bdf8"
+              filled stroked pickable
+              get-fill-color="scale($gdp_per_capita, sequential, ['#0b1e3d', '#1d4ed8', '#22d3ee', '#fde68a'], domain=[300, 60000])"
+              get-line-color="[15, 19, 27, 200]"
+              line-width-min-pixels="0.6" opacity="0.94"
+              filter-field="population" filter-range="[0, 1500000000]"></om-layer>
+
+    <om-widget type="legend" title="Parsed from world-countries.wkt" position="top-right"></om-widget>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: rgba(16,19,27,.92); color: #e8edf6; padding: 11px 14px;
+                 border: 1px solid #262d3a; border-radius: 9px; max-width: 268px;
+                 font: 13px/1.5 system-ui, sans-serif; }
+        .panel b { color: #fde68a; }
+        .panel code { color: #7dd3fc; font: 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      </style>
+      <div class="panel">
+        <b>A format the library does not ship.</b><br />
+        <code>.wkt</code> is plain text until <code>registerFormat</code> claims
+        it. After that it is data like any other.
+      </div>
+    </om-widget>
+
+    <!-- A built-in filter widget sizes its sliders from ctx.stats, which reads
+         whatever `parse` returned. It working at all is the proof that a
+         registered format produces ORDINARY rows, not a special case: watch
+         the data as well as the layer, since the widget cannot know the
+         field's range until the file has parsed. -->
+    <om-widget type="filter" layer="countries" field="population" title="Population"
+               watch="layers data:countries" position="bottom-right"></om-widget>
+
+    <om-behavior on="hover" layer="countries" action="show-tooltip" template="#country-tip"></om-behavior>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <template id="country-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#10131b; color:#f3f6fb;
+                border:1px solid #262d3a; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>{{name}}</b> · {{continent}}<br />
+      <span style="color:#868fa3">US$ {{gdp_per_capita}} per person</span>
+    </div>
+  </template>
+
+</body>
+</html>

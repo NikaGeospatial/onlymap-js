@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <!-- Vessel arrow pointing NORTH (up) — IconLayer's get-angle rotates it to
-       the ship's course. White + mask:true so get-color tints it by speed. -->
-  <path d="M32 3 L51 57 L32 45 L13 57 Z" fill="#ffffff"/>
-</svg>

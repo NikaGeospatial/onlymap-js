@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<!--
+  When a layer needs several accessors, or one too long to read inside a tag,
+  move them into a <script type="om/accessors"> block: one export per deck.gl
+  accessor prop, named exactly as deck.gl names it. There are two kinds. A
+  plain block is the restricted expression language — the same compiler the
+  get-* attributes use, an AST whitelist rather than an eval, so an
+  agent-written block is exactly as safe as an attribute. Add `js` to the
+  layer and the whole block becomes real JavaScript: helper constants, lookup
+  tables, functions, string work. That is the trust boundary — only put `js`
+  on a manifest you wrote or trust, because it runs with the rest of your page.
+
+  The map: the 36 largest U.S. metro areas. The circles come from a restricted
+  block, the labels from a `js` block that keys a palette off each city's
+  region and formats the population into the label text. Hover a circle for
+  its record.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Write accessor scripts</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #14161c;
+      --om-widget-fg: #f8fafc;
+      --om-widget-muted: #8b93a7;
+      --om-widget-border: #2c3040;
+      --om-widget-hover-bg: #22262f;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-96.5, 38.6]" zoom="3.7" basemap="dark-matter">
+
+    <!-- The restricted block. It holds the accessors that would make this tag
+         unreadable, and each body is a single expression with the same
+         builtins an attribute gets — scale(), clamp(), Math.*.
+
+         The `$field` shorthand is attribute-only. Inside a block, name the
+         parameter and go through it: `d.population` on flat rows like these,
+         `d.properties.population` on a GeoJSON layer. The block must be a
+         direct child of its <om-layer>, and one layer takes one block.
+
+         Leave colour rules in the get-fill-color attribute. The legend reads
+         its classes off the element, so a colour rule written inside a block
+         gets the plain `color` swatch instead. -->
+    <om-layer id="cities" type="ScatterplotLayer"
+              data="../../data/us-cities.json"
+              label="Metro population (millions)"
+              get-fill-color="scale($population, threshold,
+                                    ['#1e3a5f', '#2563eb', '#22d3ee', '#a3e635'],
+                                    domain=[2, 5, 10])"
+              radius-units="pixels" radius-min-pixels="3"
+              stroked line-width-units="pixels" line-width-min-pixels="1.5"
+              opacity="0.85" pickable auto-highlight
+              highlight-color="[248, 250, 252, 90]">
+      <script type="om/accessors">
+        export const getPosition  = d => [d.lon, d.lat];
+        export const getRadius    = d => scale(d.population, sqrt, [3, 15], domain=[0, 19]);
+        export const getLineColor = d => d.population > 8 ? [248, 250, 252, 235] : [148, 163, 184, 120];
+      </script>
+    </om-layer>
+
+    <!-- The `js` opt-in on the layer. Three things here are outside the
+         restricted grammar, and each is a reason the opt-in exists: a helper
+         constant, a lookup indexed by a data value (`PALETTE[d.region]` —
+         computed member access), and a method call on the datum
+         (`d.population.toFixed`). The block is evaluated ONCE when the layer
+         compiles, not per row, so the helpers cost nothing per point.
+
+         Keep `js` off columnar layers — Arrow and CSV data never builds the
+         row objects a hand-written function expects, and the block is skipped.
+         character-set="auto" because the text built below carries a "·";
+         deck.gl builds its glyph atlas up front and renders anything missing
+         from it blank. -->
+    <om-layer id="city-labels" type="TextLayer" js
+              data="../../data/us-cities.json"
+              label="City names" color="#f8fafc"
+              get-size="12" size-units="pixels"
+              character-set="auto"
+              font-family="system-ui, sans-serif" font-weight="600"
+              get-pixel-offset="[0, 19]"
+              get-alignment-baseline="'top'"
+              background get-background-color="[10, 12, 18, 215]"
+              background-padding="[5, 2]" background-border-radius="3">
+      <script type="om/accessors">
+        const PALETTE = {
+          Northeast: [125, 211, 252],
+          Midwest:   [163, 230, 53],
+          South:     [251, 191, 36],
+          West:      [244, 114, 182],
+        };
+        const millions = (n) => `${n.toFixed(1)}M`;
+
+        export const getPosition = d => [d.lon, d.lat];
+        export const getColor    = d => PALETTE[d.region] ?? [148, 163, 184];
+        export const getText     = d => `${d.name} · ${millions(d.population)}`;
+      </script>
+    </om-layer>
+
+    <om-widget type="legend" title="Layers" interactive position="top-right"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <om-overlay id="city-detail" anchor-from="selection" layer="cities" visible="false">
+      <style>
+        .card { background: #14161c; color: #f8fafc; border: 1px solid #2c3040;
+                padding: 9px 13px; border-radius: 8px; white-space: nowrap;
+                box-shadow: 0 4px 20px rgba(0,0,0,.6); font-size: 13px; line-height: 1.45; }
+        .card strong { font-size: 15px; }
+        .card em { color: #8b93a7; font-style: normal; }
+      </style>
+      <div class="card">
+        <strong>{{name}}</strong> <em>· {{region}}</em><br />
+        {{population}}M people
+      </div>
+    </om-overlay>
+    <om-behavior on="hover" layer="cities" action="show-overlay"
+                 target="city-detail" anchor-offset="bottom-center"></om-behavior>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: var(--om-widget-bg); color: var(--om-widget-fg);
+                 border: 1px solid var(--om-widget-border); border-radius: 10px;
+                 padding: 12px 15px; max-width: 252px; font-size: 12.5px; line-height: 1.5;
+                 box-shadow: 0 4px 18px rgba(0,0,0,.45); }
+        .panel h1 { margin: 0 0 5px; font-size: 14px; }
+        .panel code { color: #a3e635; font-size: 12px; }
+        .panel em { color: var(--om-widget-muted); font-style: normal; }
+      </style>
+      <div class="panel">
+        <h1>Two kinds of accessor block</h1>
+        The circles run on the restricted expression language — safe by
+        construction. The labels need a lookup table and a formatted string, so
+        their layer carries <code>js</code>.
+        <em>Hover a circle for its record.</em>
+      </div>
+    </om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

@@ -530,7 +530,7 @@ Common built-in actions:
 - `show-overlay`, `hide-overlay`
 - `show-tooltip`, `hide-tooltip`
 - `toggle-layer`
-- `highlight-feature`
+- `highlight-feature` — sets the layer's `highlighted-id`; style the selection with `highlight-color="[220, 38, 38, 255]"` (or hex) on the `<om-layer>` — a constant color, not a `get-*` accessor
 - `zoom-to-feature`
 - `filter-layer`
 - `set-basemap` — payload `{ basemap }`; writes the `<om-map basemap>` attribute

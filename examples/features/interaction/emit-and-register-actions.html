@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<!--
+  An action is a named thing the map can do, plus ONE payload it reads. That
+  contract is the whole idea: `<om-behavior>`, a `data-emit` attribute and
+  `ctx.emit()` are three doors into the same room, and an action cannot tell
+  which one it came through. Register a name once and every surface can fire
+  it — a story step included, which is why a custom action is also animatable.
+
+  Reach for registerAction when one gesture should do several things together.
+  The alternative is repeating the same emits at every call site, and then
+  finding you changed only two of them.
+
+  The map: 243 of the world's largest cities. `focus-city` is one registered
+  action — fired by clicking a dot, by the buttons at the bottom, and by the
+  search box's script. Try all three: the result is identical, because the
+  handler normalises the payload once and the callers stay simple.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Emit and register actions</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #12141c;
+      --om-widget-fg: #f4f6fb;
+      --om-widget-muted: #8891a2;
+      --om-widget-border: #262d3a;
+      --om-widget-hover-bg: #1d222c;
+      --om-widget-accent: #22d3ee;
+    }
+  </style>
+
+  <script type="module">
+    import { OmMap } from "https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js";
+
+    // The handler receives (payload, mapEl, core). Register at module top
+    // level: an action that arrives after the map has mounted is not retried.
+    OmMap.registerAction("focus-city", (payload, mapEl, core) => {
+      // ONE contract, written here rather than at every call site. A pick adds
+      // `feature`, `coordinate` and `layer` to whatever the behavior declared,
+      // so a click needs no attributes at all while a button spells the same
+      // values out. Attribute payloads always arrive as STRINGS — from a
+      // behavior and from data-emit alike — so parse them the way the built-in
+      // actions do. A payload from ctx.emit is already a real value.
+      let center = payload.center ?? payload.coordinate;
+      if (typeof center === "string") center = JSON.parse(center);
+      if (!Array.isArray(center)) return;
+      const name = payload.name ?? payload.feature?.name ?? "that city";
+
+      core.flyTo([Number(center[0]), Number(center[1])], Number(payload.zoom ?? 8),
+                 { duration: 1400, curve: true });
+
+      // An action is also where a map talks back to the app around it. A plain
+      // CustomEvent keeps that boundary ordinary DOM — anything listening on
+      // <om-map> hears every focus, whichever surface caused it.
+      mapEl.dispatchEvent(new CustomEvent("city-focused", { detail: { name } }));
+    });
+  </script>
+</head>
+<body>
+
+  <om-map center="[10, 24]" zoom="1.8" basemap="dark-matter">
+
+    <om-layer id="cities" type="ScatterplotLayer"
+              data="../../data/world-cities.json"
+              label="Population (millions)" color="#22d3ee"
+              get-position="[$lon, $lat]"
+              get-fill-color="scale($population, sequential, ['#0e7490', '#22d3ee', '#fde68a'], domain=[0.5, 25])"
+              get-radius="scale($population, sqrt, [3, 24], domain=[0.5, 25])"
+              radius-units="pixels" opacity="0.9" pickable></om-layer>
+
+    <!-- The FIRST surface — a behavior. `on`, `layer` and `action` are the wiring;
+         every other attribute becomes a fixed payload key, kebab-case turning
+         into camelCase. They are literal values, NOT accessors — the picked
+         row arrives separately as `feature`, which is why this line can send
+         a zoom and let the handler take the name from the click. -->
+    <om-behavior on="click" layer="cities" action="focus-city" zoom="7"></om-behavior>
+
+    <om-behavior on="hover" layer="cities" action="show-tooltip" template="#city-tip"></om-behavior>
+
+    <!-- The SECOND surface — data-emit. The attribute names the action and every other
+         data-* attribute is a payload key, so an ordinary button fires an
+         action with no script and no event listener. `Back out` shows the
+         same surface reaching a BUILT-IN action; nothing distinguishes them. -->
+    <om-widget position="bottom-center" style="margin-bottom: 46px;">
+      <style>
+        .jump { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+                background: rgba(18,20,28,.9); border: 1px solid #262d3a;
+                border-radius: 10px; padding: 9px 11px; }
+        .jump button { font: 12px system-ui, sans-serif; padding: 6px 11px; border: 1px solid #2b323f;
+                       border-radius: 6px; background: #171b24; color: #e9eef7; cursor: pointer; }
+        .jump button:hover { background: #222834; }
+      </style>
+      <div class="jump">
+        <button data-emit="focus-city" data-name="Tokyo" data-center="[139.75, 35.68]" data-zoom="8">Tokyo</button>
+        <button data-emit="focus-city" data-name="Lagos" data-center="[3.39, 6.45]" data-zoom="8">Lagos</button>
+        <button data-emit="focus-city" data-name="São Paulo" data-center="[-46.63, -23.55]" data-zoom="8">São Paulo</button>
+        <button data-emit="focus-city" data-name="Cairo" data-center="[31.24, 30.05]" data-zoom="8">Cairo</button>
+        <button data-emit="fly-to" data-center="[10, 24]" data-zoom="1.8" data-duration="1400">Back out</button>
+      </div>
+    </om-widget>
+
+    <!-- The THIRD surface — ctx.emit, for UI no built-in widget covers. A search box
+         is genuinely custom; the action it reaches is the one the buttons and
+         the click behavior reach, with the payload spelled out in full. -->
+    <om-widget position="top-left" watch="data:cities">
+      <style>
+        .find { width: 236px; box-sizing: border-box; background: rgba(18,20,28,.92); color: #eef2f9;
+                border: 1px solid #262d3a; border-radius: 10px; padding: 11px 13px;
+                font: 12px/1.5 system-ui, sans-serif; }
+        .find h3 { margin: 0 0 8px; font: 650 13px system-ui, sans-serif; color: #22d3ee; }
+        .find input { width: 100%; box-sizing: border-box; padding: 6px 9px; border-radius: 6px;
+                      border: 1px solid #2b323f; background: #0e1118; color: #eef2f9;
+                      font: 12px system-ui, sans-serif; }
+        .hit { margin-top: 8px; color: #8891a2; }
+        .hit b { color: #fde68a; }
+      </style>
+      <section class="find">
+        <h3>Find a city</h3>
+        <input id="q" type="search" placeholder="Type a name, press Enter…" aria-label="Find a city" />
+        <div class="hit">Last focused: <b id="last">—</b></div>
+      </section>
+      <script type="om/widget">
+        this.watch = ["data:cities"];
+        this.render = async (ctx) => {
+          if (this.state.wired) return;
+          const rows = await ctx.data("cities", { filtered: false });
+          // A widget renders BEFORE its layer's file has finished loading, so
+          // the first render sees an empty list. Return without wiring and the
+          // next data:cities fires this again with the rows in hand — set a
+          // "done" flag too early and the widget is stuck with no data.
+          if (!rows.length) return;
+
+          // Fold case and strip accents on both sides, so "sao paulo" finds
+          // "São Paulo". Match a prefix first, then anywhere in the name.
+          const key = (value) => String(value).normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLowerCase();
+
+          this.$("#q").addEventListener("change", (event) => {
+            const query = key(event.target.value);
+            if (!query) return;
+            const hit = rows.find((row) => key(row.name).startsWith(query))
+                     ?? rows.find((row) => key(row.name).includes(query));
+            if (hit) ctx.emit("focus-city", { name: hit.name, center: [hit.lon, hit.lat], zoom: 8 });
+          });
+
+          // Listening to the action's own event, so this readout updates for a
+          // click and a button too — not only for the box above it.
+          const last = this.$("#last");
+          this.closest("om-map").addEventListener("city-focused", (event) => {
+            last.textContent = event.detail.name;
+          });
+          this.state.wired = true;
+        };
+      </script>
+    </om-widget>
+
+    <om-widget type="legend" title="Cities" position="top-right"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <template id="city-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#12141c; color:#f4f6fb;
+                border:1px solid #262d3a; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>{{name}}</b> · {{country}}<br />
+      <span style="color:#8891a2">{{population}} million · click to focus</span>
+    </div>
+  </template>
+
+</body>
+</html>

@@ -13,6 +13,9 @@ version list jumps 0.5.3 → 0.5.6. Each logical version is listed here regardle
 ### Added
 - This `CHANGELOG.md` — a version-by-version record, shipped in the package and mirror.
 
+### Fixed
+- **`highlight-color` was silently inert** with the library's own `highlighted-id` / `highlight-feature` selection: the auto-derive compiled it to a function accessor, but deck's `highlightedObjectIndex` path only honors a plain color array — selections rendered in deck's default navy. It now resolves as a constant color (array or hex), which drives both the programmatic-highlight and hover-highlight paths.
+
 ## 0.5.11 — 2026-08-05
 
 ### Added

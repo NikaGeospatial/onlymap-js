@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<!--
+  The same 1,960 earthquakes as the heatmap, binned instead of smoothed.
+
+  A heatmap gives you a mood. Bins give you a number: each hexagon is a real
+  count you can pick, label, and compare. Reach for bins when the answer has
+  to be countable, and for a heatmap when it only has to be seen.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Bin points into hexagons</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <om-map center="[150, 10]" zoom="1.1" pitch="40" bearing="-10" basemap="positron">
+
+    <!-- HexagonLayer does the counting for you: give it positions and a bin
+         radius, and it groups every point that falls in the same hexagon.
+
+         radius is in METRES on the ground, not pixels — bins are a fact about
+         the world, so they hold their size as you zoom. 180 km suits a global
+         view; a city map would want a few hundred metres.
+
+         extruded turns the count into height. elevation-scale is the metres of
+         height per unit of the aggregated value, so it always needs tuning to
+         the data. Give the map some pitch or the third dimension is invisible.
+
+         GridLayer is the square-bin sibling with the same props. ScreenGridLayer
+         bins in pixels instead of metres — the bins then change meaning as you
+         zoom, which is usually not what you want. -->
+    <om-layer id="quake-bins" type="HexagonLayer"
+              data="../../data/usgs-earthquakes-month.geojson"
+              label="Earthquakes per hexagon" color="#e57130"
+              get-position="$geometry.coordinates"
+              radius="180000"
+              coverage="0.9"
+              extruded
+              elevation-scale="9000"
+              color-range="[[13,48,100],[26,102,161],[63,167,178],[161,208,133],[248,222,96],[229,113,48]]"
+              opacity="0.85"
+              pickable></om-layer>
+
+    <om-widget type="legend" position="top-right"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: rgba(15,23,42,.85); color: #e2e8f0; padding: 10px 14px;
+                 border-radius: 8px; font-size: 13px; max-width: 250px; line-height: 1.45; }
+      </style>
+      <div class="panel">
+        Colour and height both encode the count in each 180 km hexagon. Drag with
+        the right mouse button, or hold Shift and drag, to rotate the view.
+      </div>
+    </om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

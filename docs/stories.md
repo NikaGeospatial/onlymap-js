@@ -1,6 +1,6 @@
 # Map stories — guided tours as markup
 
-A story turns a map into a narrated sequence: fly here, reveal this, highlight that — authored declaratively, played back with a scrubber, and testable like everything else. Runnable example: [`examples/story.html`](../examples/story.html).
+A story turns a map into a narrated sequence: fly here, reveal this, highlight that — authored declaratively, played back with a scrubber, and testable like everything else. Runnable example: [`examples/features/stories/build-a-map-story.html`](../examples/features/stories/build-a-map-story.html).
 
 ## The one rule
 

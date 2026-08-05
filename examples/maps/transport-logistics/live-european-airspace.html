@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<!--
+  Real aircraft, right now. Every dot is an airliner broadcasting its position
+  over ADS-B, picked up by volunteer receivers and pooled by airplanes.live.
+  Nothing here is simulated — reload in a minute and the sky has moved.
+
+  The pattern is the one every tracking product needs: a socket delivers
+  positions, `key` upserts each aircraft by its own id instead of appending,
+  and `flush` coalesces the burst into ONE re-render. Add `transition` and the
+  map interpolates between updates, so a feed arriving every two seconds still
+  looks like continuous flight.
+
+  A rate-limited upstream is proxied rather than called directly. The service
+  behind this URL fetches airplanes.live once every two seconds and fans the
+  result out to every viewer, so a thousand people watching cost one request.
+
+  The map: central Europe, the busiest airspace in the world. Colour is
+  altitude — deep blue on the ground, white at cruise. Press ▶ to tilt into
+  the third dimension, where each aircraft sits at its real height. Drag the
+  altitude slider to isolate a band, or hover any aircraft for its type.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Live European airspace</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #0a0e17;
+      --om-widget-fg: #eef3fb;
+      --om-widget-muted: #7d879b;
+      --om-widget-border: #1e2635;
+      --om-widget-hover-bg: #141b27;
+      --om-widget-accent: #38bdf8;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[8.5, 50]" zoom="5.2" basemap="dark-matter"
+          map-id="7c1f9a04-6d2e-4b83-9f51-2ea8c0d7b419">
+
+    <!-- A `wss:` URL opens a stream instead of a fetch. `key="hex"` is what
+         makes it a live view rather than a growing log: each message UPSERTS
+         the aircraft with that ICAO address, so 876 aircraft stay 876 rows.
+         Without it the runtime has no identity to match on and appends.
+
+         `flush="250ms"` coalesces a burst into one snapshot — the feed sends
+         every aircraft at once, and this is the difference between one
+         re-render and eight hundred.
+
+         `transition` tweens position and colour between updates. The feed
+         arrives every 2s; this is what makes that look like flight rather
+         than teleporting.
+
+         get-position takes a THIRD number, and that is the whole 3D story:
+         altitude in feet, scaled to exaggerate it against continental
+         distances. At pitch 0 it is invisible, so the same layer serves the
+         flat view and the tilted one. -->
+    <om-layer id="flights" type="IconLayer"
+              data="wss://om-examples.nika.eco/flights" key="hex" flush="250ms"
+              label="Altitude (ft)" color="#38bdf8"
+              icon-atlas="../../data/aircraft.svg"
+              icon-mapping='{"plane": {"x": 0, "y": 0, "width": 64, "height": 64, "mask": true, "anchorX": 32, "anchorY": 32}}'
+              get-icon="'plane'"
+              get-position="[$lon, $lat, $altitude * 3]"
+              get-angle="-$track"
+              get-size="20" size-units="pixels"
+              get-color="scale($altitude, sequential, ['#1d4ed8', '#22d3ee', '#fde68a', '#ffffff'], domain=[0, 40000])"
+              transition="get-position 2000ms, get-color 2000ms"
+              filter-field="altitude" filter-range="[0, 45000]"
+              billboard pickable></om-layer>
+
+    <!-- The built-in legend derives its ramp from get-fill-color, and an
+         IconLayer colours through get-color — it would show one flat swatch.
+         Colour by anything other than get-fill-color and you draw the key
+         yourself: a gradient and four labels, in the panel below. -->
+
+    <!-- Bound to the same field the layer filters on. Drag it to 30,000+ and
+         only the cruising traffic survives; the low band is arrivals stacked
+         over the airports. -->
+    <om-widget type="filter" layer="flights" field="altitude" title="Altitude (ft)"
+               watch="layers data:flights" position="top-right"
+               style="margin-top: 150px;"></om-widget>
+
+    <!-- watch="data:flights" re-runs this on every socket flush, so the counts
+         track the sky. ctx.stats reads the same rows the layer draws. -->
+    <om-widget position="top-left" watch="data:flights layers">
+      <style>
+        .hud { width: 244px; box-sizing: border-box; background: rgba(10,14,23,.92);
+               border: 1px solid #1e2635; border-radius: 10px; padding: 12px 15px;
+               color: #eef3fb; font: 12px/1.5 system-ui, sans-serif;
+               box-shadow: 0 10px 34px rgba(0,0,0,.6); backdrop-filter: blur(10px); }
+        .hud h3 { margin: 0 0 2px; font: 650 14px system-ui, sans-serif; color: #38bdf8; }
+        .hud .sub { color: #7d879b; font-size: 10.5px; letter-spacing: .06em;
+                    text-transform: uppercase; margin-bottom: 9px; }
+        .row { display: flex; justify-content: space-between; gap: 14px; margin: 4px 0; color: #7d879b; }
+        .row b { color: #eef3fb; font-variant-numeric: tabular-nums; }
+        /* Same four stops, same order as the layer's scale() — keep them in
+           step by hand, since nothing derives one from the other. */
+        .ramp { height: 8px; border-radius: 4px; margin: 11px 0 4px;
+                background: linear-gradient(90deg, #1d4ed8, #22d3ee, #fde68a, #ffffff); }
+        .ticks { display: flex; justify-content: space-between; color: #7d879b; font-size: 10px;
+                 font-variant-numeric: tabular-nums; }
+        .tip { margin-top: 10px; padding-top: 9px; border-top: 1px solid #1e2635;
+               color: #7d879b; font-size: 11px; }
+        .tip kbd { padding: 1px 4px; border: 1px solid #2b3547; border-radius: 3px;
+                   background: #141b27; color: #b9c4d6; font: 10px ui-monospace, Menlo, monospace; }
+      </style>
+      <section class="hud" aria-live="polite">
+        <h3>Live air traffic</h3>
+        <div class="sub">Central Europe</div>
+        <div class="row"><span>Aircraft shown</span><b id="n">—</b></div>
+        <div class="row"><span>Airborne</span><b id="air">—</b></div>
+        <div class="row"><span>Highest</span><b id="hi">—</b></div>
+        <div class="row"><span>Fastest</span><b id="fast">—</b></div>
+        <div class="ramp"></div>
+        <div class="ticks"><span>ground</span><span>15k</span><span>30k</span><span>40k ft</span></div>
+        <div class="tip">Drag with the right mouse button, or hold <kbd>Ctrl</kbd> and
+          drag, to tilt and rotate. Press ▶ for the tour.</div>
+      </section>
+      <script type="om/widget">
+        this.watch = ["data:flights", "layers"];
+        this.render = async (ctx) => {
+          const alt = ctx.stats("flights", "altitude");
+          const spd = ctx.stats("flights", "speed");
+          if (!alt.count) return;
+          const rows = await ctx.data("flights");
+          this.$("#n").textContent = alt.count.toLocaleString();
+          this.$("#air").textContent = rows.filter((r) => !r.on_ground).length.toLocaleString();
+          this.$("#hi").textContent = alt.max.toLocaleString() + " ft";
+          this.$("#fast").textContent = Math.round(spd.max).toLocaleString() + " kt";
+        };
+      </script>
+    </om-widget>
+
+    <!-- Camera only — the layer never changes. Tilting is what reveals the
+         altitude already carried in get-position's third number. -->
+    <om-story id="tour" interrupt="pause">
+      <om-step duration="2600ms" action="fly-to" center="[8.57, 50.04]" zoom="7.4" curve></om-step>
+      <om-step duration="2600ms" action="fly-to" pitch="62" bearing="-18"></om-step>
+      <om-step duration="3000ms" action="fly-to" zoom="8.6" bearing="24"></om-step>
+      <om-step duration="2600ms" action="fly-to" center="[8.5, 50]" zoom="5.2" pitch="0" bearing="0" curve></om-step>
+    </om-story>
+
+    <om-widget type="player" story="tour" position="bottom-left"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <om-behavior on="hover" layer="flights" action="show-tooltip" template="#plane-tip"></om-behavior>
+
+    <om-widget type="attribution"
+               text="Live ADS-B © airplanes.live contributors · aircraft positions are broadcast by the aircraft themselves"
+               position="bottom-start"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <template id="plane-tip">
+    <div style="padding:9px 12px; border-radius:8px; background:#0a0e17; color:#eef3fb;
+                border:1px solid #1e2635; box-shadow:0 4px 16px rgba(0,0,0,.6);
+                font:12px/1.5 system-ui, sans-serif; min-width:170px;">
+      <b style="color:#38bdf8">{{callsign}}</b> · {{registration}}<br />
+      {{model}}<br />
+      <span style="color:#7d879b">{{altitude}} ft · {{speed}} kt · {{track}}°</span>
+    </div>
+  </template>
+
+</body>
+</html>

@@ -30,7 +30,7 @@ Things worth knowing:
 - **`get-scale` is in model space** `[x, y, z]` — for an upright Y-up model that's `[width, height, depth]` in meters (if the model is unit-sized).
 - **`lighting="pbr"`** shades models by their glTF materials; the default is flat.
 - **One model, many instances.** `ScenegraphLayer` draws the *same* GLB at every row. Different models per row means one layer per model — or, at city scale, 3D Tiles (below).
-- Runnable example: [`examples/scenegraph.html`](../examples/scenegraph.html) (its `box.glb` is a placeholder — a stand-in for the pipeline below).
+- Runnable example: [`examples/features/terrain-3d/place-a-3d-model.html`](../examples/features/terrain-3d/place-a-3d-model.html) (its `box.glb` is a placeholder — a stand-in for the pipeline below).
 
 ## The pipeline half (your server)
 
@@ -110,7 +110,7 @@ So CityJSON is ingested natively — point `data` at it, no converter, in either
 </om-map>
 ```
 
-Runnable, both modes toggled side by side: [`examples/cityjson.html`](../examples/cityjson.html).
+Runnable, both modes toggled side by side: [`examples/features/terrain-3d/load-a-cityjson-model.html`](../examples/features/terrain-3d/load-a-cityjson-model.html).
 
 ### What you get
 
@@ -127,7 +127,7 @@ This convention (a `defaultExpr` on the `get-fill-color` `PropDescriptor`, resol
 
 ### Row budget (surfaces mode)
 
-Surfaces mode multiplies the row count by however many faces a building has: the 3DBAG tile in `examples/cityjson.html` decodes to 120 rows as footprints and **3,940 rows** as surfaces — roughly 33×. That lands against the [free tier's](../README.md#free-tier--licensing) 25,000-row cap at around 750 buildings, where the footprint mode would still be nowhere near it. Past the cap the layer renders its first 25,000 rows — an arbitrary subset in source order, with a dismissible on-map notice — rather than going blank, so a slightly-too-big scene still draws. Because faces are emitted per building, the cut lands mid-building. To show a whole scene rather than part of one: pin a lower LoD with `?om-lod=` (1.3 is ~15× instead of ~33×), tile the source, or extrude footprints instead.
+Surfaces mode multiplies the row count by however many faces a building has: the 3DBAG tile in `examples/features/terrain-3d/load-a-cityjson-model.html` decodes to 120 rows as footprints and **3,940 rows** as surfaces — roughly 33×. That lands against the [free tier's](../README.md#free-tier--licensing) 25,000-row cap at around 750 buildings, where the footprint mode would still be nowhere near it. Past the cap the layer renders its first 25,000 rows — an arbitrary subset in source order, with a dismissible on-map notice — rather than going blank, so a slightly-too-big scene still draws. Because faces are emitted per building, the cut lands mid-building. To show a whole scene rather than part of one: pin a lower LoD with `?om-lod=` (1.3 is ~15× instead of ~33×), tile the source, or extrude footprints instead.
 
 Face counts are long-tailed, so the building count you can fit is not predictable from the average: in that same tile the median building is 17 faces but the largest is 963 — one building, 24% of the tile's rows.
 

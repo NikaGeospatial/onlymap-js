@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<!--
+  One attribute reads every format. `data` takes a URL, the extension picks
+  the parser, and everything above it — accessors, filters, picking, legends —
+  is identical whichever parser ran. So the format your data arrives in stops
+  being a decision: no conversion step, no per-format code path.
+
+  That matters because real data arrives in whatever the publisher chose. A
+  survey office ships Shapefile, a web API returns GeoJSON, a spreadsheet
+  export is CSV, a GPS watch writes GPX, and Google Earth saves KML.
+
+  The map: the Matterhorn and the Zermatt valley, built from five files in
+  five formats — a national border, an elevation grid, 307 named summits,
+  41 mountain huts, and one walking track. Hover anything for its details,
+  and use the legend to switch a format off and see what it was carrying.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Load a file</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #0f1319;
+      --om-widget-fg: #f2f5fa;
+      --om-widget-muted: #8891a3;
+      --om-widget-border: #242c38;
+      --om-widget-hover-bg: #1a212b;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[7.71, 45.985]" zoom="11.2" basemap="dark-matter">
+
+    <!-- SHAPEFILE. Name the .shp and the loader fetches the sidecars beside
+         it — .dbf for the attributes, .shx for the index, .prj for the
+         projection — and joins them into features, so $name works the way it
+         would in GeoJSON. Keep all sidecars in ONE directory next to the .shp;
+         a lone .shp has geometry and no attributes. -->
+    <om-layer id="border" type="GeoJsonLayer"
+              data="../../data/alps-border/alps-border.shp"
+              label="Swiss–Italian border (Shapefile)" color="#e2e8f0"
+              stroked filled="false"
+              get-line-color="[226, 232, 240, 235]"
+              get-line-width="4" line-width-units="pixels"
+              line-width-min-pixels="3"></om-layer>
+
+    <!-- CSV. The parser transposes rows into typed columns, so give
+         get-position the two columns and no geometry field is needed. A
+         digit-only column is typed as NUMBERS — fine for coordinates and
+         measurements, but it destroys id-like text (leading zeros, cell
+         tokens). Ship those as Arrow, which carries the column type. -->
+    <om-layer id="relief" type="ScatterplotLayer"
+              data="../../data/matterhorn-points.csv"
+              label="Elevation samples (CSV)" color="#38bdf8"
+              get-position="[$lon, $lat]"
+              get-fill-color="scale($elevation, sequential, ['#0b2545', '#1d5b8f', '#2ec4d6', '#a7f3d0', '#ffffff'], domain=[2000, 4400])"
+              get-radius="2.5" radius-units="pixels" opacity="0.9"></om-layer>
+
+    <!-- GEOJSON. The baseline: no sidecars, no conversion, $field reads a
+         feature's properties directly. This is the shape every other parser
+         on the page produces once it has run. -->
+    <om-layer id="peaks" type="ScatterplotLayer"
+              data="../../data/alps-peaks.geojson"
+              label="Named summits (GeoJSON)" color="#fbbf24"
+              get-position="$geometry.coordinates"
+              get-fill-color="scale($elevation_m, sequential, ['#fde68a', '#f97316'], domain=[2100, 4650])"
+              get-radius="scale($elevation_m, sqrt, [2, 11], domain=[2100, 4650])"
+              radius-units="pixels" get-line-color="[15, 19, 25]"
+              stroked line-width-min-pixels="1" pickable></om-layer>
+
+    <!-- KML. Placemarks become GeoJSON features, and a KML file happily mixes
+         points, lines and polygons — one GeoJsonLayer draws all of them.
+         <ExtendedData> entries land as ordinary properties, so $elevation_m
+         here is a <Data name="elevation_m"> element in the file. -->
+    <om-layer id="huts" type="GeoJsonLayer"
+              data="../../data/alps-huts.kml"
+              label="Mountain huts (KML)" color="#f43f5e"
+              filled stroked get-fill-color="[244, 63, 94, 235]"
+              get-line-color="[254, 205, 211]"
+              get-point-radius="5" point-radius-units="pixels"
+              line-width-min-pixels="1.2" pickable></om-layer>
+
+    <!-- GPX. Waypoints, tracks and routes all become features, each tagged
+         with a `_gpxKind` field naming which part it came from — so ONE layer
+         can draw the track as a line and its waypoints as dots, keyed on that
+         field. Add a URL fragment (#tracks, #waypoints, #routes) to load just
+         one part; no fragment loads everything. -->
+    <om-layer id="trail" type="GeoJsonLayer"
+              data="../../data/hoernli-trail.gpx"
+              label="Hörnli trail (GPX)" color="#a3e635"
+              filled stroked
+              get-fill-color="[163, 230, 53, 240]"
+              get-line-color="[163, 230, 53]"
+              get-line-width="3" line-width-units="pixels" line-width-min-pixels="2"
+              get-point-radius="4" point-radius-units="pixels" pickable></om-layer>
+
+    <om-widget type="legend" title="One file each" interactive position="top-right"></om-widget>
+    <om-widget type="scale-bar" position="bottom-right"></om-widget>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: rgba(15,19,25,.9); color: #e9eef6; padding: 11px 14px;
+                 border: 1px solid #242c38; border-radius: 9px; max-width: 262px;
+                 font: 13px/1.5 system-ui, sans-serif; }
+        .panel b { color: #fbbf24; }
+        .panel code { color: #7dd3fc; font: 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      </style>
+      <div class="panel">
+        <b>Five formats, one attribute.</b><br />
+        Every layer here points <code>data</code> at a file and does nothing
+        else. Turn one off in the legend to see what that file was drawing.
+      </div>
+    </om-widget>
+
+    <!-- Arrow and FlatGeobuf load the same way and are the ones to reach for
+         once a file is large: `load-columnar-data` covers what changes. An
+         extension nothing claims raises an error naming registerFormat, which
+         is the escape hatch `extend-the-data-layer` builds. -->
+
+    <om-behavior on="hover" layer="peaks" action="show-tooltip" template="#peak-tip"></om-behavior>
+    <om-behavior on="hover" layer="huts" action="show-tooltip" template="#hut-tip"></om-behavior>
+    <om-behavior on="hover" layer="trail" action="show-tooltip" template="#trail-tip"></om-behavior>
+
+    <om-widget type="attribution"
+               text="Summits, huts, trail and border © OpenStreetMap contributors, ODbL · Elevation from Copernicus DEM via Open-Meteo, CC BY 4.0"
+               position="bottom-start"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <template id="peak-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#0f1319; color:#f2f5fa;
+                border:1px solid #242c38; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>{{name}}</b><br /><span style="color:#8891a3">{{elevation_m}} m · GeoJSON</span>
+    </div>
+  </template>
+
+  <template id="hut-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#0f1319; color:#f2f5fa;
+                border:1px solid #242c38; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>{{name}}</b><br /><span style="color:#8891a3">{{kind}} · KML</span>
+    </div>
+  </template>
+
+  <template id="trail-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#0f1319; color:#f2f5fa;
+                border:1px solid #242c38; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>{{name}}</b><br /><span style="color:#8891a3">{{_gpxKind}} · GPX</span>
+    </div>
+  </template>
+
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<!--
+  Columnar is a LOADING shape, not a different authoring surface. Point `data`
+  at an .arrow file and the manifest is byte-for-byte what a JSON layer would
+  be: $magnitude and $geometry compile to direct column reads, so no row object
+  is ever built on the render path, and apache-arrow lazy-loads as its own
+  chunk the first time a page touches an .arrow URL.
+
+  Every other format here works the same way — the extension picks the parser
+  and nothing above it changes. Reach for Arrow once a file is big enough that
+  one JavaScript object per feature would cost you.
+
+  The map: a week of USGS earthquakes out of an Arrow file, over the same feed
+  saved as CSV, with GeoArrow polygons and KML placemarks in San Francisco and
+  Natural Earth country outlines underneath. Hover a quake, drag the magnitude
+  slider, or use the buttons at the bottom right to fly between formats.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Load columnar data</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #12151d;
+      --om-widget-fg: #f1f4f9;
+      --om-widget-muted: #878ea1;
+      --om-widget-border: #262b37;
+      --om-widget-hover-bg: #1b202a;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-150, 35]" zoom="2.2" basemap="dark-matter"
+          style="--om-widget-fold-breakpoint:768px">
+
+    <!-- A Shapefile is a set of sidecar files. Name the .shp and the loader
+         pulls the rest, joining the .dbf attributes onto each geometry, so
+         $NAME and friends work the way they would in GeoJSON. -->
+    <om-layer id="countries" type="GeoJsonLayer"
+                data="../../data/ne-countries/ne_110m_admin_0_countries.shp"
+                label="Countries (Shapefile)" color="#e2e8f0"
+                filled="false" stroked get-line-color="[226, 232, 240]"
+                line-width-min-pixels="1.6" opacity="0.9" visible="false"></om-layer>
+
+    <!-- KML placemarks — mixed points, lines and polygons in ONE file — parse
+         to GeoJSON features, so a single GeoJsonLayer draws all of them: five
+         landmarks, Market Street, and Golden Gate Park. Each geometry takes
+         its own accessor, so point radius, line width and fill are set
+         independently on the one layer. -->
+    <om-layer id="kml-landmarks" type="GeoJsonLayer"
+                data="../../data/sf-landmarks.kml"
+                label="SF landmarks (KML)" color="#facc15"
+                filled stroked get-fill-color="[250, 204, 21, 200]"
+                get-line-color="[254, 240, 138]" get-line-width="3"
+                line-width-units="pixels" line-width-min-pixels="2"
+                get-point-radius="5" point-radius-units="pixels"
+                visible="false"></om-layer>
+
+    <!-- CSV loads columnar too: the parser transposes rows into typed arrays,
+         and every $field reads one of them. Give get-position the two columns
+         and no geometry column is needed. -->
+    <om-layer id="quakes-csv" type="ScatterplotLayer"
+                data="../../data/quakes-usgs.csv"
+                label="Quakes (CSV snapshot)" color="#4b5b74"
+                get-position="[$longitude, $latitude]"
+                get-radius="2.5"
+                radius-units="pixels"></om-layer>
+
+    <!-- A GeoArrow geometry column carrying the geoarrow.polygon extension
+         type parses to GeoJSON feature rows, so polygons, picking and per-
+         feature animation all behave as they would from a .geojson file.
+
+         Polygons ride in Arrow as List<List<Struct<x,y>>> — rings of points —
+         and the extension name on the COLUMN is what marks them as geometry.
+         Convert once upstream and the manifest never mentions it again. -->
+    <om-layer id="regions-arrow" type="GeoJsonLayer"
+                data="../../data/sf-districts.arrow"
+                label="SF districts (GeoArrow)" color="#22d3ee"
+                filled stroked get-fill-color="[34, 211, 238, 60]"
+                get-line-color="[103, 232, 249]" line-width-min-pixels="1.6"
+                pickable></om-layer>
+
+    <!-- The same attributes any JSON layer takes. $geometry resolves to the
+         GeoArrow FixedSizeList<2> column and $magnitude to a Float64Array —
+         the .arrow extension is the only hint the manifest carries.
+
+         filter-field with filter-range hands the column to the GPU, so the
+         slider below filters without touching the data. -->
+    <om-layer id="quakes" type="ScatterplotLayer"
+                data="../../data/earthquakes.arrow"
+                label="Earthquakes, past week (USGS)" color="#f43f5e"
+                get-position="$geometry"
+                get-fill-color="scale($magnitude, sequential, ['#0ea5e9', '#facc15', '#f43f5e'], domain=[0, 7])"
+                get-radius="scale($magnitude, sqrt, [1.5, 18], domain=[0, 7])"
+                radius-units="pixels" pickable
+                filter-field="magnitude" filter-range="[-2, 10]"></om-layer>
+
+    <om-widget type="legend" title="Layers" position="top-right"></om-widget>
+
+    <!-- A filter widget sizes its sliders from the field's real range, which
+         it cannot know until the file has parsed — so watch the DATA as well
+         as the layer, keeping `layers` because `watch` REPLACES the widget's
+         own tokens. filter-range is the starting window and the widget clamps
+         it to the values present, so author it wide rather than tight. -->
+    <om-widget type="filter" layer="quakes" field="magnitude" title="Magnitude"
+                 watch="layers data:quakes"
+                 position="top-right" style="margin-top: 215px;"></om-widget>
+
+    <!-- ctx.stats over a whole unfiltered layer reads the Float64Array column
+         straight through — no rows are materialized to count them. Pass
+         { filtered: false } when you want the totals to hold still while the
+         slider moves. -->
+    <om-widget position="top-left" watch="data:quakes">
+      <style>
+        .panel { background: rgba(18,21,29,.92); color: #eef1f6; padding: 10px 14px; border-radius: 8px;
+                 font: 12px/1.5 system-ui, sans-serif; box-shadow: 0 2px 10px rgba(0,0,0,.4); }
+        .panel strong { color: #facc15; }
+        .row { display: flex; justify-content: space-between; gap: 18px; margin: 3px 0; }
+        .row span { color: #878ea1; }
+      </style>
+      <div class="panel">
+        <strong>Week of quakes (Arrow columns)</strong>
+        <div class="row"><span>Events</span><b id="count">—</b></div>
+        <div class="row"><span>Max magnitude</span><b id="max">—</b></div>
+        <div class="row"><span>Mean magnitude</span><b id="mean">—</b></div>
+        <div class="row"><span>Deepest</span><b id="depth">—</b></div>
+      </div>
+      <script type="om/widget">
+        this.watch = ["data:quakes"];
+        this.render = (ctx) => {
+          const mag = ctx.stats("quakes", "magnitude", { filtered: false });
+          const depth = ctx.stats("quakes", "depth_km", { filtered: false });
+          if (!mag.count) return;
+          this.$("#count").textContent = mag.count;
+          this.$("#max").textContent = "M " + mag.max.toFixed(1);
+          this.$("#mean").textContent = "M " + mag.mean.toFixed(2);
+          this.$("#depth").textContent = depth.max.toFixed(0) + " km";
+        };
+      </script>
+    </om-widget>
+
+    <!-- The San Francisco layers are subpixel at world zoom, so give the
+         reader a way there. `toggle-layer` FLIPS visibility rather than
+         setting it, so swapping one layer for another emits the action twice
+         and `this.state` remembers which one is up. -->
+    <om-widget position="bottom-right">
+      <style>
+        .fmt-nav button { font: 12px system-ui, sans-serif; padding: 6px 10px; border: 1px solid #2b313d;
+                          border-radius: 6px; background: #12151d; color: #e8ecf3;
+                          box-shadow: 0 2px 8px rgba(0,0,0,.45); cursor: pointer; margin-right: 6px; }
+        .fmt-nav button:hover { background: #1e2430; }
+      </style>
+      <div class="fmt-nav">
+        <button id="go-world">World quakes</button>
+        <button id="toggle-countries">Countries (SHP)</button>
+        <button id="go-sf">SF districts (GeoArrow) →</button>
+        <button id="go-kml">SF landmarks (KML) →</button>
+      </div>
+      <script type="om/widget">
+        this.watch = [];
+        this.render = (ctx) => {
+          this.state.sf = "regions-arrow";
+          const showSF = (id) => {
+            if (this.state.sf !== id) {
+              ctx.emit("toggle-layer", { layer: this.state.sf });
+              ctx.emit("toggle-layer", { layer: id });
+              this.state.sf = id;
+            }
+          };
+          this.$("#go-world").onclick = () => ctx.emit("fly-to", { center: [-150, 35], zoom: 2.2, duration: 1500 });
+          this.$("#toggle-countries").onclick = () => ctx.emit("toggle-layer", { layer: "countries" });
+          this.$("#go-sf").onclick = () => { showSF("regions-arrow"); ctx.emit("fly-to", { center: [-122.447, 37.765], zoom: 11.6, duration: 1500 }); };
+          this.$("#go-kml").onclick = () => { showSF("kml-landmarks"); ctx.emit("fly-to", { center: [-122.43, 37.775], zoom: 12, duration: 1500 }); };
+        };
+      </script>
+    </om-widget>
+
+    <!-- watch="viewport" rebuilds the chart from whatever is on screen, so
+         panning and zooming redraw the histogram. The spec is plain
+         Vega-Lite; `config` is where you theme it to match the page. -->
+    <om-widget type="vega-lite" layer="quakes" watch="viewport data:quakes"
+                 title="Magnitude (in view)" position="bottom-left">
+      <script type="application/json">
+        {
+          "background": "transparent",
+          "mark": { "type": "bar", "color": "#38bdf8" },
+          "encoding": {
+            "x": { "field": "magnitude", "type": "quantitative", "bin": true, "title": "magnitude" },
+            "y": { "aggregate": "count", "type": "quantitative" }
+          },
+          "config": {
+            "view": { "stroke": "transparent" },
+            "axis": { "labelColor": "#878ea1", "titleColor": "#c3cad8",
+                      "gridColor": "#232936", "domainColor": "#333a48", "tickColor": "#333a48" }
+          }
+        }
+      </script>
+    </om-widget>
+
+    <!-- Picking on columnar data: deck.gl reports an INDEX and nothing else,
+         so the runtime reads {{place}} and {{magnitude}} out of the columns at
+         that index. A template works the same either way. -->
+    <om-behavior on="hover" layer="quakes" action="show-tooltip"
+                   template="#quake-tooltip"></om-behavior>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <template id="quake-tooltip">
+    <div style="padding:7px 10px; border-radius:7px; background:#12151d; color:#f1f4f9;
+                border:1px solid #262b37; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>M {{magnitude}}</b> · {{place}}<br/>
+      <span style="color:#878ea1">depth {{depth_km}} km</span>
+    </div>
+  </template>
+
+</body>
+</html>

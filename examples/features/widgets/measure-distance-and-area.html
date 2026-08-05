@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!--
+  Put a ruler on the map. ONE widget brings the mode buttons, the on-map
+  labels and a units toggle — reach for it whenever a reader needs a number
+  off the map rather than out of your data.
+
+  Distance is haversine on the WGS84 sphere and area is the spherical excess,
+  so both stay accurate well away from the equator. The shape you draw is
+  ephemeral: never saved, never an undo step. To read a value in code, listen
+  for the `om-measure` event on <om-map>.
+
+  The map: an empty basemap over the United States. Pick Distance or Area in
+  the panel top-left, then click to place points — each leg labels itself as
+  you go, and a running total follows the cursor. Double-click or press Enter
+  to close the shape, Esc to cancel.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Measure distance and area</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-98.35, 39.5]" zoom="4" basemap="positron">
+
+    <!-- `modes` picks which buttons appear — name just one to offer only that.
+         `units` is the starting system; the panel carries its own toggle for
+         metric, imperial and nautical. -->
+    <om-widget type="measure" modes="distance area" units="metric" position="top-start"></om-widget>
+
+    <!-- Give the scale bar the same `units` and the two always agree, so the
+         number you measure matches the bar you check it against. -->
+    <om-widget type="scale-bar" units="metric" position="bottom-start"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

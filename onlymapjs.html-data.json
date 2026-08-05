@@ -540,7 +540,7 @@
         },
         {
           "name": "highlight-color",
-          "description": "Accessor for deck.gl highlightColor — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "deck.gl highlightColor."
         },
         {
           "name": "radius-scale",
