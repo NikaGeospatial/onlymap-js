@@ -307,5 +307,6 @@ Mapbox GL basemaps, depth-interleaved 3D compositing, globe projection, SSE tran
 | | |
 |---|---|
 | [docs/react.md](docs/react.md) · [docs/basemaps.md](docs/basemaps.md) · [docs/testing.md](docs/testing.md) · [docs/live-data.md](docs/live-data.md) · [docs/image-overlays.md](docs/image-overlays.md) · [docs/3d-assets.md](docs/3d-assets.md) · [docs/stories.md](docs/stories.md) · [docs/telemetry.md](docs/telemetry.md) | Consumer guides |
+| [CHANGELOG.md](CHANGELOG.md) | Version-by-version release notes |
 | [llms.txt](llms.txt) | The agent-facing quick reference |
 | `skills/onlymapjs` | Installable LLM skill for OnlyMapJS authoring |
