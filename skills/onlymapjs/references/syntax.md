@@ -806,7 +806,7 @@ builds internally:
 ```
 
 Reach for `BIMLayer` when the model is fixed and known ahead of time
-(`examples/bim-sample.html`); reach for the `ifc-loader` widget (BIM
+(`examples/features/terrain-3d/inspect-a-bim-model.html`); reach for the `ifc-loader` widget (BIM
 workbench) when a visitor picks the file, or when several models need to
 federate into one coordinated scene. **Known gap:** the outline overlay does
 not yet follow isolate/hide/ghost the way the mesh does — `ifc-browser`'s
@@ -822,7 +822,7 @@ declarative isolate/hide/ghost attributes work on it unchanged.
 
 Most pages should not call it directly — `<om-widget type="ifc-loader">` owns
 the drop zone, the call, the layer elements, the camera and the blob-URL
-lifetime. `examples/bim-workbench.html` is the whole workflow — load, browse, coordinate — in five widget tags.
+lifetime. `examples/sandboxes/bim-workbench.html` is the whole workflow — load, browse, coordinate — in five widget tags.
 
 ```js
 import { loadIfc, configureIfc } from "@nika-js/onlymap";

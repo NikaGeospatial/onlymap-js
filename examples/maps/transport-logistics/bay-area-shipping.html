@@ -34,14 +34,23 @@
     });
   </script>
   <style>
+    :root { color-scheme: dark; }
     html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
-    om-map { display: block; height: 100vh; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #0d1117;
+      --om-widget-fg: #e9eef5;
+      --om-widget-muted: #7d8899;
+      --om-widget-border: #1f2733;
+      --om-widget-hover-bg: #161d26;
+      --om-widget-accent: #22d3ee;
+    }
   </style>
 </head>
 <body>
   <div data-om-needs-server style="background:#fef3c7;color:#78350f;font:13px system-ui,sans-serif;padding:8px 14px;text-align:center">⚠ This example needs a backend (a live feed / auth endpoint) and won't run on static hosting — read the source as a reference, or see the comment at the top of this file for the real service.</div>
 
-  <om-map center="[-122.42, 37.83]" zoom="12" basemap="maplibre">
+  <om-map center="[-122.42, 37.83]" zoom="11.6" basemap="dark-matter">
 
     <!-- Each vessel is a pointed arrow rotated to its course. The SVG atlas
          points north; deck's get-angle rotates COUNTER-clockwise while COG
@@ -51,14 +60,14 @@
          and the runtime fills in host and scheme from the page. -->
     <om-layer id="ships" type="IconLayer"
                 data="wss:/__ais" source="ais" key="mmsi" flush="250ms"
-                label="Ships (live AIS)" color="#08519c"
+                label="Ships (live AIS)" color="#c026d3"
                 icon-atlas="../../data/vehicle.svg"
                 icon-mapping='{"vehicle": {"x": 0, "y": 0, "width": 64, "height": 64, "mask": true, "anchorX": 32, "anchorY": 32}}'
                 get-icon="'vehicle'"
                 get-position="[$lon, $lat]"
                 get-angle="-$cog"
-                get-color="scale($sog, sequential, ['#9ecae1', '#08306b'], domain=[0, 25])"
-                get-size="scale($sog, sqrt, [16, 30], domain=[0, 25])"
+                get-color="scale($sog, sequential, ['#00e5ff', '#c026d3', '#ff2d55'], domain=[0, 25])"
+                get-size="scale($sog, sqrt, [18, 34], domain=[0, 25])"
                 pickable></om-layer>
 
     <om-widget type="legend" title="Layers" position="top-right"></om-widget>
@@ -66,9 +75,12 @@
     <!-- Re-renders on every flush (data:ships) — live fleet stats. -->
     <om-widget position="top-left" watch="data:ships">
       <style>
-        .panel { background: #fff; padding: 10px 14px; border-radius: 8px; font: 12px system-ui;
-                 box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+        .panel { background: var(--om-widget-bg); color: var(--om-widget-fg);
+                 border: 1px solid var(--om-widget-border); padding: 10px 14px;
+                 border-radius: 10px; font: 12px system-ui;
+                 box-shadow: 0 4px 18px rgba(0,0,0,.55); }
         .row { display: flex; justify-content: space-between; gap: 18px; margin: 3px 0; }
+        .row b { color: #22d3ee; font-variant-numeric: tabular-nums; }
       </style>
       <div class="panel">
         <strong>Fleet (live)</strong>
@@ -94,7 +106,7 @@
   </om-map>
 
   <template id="ship-tooltip">
-    <div style="background:#222; color:#fff; padding:4px 8px; border-radius:4px; font:12px system-ui, sans-serif;">
+    <div style="background:#0d1117; color:#e9eef5; border:1px solid #1f2733; padding:5px 9px; border-radius:6px; font:12px system-ui, sans-serif;">
       <b>{{name}}</b> — {{sog}} kn, heading {{cog}}°
     </div>
   </template>
