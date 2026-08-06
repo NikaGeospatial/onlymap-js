@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<!--
+  BIM — load, browse, coordinate. One page for the whole workflow: add a
+  model to pick, browse and isolate parts of it; add a second and the clash
+  panel wakes up to compare any two of the loaded models. Everything happens
+  in the browser — nothing uploaded, nothing written to disk.
+
+  ONE drop zone, not one per discipline: `federate` on the loader accepts
+  several models into a single scene, matching how coordination tools work
+  (real projects have more than two disciplines).
+
+  Models are co-registered as they load — the FIRST sets the shared origin
+  and placement, every later one reuses both — because discipline exports of
+  the same building routinely declare IfcSite coordinates kilometres apart
+  (the clinic's architectural and HVAC files disagree by 16 km); honouring
+  each file's own would scatter the building and make clash tests meaningless.
+
+  No basemap by default: a georeferenced model switches one on and flies
+  there, otherwise the backdrop stays plain rather than implying a surveyed
+  placement that was never given.
+
+  OFFLINE takes three changes:
+    1. `npm run vendor:web-ifc public/vendor/web-ifc`, then
+       wasm-path="/vendor/web-ifc/" on the loader (~0.93 MB static assets,
+       bundle unchanged).
+    2. basemap="none" on the loader (skips tiles.openfreemap.org).
+    3. telemetry="off" on <om-map>.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — BIM: load, browse, coordinate</title>
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <link rel="stylesheet" href="nav.css" />
+  <style>
+    /* A light backdrop: translucent IFC elements (glazing, ceilings) composite
+       to mud against a dark page and read cleanly against a light one. */
+    body { background: #eef2f7; }
+  </style>
+</head>
+<body>
+
+  <header class="nav">
+    <strong>OnlyMapJS examples</strong>
+    <a href="index.html">Overview</a>
+    <a href="./features/widgets/add-widgets.html">Widgets</a>
+    <a href="./features/interaction/wire-up-behaviors-and-overlays.html">Behaviors &amp; overlays</a>
+    <a href="./features/getting-started/choose-a-basemap.html">Basemap</a>
+    <a href="./features/sources/load-columnar-data.html">Columnar / GeoArrow</a>
+    <a href="./features/terrain-3d/place-a-3d-model.html">3D models</a>
+    <a href="./features/terrain-3d/google-3d-tiles.html">Google 3D Tiles</a>
+    <a href="./features/stories/google-3d-flyby.html">3D Flyby</a>
+    <a href="bim-sample.html">BIM sample</a>
+    <a href="bim-workbench.html" class="current">BIM workbench</a>
+    <a href="./maps/transport-logistics/bay-area-shipping.html">Live AIS</a>
+    <a href="./maps/transport-logistics/san-francisco-last-mile.html">Fleet (polling)</a>
+    <a href="./features/stories/build-a-map-story.html">Map story</a>
+  </header>
+
+  <!-- Terrain is authored explicitly: a georeferenced model's absolute
+       elevation needs a DEM surface, and the library never writes
+       attributes for you (what-you-write-is-what-you-see) — a BIMLayer on
+       a map without a `terrain` attribute is a validation error. -->
+  <om-map center="[-122.41, 37.8]" zoom="19.6" pitch="58" bearing="30" basemap="none" lighting="studio" terrain="mapterhorn" validate>
+
+    <!-- Add models. `federate` accepts several and keeps them all, each on its
+         own layer with its own visibility toggle. Drop two or ten. -->
+    <om-widget type="ifc-loader" layer="model" position="top-left" federate
+                 title="Models" label="Add model(s)"></om-widget>
+
+    <!-- Browse whichever model is selected: group by IFC class, material,
+         container, or by one of the hierarchies the file carries (spatial,
+         type, system, classification), and isolate/hide/ghost from any row.
+         With several models loaded it grows a picker to say which one. -->
+    <om-widget type="ifc-browser" position="top-right" order="1" rows="7"
+                 fields="ifcClass material container spatialPath typePath" scale-fields="netVolume"></om-widget>
+
+    <!-- Coordination. Dormant until a second model arrives, then compares any
+         two of them. `tolerance` is metres of real interpenetration required
+         before a pair counts — 0 reports every overlap, higher values ignore
+         the millimetre noise ordinary modelling leaves behind. -->
+    <om-widget type="ifc-clash" position="top-right" order="2"
+                 title="Clashes" tolerance="0" rows="8"></om-widget>
+
+    <om-widget type="feature-inspector" position="bottom-left"
+                 title="Element" fields="ifcClass material container netVolume"></om-widget>
+
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+    <om-widget type="attribution" text="Your models, parsed locally with web-ifc (MPL-2.0)" position="bottom-left"></om-widget>
+
+  </om-map>
+
+</body>
+</html>

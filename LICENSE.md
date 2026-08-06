@@ -35,6 +35,8 @@ The Software is commercial proprietary software.
 
 **Commercial use.** Any use other than Non-Commercial Use requires a purchased and maintained valid commercial license from Licensor, unless Licensor has granted Licensee a separate written license.
 
+**Technical limits are a convenience, not the grant.** The Software may enforce technical limits in some execution contexts and not others (for example, limits may be inactive during local development, when loaded from local files, or inside application shells). The presence, absence, or failure of any technical limit does not grant, extend, or modify any license right. In particular, distributing the Software inside a packaged or installable application (desktop, mobile, or otherwise), or any other Commercial use, requires a valid commercial license under this Section 3 regardless of whether technical limits were active.
+
 Access to an npm package, repository, package tarball, source archive, or build artifact does not by itself grant any rights beyond the rights expressly granted in this Agreement.
 
 If an Order Form states usage limits, seat limits, application limits, domain limits, revenue limits, territory limits, term dates, or other license scope terms, Licensee must comply with those terms. If there is a conflict between this Agreement and an Order Form, the Order Form controls only for that conflict.

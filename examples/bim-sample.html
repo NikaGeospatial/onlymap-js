@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!--
+  Per-element picking on a real IFC model — a medical-dental clinic (2,626
+  elements, 15 primitives). Pick a field and the legend rebuilds from its
+  values; I/H/G writes isolate/hide/ghost-features onto the layer.
+
+  The declarative counterpart to the BIM workbench's drop-zone widget: one
+  BIMLayer, given the .ifc's URL via `src`, runs it straight through
+  `loadIfc` — no pre-baked tileset, no site-origin/heading/scale (the file's
+  own georeference is already applied), no second layer for the outline
+  overlay (BIMLayer adds it itself). Reach for BIMLayer when the model is
+  fixed and known ahead of time; reach for `ifc-loader` (BIM workbench) when
+  a visitor picks the file.
+
+  Model: buildingSMART Community Sample-Test-Files, Medical-Dental Clinic,
+  IFC 2x3 (CC-BY 4.0). The coordinates are the file's own IfcSite
+  RefLatitude/RefLongitude — Revit's default project location, not a survey,
+  so the building overlaps real Boston streets.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — IFC medical clinic, per-element picking</title>
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <link rel="stylesheet" href="nav.css" />
+  <style>
+    body { background: #eef2f7; }
+  </style>
+</head>
+<body>
+
+  <header class="nav">
+    <strong>OnlyMapJS examples</strong>
+    <a href="index.html">Overview</a>
+    <a href="./features/widgets/add-widgets.html">Widgets</a>
+    <a href="./features/interaction/wire-up-behaviors-and-overlays.html">Behaviors &amp; overlays</a>
+    <a href="./features/getting-started/choose-a-basemap.html">Basemap</a>
+    <a href="./features/sources/load-columnar-data.html">Columnar / GeoArrow</a>
+    <a href="./features/terrain-3d/place-a-3d-model.html">3D models</a>
+    <a href="./features/terrain-3d/google-3d-tiles.html">Google 3D Tiles</a>
+    <a href="./features/stories/google-3d-flyby.html">3D Flyby</a>
+    <a href="bim-sample.html" class="current">BIM sample</a>
+    <a href="bim-workbench.html">BIM workbench</a>
+    <a href="./maps/transport-logistics/bay-area-shipping.html">Live AIS</a>
+    <a href="./maps/transport-logistics/san-francisco-last-mile.html">Fleet (polling)</a>
+    <a href="./features/stories/build-a-map-story.html">Map story</a>
+  </header>
+  <om-map center="[-71.06088722277778, 42.3598175]" zoom="19.6" pitch="58" bearing="30" basemap="positron" lighting="studio" validate>
+    <om-layer id="clinic" type="BIMLayer"
+                src="data/ifc-clinic/Clinic_Architectural.ifc"
+                label="Medical-Dental Clinic — architectural (IFC 2x3)"
+                feature-filter-field="ifcClass"
+                ghost-opacity="0.15"
+                pickable></om-layer>
+
+    <om-widget type="ifc-browser" layer="clinic" position="top-right" rows="7" fields="ifcClass material container spatialPath typePath" scale-fields="netVolume"></om-widget>
+    <om-widget type="feature-inspector" layer="clinic" position="top-left"
+                 title="Element" fields="ifcClass material container netVolume"></om-widget>
+
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+    <om-widget type="attribution"
+                 text="Model: buildingSMART Community Sample-Test-Files — Medical-Dental Clinic (CC-BY 4.0)"
+                 position="bottom-left"></om-widget>
+
+  </om-map>
+
+</body>
+</html>
