@@ -16,8 +16,8 @@ Vite/npm project:
 Static CDN page (raw-file CDNs only — unpkg/jsDelivr; never esm.sh or another rebundling CDN, which duplicates the WebGL runtime and breaks layer shaders):
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.6.1/dist/onlymapjs.css">
-<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.6.1"></script>
+<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.12/dist/onlymapjs.css">
+<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.12"></script>
 ```
 
 Always include `onlymapjs.css` — it carries the MapLibre basemap styles and the no-JS fallback rules (`<om-fallback>` / default banner). For the fallback to work in script-disabled previews it must load without JavaScript: a real `<link rel="stylesheet">` or inlined `<style>` on no-build pages (a bundler-emitted stylesheet is fine in npm projects).
@@ -42,7 +42,7 @@ Common attributes:
 - `map-id="<random UUID>"` — identifies the map artifact for usage telemetry (not a visitor id). Include one on new complete pages, freshly generated — never copied from an example; deleting it is the opt-out.
 - `telemetry="off"` disables usage telemetry for this map (global: `OmMap.configureTelemetry({ disabled: true })`)
 - `license-key="om_live_…"` — lifts the free-plan limits (5 layers, 25k rows per layer — a layer past the layer cap doesn't render, a layer past the row cap renders its first 25k rows plus a dismissible on-map notice; caps apply only on HOSTED http(s) pages — localhost/file:// and other dev contexts run uncapped, badge stays) and removes the corner badge; publishable origin-restricted token, safe in page source (or `OmMap.configureLicense(key)` once). Free-plan violations don't break the map: the offending layer isn't rendered and validation names the limit.
-- `terrain="terrarium|<preset>|<{z}/{x}/{y} DEM URL>|off"` — 3D elevation surface. `terrarium` is keyless (AWS); `mapterhorn` is also keyless and carries a CARTO Positron drape by default; `maptiler-terrain` needs `basemap-key`/`configureBasemap`; raw DEM URLs need `terrain-decoder` (`terrarium`, `mapbox-rgb`, or `{rScaler,gScaler,bScaler,offset}` JSON). `terrain-exaggeration` scales relief (1 = true); `terrain-max-zoom` = the provider's REAL tileset cap; `terrain-texture` drapes a `{z}/{x}/{y}` imagery template. Geographic layers drape automatically; per-layer `terrain="drape|offset|off"` overrides (3D-model layers default to `offset`). Terrain REPLACES an active basemap while on (restored when off) — validation warns. Register presets with `OmMap.registerTerrain(name, {...})`; `set-terrain` action + `terrain` watch token; attribute-backed (undoable). **BIM requires explicit terrain**: a model that resolves real elevation on a map with no `terrain` attribute raises an ERROR through the validation channel at load time — the library never writes `terrain` for you; author a preset (`mapterhorn` pairs a keyless DEM with a CARTO drape) or an explicit `terrain="off"` for flat-ground siting.
+- `terrain="terrarium|<preset>|<{z}/{x}/{y} DEM URL>|off"` — 3D elevation surface. `terrarium` is keyless (AWS); `maptiler-terrain` needs `basemap-key`/`configureBasemap`; raw DEM URLs need `terrain-decoder` (`terrarium`, `mapbox-rgb`, or `{rScaler,gScaler,bScaler,offset}` JSON). `terrain-exaggeration` scales relief (1 = true); `terrain-max-zoom` = the provider's REAL tileset cap; `terrain-texture` drapes a `{z}/{x}/{y}` imagery template. Geographic layers drape automatically; per-layer `terrain="drape|offset|off"` overrides (3D-model layers default to `offset`). Terrain REPLACES an active basemap while on (restored when off) — validation warns. Register presets with `OmMap.registerTerrain(name, {...})`; `set-terrain` action + `terrain` watch token; attribute-backed (undoable).
 - `lighting="daylight|studio|flat|custom"` — scene lighting for 3D content (extruded polygons, models); absent = deck defaults. Preset seeds values; `lighting-ambient`, `lighting-sun` (intensity; 0 removes the sun), `lighting-sun-azimuth` (° CW from north), `lighting-sun-elevation` (° above horizon), `lighting-camera` (model-inspection fill) override individual fields; `lighting-sun-date` (ISO 8601 or epoch ms) computes the sun from solar position at the map center and wins over azimuth/elevation. Attribute-backed: changes are undoable, and the `set-lighting {lighting, sunAzimuth, …}` action makes lighting story-steppable (`lighting="default"` removes the whole attribute set; a bare preset is a clean reset). `<om-widget type="lighting">` is the native UI. Widget scripts can `watch = ["lighting"]`.
 - `widgets-dim="off"` disables collision-dim — by default a widget slot dims (`--om-widget-opacity-dimmed`, 0.35) while an open `<om-overlay>` popup covers it, rather than the popup dodging (attribution/toggle slots never dim).
 - `headless width="800" height="600"` for test harness use
@@ -137,7 +137,7 @@ For an epoch-millisecond filter, format the built-in widget's numeric labels dec
 
 Use the `type` value exactly:
 
-`A5Layer`, `ArcLayer`, `BIMLayer`, `BitmapLayer`, `COGLayer`, `ColumnLayer`, `ContourLayer`, `GeoJsonLayer`, `GeohashLayer`, `GreatCircleLayer`, `GridCellLayer`, `GridLayer`, `H3ClusterLayer`, `H3HexagonLayer`, `HeatmapLayer`, `HexagonLayer`, `IconLayer`, `ImageOverlay`, `LineLayer`, `MVTLayer`, `PathLayer`, `PointCloudLayer`, `PolygonLayer`, `PopupLayer`, `QuadkeyLayer`, `S2Layer`, `ScatterplotLayer`, `ScenegraphLayer`, `ScreenGridLayer`, `SimpleMeshLayer`, `SolidPolygonLayer`, `TerrainLayer`, `TextLayer`, `Tile3DLayer`, `TileLayer`, `TripsLayer`, `ZarrLayer`.
+`A5Layer`, `ArcLayer`, `BitmapLayer`, `COGLayer`, `ColumnLayer`, `ContourLayer`, `GeoJsonLayer`, `GeohashLayer`, `GreatCircleLayer`, `GridCellLayer`, `GridLayer`, `H3ClusterLayer`, `H3HexagonLayer`, `HeatmapLayer`, `HexagonLayer`, `IconLayer`, `ImageOverlay`, `LineLayer`, `MVTLayer`, `PathLayer`, `PointCloudLayer`, `PolygonLayer`, `PopupLayer`, `QuadkeyLayer`, `S2Layer`, `ScatterplotLayer`, `ScenegraphLayer`, `ScreenGridLayer`, `SimpleMeshLayer`, `SolidPolygonLayer`, `TerrainLayer`, `TextLayer`, `Tile3DLayer`, `TileLayer`, `TripsLayer`, `ZarrLayer`.
 
 Common choices:
 
@@ -147,7 +147,6 @@ Common choices:
 - Aggregation: `HeatmapLayer`, `HexagonLayer`, `GridLayer`, `ScreenGridLayer`.
 - Tiles: `TileLayer`, `MVTLayer`, `Tile3DLayer`.
 - 3D models: `ScenegraphLayer`, `SimpleMeshLayer`, `PointCloudLayer`, `Tile3DLayer`.
-- BIM source files (`.ifc`, loaded in-browser, no pre-conversion step): `BIMLayer`.
 - GeoTIFF/COG rasters: `COGLayer`.
 - Zarr / GeoZarr rasters (chunked N-D arrays): `ZarrLayer`.
 - Geotagged drone JPEGs: `ImageOverlay`.
@@ -164,7 +163,7 @@ Common choices:
 - `src` (required) — the GeoTIFF URL. NOT `data`: rasters stream tiles by HTTP Range request through the layer's own reader; they are never parsed rows (`$field`, `ctx.data()`, `ctx.stats()`, filters do not apply).
 - Sources must be Cloud-Optimized GeoTIFFs (`gdal_translate -of COG` otherwise).
 - `min`/`max` — the rescale window mapped onto the colormap. Defaults to 0–255, so ALWAYS set them for float or 16-bit data (DEMs, NDVI, temperature).
-- `colormap` — single-band ramps from the bundled sprite: `gray` (default), `viridis`, `plasma`, `inferno`, `magma`, `cividis`, `rdylgn`, `rdbu`, `spectral`, `terrain`, `jet`, `turbo`, `ylorrd` (ColorBrewer yellow→orange→red — a gentler sequential ramp than turbo/jet). Sources with 3+ bands composite as RGB and ignore it.
+- `colormap` — single-band ramps from the bundled sprite: `gray` (default), `viridis`, `plasma`, `inferno`, `magma`, `cividis`, `rdylgn`, `rdbu`, `spectral`, `terrain`, `jet`, `turbo`. Sources with 3+ bands composite as RGB and ignore it.
 - `nodata` — overrides the source's nodata sentinel; nodata pixels render transparent.
 - Plain 8-bit RGB COGs (satellite truecolor) need no styling attributes at all.
 - Restretch/recolor (min/max/colormap edits) are GPU uniform updates — tiles are not refetched. The legend widget renders the colormap ramp automatically when `colormap` + `min`/`max` are authored.
@@ -360,14 +359,6 @@ Built-ins:
 - `lighting` — scene-lighting controller: preset radios (Off/daylight/studio/flat/custom) + ambient/sun/azimuth/elevation/camera sliders, all over the lighting* attributes via `set-lighting` (undoable; re-syncs when anything else writes them). A bare preset click is a clean RESET (stale lighting-* overrides removed); a slider edit flips to `custom` and sets only the touched key.
 - `widgets-toggle` — one button hiding/showing all OTHER widgets (`widgets-hidden` attribute / `set-widgets-visible {visible}` action; bare payload toggles). Hidden = visibility, never removal — widget state survives; attribution and the toggle itself never hide. Transient (not an undo step), story-scrub-capturable.
 - `undo-redo` — undo/redo buttons over the manifest history (layer toggles, filters, basemap switches, element edits, drawn sketches). Keyboard works without the widget: Cmd/Ctrl-Z, Shift-Cmd/Ctrl-Z, Ctrl-Y. Camera moves, hover effects, and story playback are not undo steps.
-- `ifc-browser` — the model browser (registered as `ifc-legend` too, the deprecated original name): group the model by any property-table field, colour it, and isolate/hide/ghost per value. `layer` names the `pick-features` layer (defaults to the only one on the map), `fields="ifcClass material container"` are the group-by choices, `scale-fields="netVolume"` adds graduated numeric ramps, `rows="9"` caps the visible list before it scrolls. Each row has I/H/G buttons that write `isolate-features`/`hide-features`/`ghost-features` — so the panel is a UI over the attributes, and everything it does is undoable and story-steppable. **I is multi-select**: pressing it on several rows (or several tree nodes) isolates their union, and pressing it again on one removes just that one, so "ground floor AND roof" is a normal thing to ask for. In a tree, ancestors of an isolated node stay legible so the branch is still reachable from the root. It also keeps the companion outline layer's `filter-categories` in step, or hidden elements would leave their edges behind. Colour mode defaults to the model's own IFC surface colours; `no-color` removes the select. Non-physical classes (`IfcSpace`, `IfcOpeningElement`, …) are hidden from the list unless `show-non-physical` is set, because they otherwise dominate the counts with things nobody can see.
-
-  The select additionally offers whichever **trees** the file supports: **Spatial** (`spatialPath` — IfcSite → IfcBuilding → IfcStorey → space), **Type** (`typePath` — IfcDoorType → Single-Flush), **System** (`systemPath` — a distribution system and its parent systems) and **Classification** (`classificationPath` — CCS → [L]BB Fundamentskonstruktion, built by walking `ReferencedSource` rather than parsing the code string, which would only work for whichever scheme's punctuation you guessed). Each renders expandable, counts aggregated upward, with the same I/H/G on every node — isolating a storey, a system or a classification code reaches every element beneath it. Spatial is not privileged: on a real Danish project the classification tree covered 3,415 elements against spatial's 660.
-
-  A tree is **not** a separate mode — it groups by a hierarchy column exactly as the list groups by `ifcClass`, so it reuses the reset-on-field-change rule, the colour wiring and the isolate/hide/ghost attributes untouched, and a fifth tree would cost one column plus one line. `loadIfc` extracts every hierarchy a model has and emits a column **only when the file populates it** (all four measured at 26 ms of a 290 ms relationship pass on 2,626 elements, and lost in the noise on a 74 MB one), so a tree that would render empty is never offered and an authored hierarchy field in `fields` is dropped rather than shown dead. Trees appear automatically when available — you do not have to list them — while `field="spatialPath"` opens straight onto one. Tilesets converted before these columns existed carry none. Elements with no container get their own bucket rather than disappearing. **One browser per layer:** `feature-filter-field` and the isolate/hide/ghost attributes are single-valued, so two instances pointed at one layer would clobber each other's filtering.
-- `ifc-clash` — clash overlay over two CO-REGISTERED model layers. With no `layers` attribute it offers two SELECTS over whatever models are loaded, which is how coordination tools work (append models, then choose a pair) and the only shape that survives a project with five disciplines; `layers="arch mep"` still pins a fixed pair. Controls follow Navisworks' Clash Detective, which is what a coordinator already knows: a **highlight-all** switch in the header, and an **isolation MODE** above the list (`none` / `dim others` / `hide others`) rather than independent toggles — two switches would offer four states, two of them meaningless. Isolation applies to the SELECTED clash, so with nothing selected the model is untouched. Hiding is `opacity: 0`, a shader discard, not partial transparency. Sides are red and BLUE rather than Navisworks' conventional red/green, which is the worst possible pair for a red-green deficiency. CLICKING A ROW focuses that clash: the chosen pair goes full strength, every other clashing element drops to a faint tint, and the camera flies to the centre of the overlap. Without focus, painting all 527 clashing elements the same red means flying to one shows you a red building. Results are GROUPED by the element on side A — one wall crossing four ducts is one row with a count, not four, which is how coordination tools report and what keeps a four-figure result readable. Starts COLLAPSED with the count in its header — a real pass returns four figures of rows and a permanently open list buries the model. Attributes: `tolerance` in metres of real interpenetration before a pair counts (0 reports any overlap), `rows`, `zoom`. Flags element pairs whose bounding boxes interpenetrate, colours both sides through `feature-styles` (which outranks `feature-color-by`, so clearing it hands the colouring back), and gives each pair a Z button that flies to the centre of the OVERLAP rather than of either element. v1 is an axis-aligned box test — it finds a duct through a roof in milliseconds with no server, and it over-reports anything diagonal, since a brace's box is far bigger than the brace. Zones, spaces, openings and proxies are excluded (a zone is a volume, so a box test says it intersects everything inside it), as are pairs sharing a class and name, which are reference markers repeated across disciplines. Persisting or sharing results is what BCF exists for and is not attempted. **Co-registration is checked, not assumed**: differing `site-origin` values are reported rather than silently returning zero, because two mis-registered models look exactly like two clean ones.
-- `feature-inspector` (renamed from `ifc-inspector`, which still works as an alias — the widget's body is generic property-row rendering with no IFC dependency, so it works unchanged on any `pick-features` layer, IFC-derived or not) — properties of the currently picked element. `fields="ifcClass material container netVolume"` chooses the rows, `placeholder` is the nothing-selected text. Reads the same property table picking resolves, so it needs no data of its own.
-- `ifc-loader` — a drop zone that parses an `.ifc` in the browser and builds the layers for it (see **In-browser IFC** below). Add `federate` and ONE drop zone accepts several models into a co-registered scene — one layer per model, each with its own visibility toggle and remove button — instead of dedicating a widget per discipline. Under `federate`, the FIRST model loaded decides the shared model-space origin and placement, and every later model inherits both (discipline exports of one building routinely disagree by kilometres, so honouring each file's own would scatter it); add `independent` to opt out when the models are unrelated buildings rather than disciplines of one. That sharing never applies without `federate` — a plain loader always resolves each new file's own georeference — and it resets once every model in a federated scene is removed, so the next one dropped in starts fresh rather than inheriting a dead scene's position. `layer="ifc"` is the id it creates (plus `<id>-edges`), `zoom` the flyTo zoom, `field` the filter field, `outline-color`/`no-outlines`/`ghost-opacity` tune what it builds, and `site-origin`/`site-heading`/`site-scale` override what the file declares. If a loaded model turns out to be georeferenced it is AUTO-PLACED: the widget writes the file's own coordinates, heading and scale onto the layers it CREATED and flies the camera there — but it NEVER touches `<om-map>`'s own scene attributes (`basemap`, `terrain`): those are author-owned, and a georeferenced model landing on a map with neither raises a structured warning ("no spatial context") instead of switching one on.
 
 Positions — 8 managed slots (logical, RTL-aware): `top-start`, `top-center`, `top-end`, `center-start`, `center-end`, `bottom-start`, `bottom-center`, `bottom-end`. Legacy corner names (`top-left`, `top-right`, `bottom-left`, `bottom-right`) are aliases. Same-slot widgets stack in one library-owned flex container: flush edges, shared gap — never overlapping. `order="1"` sets deterministic in-slot ordering (default: DOM order). Adjacent COMPACT button widgets (zoom-controls, undo-redo, widgets-toggle) in one slot auto-merge into a single control group (shared radius/shadow, 1px dividers); `cluster="false"` keeps one out — validation warns if set on a non-compact widget. At map widths ≤640px, managed widgets auto-fold into top/end/bottom/start disclosure drawers; `fold="never"` keeps an essential control outside, `widgets-fold="off"` opts the map out, and `--om-widget-fold-breakpoint` changes the map-width threshold. `position="manual"` opts out of management: the widget renders as a plain block you place with your own CSS (even outside the map, e.g. in an app header, driving the map through actions). Layout tokens: `--om-widget-inset-x/-y` (slot inset, default 12px), `--om-widget-gap-x/-y` (stack gap, default 8px), `--om-widget-opacity`, `--om-widget-opacity-dimmed` (default 0.35 — the collision-dim level), `--om-widget-radius`, `--om-widget-fold-breakpoint` — or the no-CSS sugar attribute `<om-map widget-style="gap:10 opacity:0.9 inset:16">` (keys: inset, gap, inset-x/-y, gap-x/-y, opacity, radius, size; numbers are px except opacity).
 
@@ -425,17 +416,12 @@ watched token fires:
 </om-widget>
 ```
 
-- `ctx.layers`
-- `ctx.data(id)`
-- `ctx.dataInViewport(id)`
-- `ctx.stats(id, field, { scope: "viewport" })`
-- `ctx.selection`
-- `ctx.viewport`
-- `ctx.features(layerId)` — the decoded `EXT_structural_metadata` property table of a `pick-features` tileset, one row per element, or `undefined` before the first tile carrying one has landed. This is what a BIM panel groups and counts by; pair it with the `features` watch token, since the table cannot exist on the first render.
-- `ctx.history` — `{ canUndo, canRedo }`; re-render on changes via the `history` watch token
-- `ctx.emit(action, payload)`
-
-Watch tokens: `data:<layerId>`, `viewport`, `selection`, `layers` (fires on layer add/remove, visibility, and filter changes), `features` (fires when a tileset's property table decodes), `basemap`, `lighting`, `terrain`, `history`, `widgets` (fires on a `widgets-hidden` hide-all toggle). An EMPTY `watch` array means the widget never re-renders — omit it or list tokens, never `watch: []`.
+- `ctx.layers`, `ctx.data(id)`, `ctx.dataInViewport(id)`,
+  `ctx.stats(id, field, { scope: "viewport" })`, `ctx.selection`,
+  `ctx.viewport`, `ctx.history` (`{ canUndo, canRedo }`).
+- Watch tokens: `data:<layerId>`, `viewport`, `selection`, `layers` (add/remove,
+  visibility, filter changes), `basemap`, `lighting`, `terrain`, `history`,
+  `widgets` (`widgets-hidden` hide-all toggle).
 
 **Drive the map — the emission contract.** This is the part authors get wrong.
 A widget NEVER mutates the map directly and NEVER dispatches its own
@@ -495,11 +481,6 @@ Anchors:
 - `anchor-from="selection"`
 - `anchor-layer="regions" anchor-feature-id="mission"`
 
-Selection scoping (both only apply with `anchor-from="selection"`):
-
-- `layer="quakes"` — only that layer's picks move/re-template the overlay.
-- `selection-type="click"` (or `"hover"`) — only that pick type does. A click-opened popup NEEDS `selection-type="click"`: without it, merely hovering any pickable feature drags the popup there and re-interpolates its template against the hovered object (wrong-layer ghost popup). With it, hover is inert and a click on empty space still dismisses. `"hover"` is the mirror for hover-driven overlays.
-
 Templates:
 
 - `{{field}}` HTML-escaped interpolation.
@@ -508,7 +489,7 @@ Templates:
 Example:
 
 ```html
-<om-overlay id="detail" anchor-from="selection" selection-type="click" visible="false">
+<om-overlay id="detail" anchor-from="selection" visible="false">
   <div><b>{{place}}</b> M {{magnitude}}</div>
 </om-overlay>
 <om-behavior on="click" layer="quakes" action="show-overlay" target="detail"></om-behavior>
@@ -654,271 +635,3 @@ For 3D Tiles LOD/refinement experiments, use:
             maximum-memory-usage="256"
             view-distance-scale="0.85"></om-layer>
 ```
-
-### Per-element (BIM) picking and styling
-
-A plain `pickable` `Tile3DLayer` picks a whole TILE. To pick individual
-elements — a wall, a window, one IFC product — add `pick-features`. The pick's
-`selection` then carries `featureId`, `properties` and `class` resolved from the
-tile's own `EXT_mesh_features` + `EXT_structural_metadata`:
-
-```html
-<om-layer id="building" type="Tile3DLayer"
-            tileset="https://example.com/tileset.json"
-            pick-features
-            feature-id-property="_FEATURE_ID_0"
-            load-options='{"gltf":{"loadBuffers":true,"loadImages":true},"image":{"type":"data"}}'
-            pickable></om-layer>
-```
-
-`feature-styles` recolours, fades or highlights elements by feature ID — an
-array indexed BY id, each entry `{color: [r,g,b], strength: 0-1, opacity: 0-1}`.
-Set it live (from a widget, a dropdown, a pick handler) and only a small lookup
-texture is re-uploaded; no refetch, no re-tesselation:
-
-```html
-<om-layer id="building" type="Tile3DLayer" tileset="…" pick-features pickable
-            feature-styles='[{"color":[90,200,255],"strength":0.5},{},{"color":[255,215,130],"strength":0.9}]'></om-layer>
-```
-
-Use `strength` below 1 to TINT rather than replace — a full-strength colour hides
-the model's own texture entirely.
-
-**Isolate / hide / ghost** are declarative, and mirror the vector
-`filter-field` + `filter-categories` pair: name the metadata field once, then
-list values per state. Values are JSON arrays, matched against the tile's own
-property table:
-
-```html
-<om-layer id="building" type="Tile3DLayer" tileset="…" pick-features pickable
-            feature-filter-field="component"
-            hide-features='["Windows","Skylight"]'
-            ghost-features='["Wall"]'
-            ghost-opacity="0.18"></om-layer>
-```
-
-- `isolate-features` is exclusive — anything NOT listed is hidden, so it is a
-  scope rather than another kind of hide.
-- Hiding is a shader `discard`, so a hidden element also stops being pickable
-  and you can select whatever sits behind it.
-- These compose ONTO `feature-styles` rather than replacing it: the style table
-  supplies colour, these supply visibility. Changing colour scheme never
-  un-hides anything, and isolating never drops your colouring.
-- Being attributes, they are undoable and story-steppable — prefer them over
-  computing a `feature-styles` table in page JS.
-
-**Colour by property.** `feature-styles` is indexed by feature ID, which means
-computing a table by hand. These name a property-table FIELD instead and build
-that table for you, once the table arrives with the first tile:
-
-```html
-<om-layer id="clinic" type="Tile3DLayer" tileset="…" pick-features pickable
-            feature-color-by="material"></om-layer>
-```
-
-- `feature-color-by` is CATEGORICAL — one palette entry per distinct value.
-  `feature-palette='["#4f7cff","#ff9a3c"]'` overrides the built-in
-  colour-blind-safe cycle.
-- `feature-color-scale` is GRADUATED over a numeric field.
-- `feature-color-strength` (default 0.85) is how hard the colour is mixed over
-  the model's own material; below 1 tints rather than replaces.
-- Setting NEITHER is meaningful, and is the default: the model renders in its
-  own IFC surface colours, which is what someone opening a building expects.
-  Reach for these to answer a question, not to make it look coloured.
-- An authored `feature-styles` always wins — these are sugar over the same
-  table, never an override of it.
-
-A graduated ramp needs the field to actually be populated. Revit IFC2x3 exports
-frequently carry no `IfcElementQuantity` at all, so every `netVolume` is 0 and
-the ramp renders flat — check the property table before blaming the ramp.
-
-**Georeferencing — `site-origin` / `site-heading` / `site-scale`** (Tile3DLayer
-and PathLayer). Where a model sits is a viewing decision, not a conversion one,
-so it lives on the layer:
-
-```html
-<om-layer id="clinic" type="Tile3DLayer" tileset="…/tileset.json" pick-features pickable
-            site-origin="[-71.059776, 42.358429]" site-heading="32" site-scale="1"></om-layer>
-```
-
-- `site-origin` is `[lng, lat]` or `[lng, lat, elevation]`, and it OVERRIDES the
-  position baked into the tileset's root transform rather than offsetting it.
-- `site-heading` is a bearing — degrees CLOCKWISE from true north. On its own,
-  with no `site-origin`, it rotates the model where it stands.
-- Rotation and scale pivot on the model's own anchor, not the tileset origin,
-  so a heading change spins the building about itself.
-- An IFC model is a PAIR of layers — the mesh tileset and a `PathLayer` outline
-  overlay whose paths are local east/north/up metres — and both need the same
-  three values, or the building walks away from its own edges. The
-  `ifc-loader` widget sets them on both for you.
-- Do not trust a model's declared position without looking at it. Authoring
-  tools ship a default project location, and a default is indistinguishable
-  from a survey: the buildingSMART Medical-Dental Clinic sample carries Revit's
-  Boston default and the Duplex a Chicago city-centre point, so both land on
-  occupied downtown blocks at an arbitrary rotation. `IfcMapConversion` (real
-  georeferencing) is absent from most IFC2x3 exports and `TrueNorth` is
-  routinely unset — which is exactly what these attributes are for.
-- Editing `site-*` on a live Tile3DLayer reloads the tileset (deck.gl only
-  reloads on a URL change, so the runtime cache-busts the URL). The outline
-  PathLayer updates as a uniform, with no reload.
-
-Three constraints worth knowing before promising this to a user:
-
-- Multi-material models are fine: glTF allows one material per primitive, so a
-  five-material house is five primitives and a real IFC export is often dozens —
-  all of them get per-element picking. Only genuinely instanced (i3dm) tiles fall
-  back to tile-granularity picking, where `feature-styles` does nothing.
-- Datasets that store IDs in a TEXTURE (photogrammetry classification) need
-  `load-options` with `gltf.loadImages`, `gltf.loadBuffers` AND
-  `image: {"type": "data"}`. Without the last one the tileset takes minutes to
-  appear — loaders.gl otherwise reads the whole ID texture back through a canvas
-  once per vertex.
-- `opacity: 0` HIDES an element (a shader discard, so it also stops being
-  pickable and you can select what is behind it). Partial `opacity` (ghosting) is
-  still being validated.
-
-Worked example: `examples/ferry-building-features.html`.
-
-### BIMLayer — declarative in-browser loading
-
-`<om-layer type="BIMLayer" src="./model.ifc">` is the declarative counterpart
-to `ifc-loader`/`loadIfc`: point it at a BIM source file (an `.ifc` today,
-other formats plug into the same layer later) and it runs the file through
-the loader itself the moment `src` resolves — no pre-baked tileset, no
-`site-origin`/`site-heading`/`site-scale` (the file's own georeference is
-read and applied automatically; the attributes exist to OVERRIDE a wrong or
-missing reading, not to restate what the loader already computed — an
-authored `site-origin` on a BIMLayer is not wired up yet, a documented gap),
-and no separate `<om-layer type="PathLayer">` for the outline overlay (it's
-added automatically). Everything else about a picked BIM layer — `pick-features`
-(defaults ON, unlike a plain `Tile3DLayer`), `feature-filter-field`,
-`feature-styles`, `isolate-features`/`hide-features`/`ghost-features`,
-`feature-color-by`, `ghost-opacity` — works exactly as it does on
-`Tile3DLayer`, because BIMLayer forwards them to a real `Tile3DLayer` it
-builds internally:
-
-```html
-<om-layer id="clinic" type="BIMLayer" src="./clinic.ifc"
-            label="Medical-Dental Clinic"
-            feature-filter-field="ifcClass"
-            ghost-opacity="0.15"
-            pickable></om-layer>
-```
-
-Reach for `BIMLayer` when the model is fixed and known ahead of time
-(`examples/bim-sample.html`); reach for the `ifc-loader` widget (BIM
-workbench) when a visitor picks the file, or when several models need to
-federate into one coordinated scene. **Known gap:** the outline overlay does
-not yet follow isolate/hide/ghost the way the mesh does — `ifc-browser`'s
-visibility sync targets a separate `<layer-id>-edges` element by convention,
-and BIMLayer's outline never reaches the DOM as one.
-
-### In-browser IFC
-
-`loadIfc` parses an `.ifc` with web-ifc (WASM) and returns a 3D Tiles model held
-entirely in memory — nothing is uploaded and nothing is written to disk. Because
-the output IS a tileset, `pick-features`, `feature-styles`, `site-*` and the
-declarative isolate/hide/ghost attributes work on it unchanged.
-
-Most pages should not call it directly — `<om-widget type="ifc-loader">` owns
-the drop zone, the call, the layer elements, the camera and the blob-URL
-lifetime. `examples/bim-workbench.html` is the whole workflow — load, browse, coordinate — in five widget tags.
-
-```js
-import { loadIfc, configureIfc } from "@nika-js/onlymap";
-
-configureIfc({ wasmPath: "/vendor/web-ifc/" }); // optional: self-host instead of the CDN
-const arch = await loadIfc(archBytes, { onProgress: (m) => console.log(m) });
-// FEDERATION: pass the first model's origin so the two share a frame.
-const mep = await loadIfc(mepBytes, { origin: arch.origin });
-```
-
-Returns `tilesetUrl` and `edgesUrl` (blob URLs — assign to a `Tile3DLayer`'s
-`tileset` and a companion `PathLayer`'s `data`), `loadOptions` to pass straight
-through, `features` (the property table, for legends and category lists —
-`ifcClass`, `name`, `material`, `container`, `netVolume`, plus the hierarchy
-columns `spatialPath` / `typePath` / `systemPath` / `classificationPath`, each
-joined by `SPATIAL_SEPARATOR` (U+001F, which cannot occur in an IFC label) and
-emitted only when the file populates it),
-`lonLat`/`georeferenced`/`heading`/`scale`/`originSource`/`headingSource` for
-the `site-*` attributes, `stats`, `timings` (ms per phase), `bounds`, and
-`revoke()`.
-
-- **Call `revoke()` when you swap models.** Blob URLs are held by the document
-  and are not garbage collected.
-- **`origin` is federation.** Each model is otherwise centred on its own
-  bounding box, so two discipline models of one building drift apart by the
-  difference between those boxes — and a clash pass then reports nothing, which
-  is indistinguishable from a clean model. Pass the first model's `origin` into
-  every later `loadIfc` for the same building. `ifc-loader` does this for you
-  per map, and shares the PLACEMENT too (`site-origin`/`site-heading`/`site-scale`):
-  discipline files routinely declare IfcSite coordinates kilometres apart for the
-  same building, so the first model loaded decides where it goes and the rest
-  follow. `independent` opts out.
-- Every element also gets a bounding box in the property table
-  (`bboxMinE`/`bboxMinN`/`bboxMinU`/`bboxMaxE`/`bboxMaxN`/`bboxMaxU`, tile-local
-  metres), which is what `ifc-clash` reads.
-- web-ifc is MPL-2.0 and is NOT a package dependency — it is dynamic-imported
-  from unpkg on first use, so it never reaches the bundle and pages that never
-  open an IFC pay nothing. Measured: the IFC loader chunk is 23.7 KB raw /
-  8.5 KB gzipped and contains only the CDN URL; no web-ifc code and no `.wasm`
-  ship in `dist/`.
-- **For OFFLINE, air-gapped or strict-CSP deployments, self-host it.**
-  `npm run vendor:web-ifc public/vendor/web-ifc` copies the four files you need (1.37 MB gzipped — the multithreaded pair is included because `IfcAPI.Init()` picks it whenever the page is cross-origin isolated, so vendoring only the single-threaded pair breaks under COOP/COEP),
-  then either `wasm-path="/vendor/web-ifc/"` on the `ifc-loader` widget (no
-  script needed) or `configureIfc({wasmPath})` once before the first model
-  loads. web-ifc is only ONE of the network dependencies though: a georeferenced
-  model makes `ifc-loader` switch a basemap on, which reaches a tile server, so
-  offline pages also want `basemap="none"` on the loader and `telemetry="off"`
-  on the map. They stay STATIC ASSETS fetched by the same lazy import — the JS
-  bundle does not grow. Cost: `web-ifc-api.js` 5.31 MB raw / 0.49 MB gzipped
-  plus `web-ifc.wasm` 1.20 MB / 0.44 MB, so ~0.93 MB gzipped, served once and
-  cached. (`web-ifc-mt.wasm` is a further 1.22 MB and is only needed for the
-  multithreaded path.) Note a dynamic import cannot carry subresource
-  integrity, so the pinned version in the URL is the only thing fixing what
-  runs — another reason to serve it yourself.
-- Position is read from the file, preferring the trustworthy route.
-  `IfcMapConversion` — a surveyed placement into a named projected CRS — wins
-  over `IfcSite.RefLatitude`/`RefLongitude`, which is very often an authoring
-  default. `originSource` says which was used: `"map-conversion"`, `"ifc-site"`
-  or `"fallback"`.
-- **Anything other than `"map-conversion"` raises a structured `"warning"`**
-  through the same validation channel other `om-layer` errors use (visible in
-  the on-page panel with `validate` set, and on `om-validation-error`'s
-  `detail.warnings`) — for both `BIMLayer` and the `ifc-loader` widget, once
-  per layer. It does not flip `valid` to `false`; it flags that the position
-  may be off by tens of metres with no rotation correction applied. Override
-  with `site-origin`/`site-heading` once the real location is known, or
-  re-export the model with a proper `IfcMapConversion`.
-- Un-projecting a map conversion covers WGS84 UTM zones analytically, plus
-  every CRS in the bundled table `src/crs.ts` shares with the CityJSON
-  decoder (Dutch RD, Swiss LV95, ETRS89/UTM, Japan's plane systems, …).
-  Anything else is declined with a warning naming the bundled codes, rather
-  than approximated — a guessed projection lands the model in another
-  country while looking entirely plausible.
-- A model aligned to a NATIONAL GRID is not aligned to true north, so the
-  grid convergence is measured and folded into the heading. Dutch RD at
-  Rotterdam leans -0.735 degrees, and it grows with distance from the
-  central meridian.
-- The conversion is APPLIED, not just read. It anchors the model's ORIGIN,
-  while the tileset is recentred on its geometry, so the full affine
-  (offset, grid axis, scale) is applied to the anchor point. Skipping that
-  put one Revit export 32.7 m out, its survey point being that far from the
-  building.
-- `IfcMapConversion` OUTRANKS `IfcSite` for position. Files carrying both
-  routinely disagree: one Dutch model's two statements are 108 m apart, and
-  the projected pair is the surveyed one. Note the eastings/northings are in the target CRS's own
-  unit, which is frequently MILLIMETRES.
-- `headingSource` distinguishes `"map-conversion"` / `"true-north"` (read from
-  the file) from `"assumed"` (the file was silent and project north was taken as
-  true north). Report the assumption; do not let it read as a measurement.
-- A file can be perfectly georeferenced and still land somewhere useless: all
-  three prepared samples in this repo declare placeholder positions (the clinic
-  on Revit's Boston default, which reverse-geocodes to a 1630 graveyard; the
-  duplex on a Chicago city-centre point; the bridge, which DOES carry a real
-  `IfcMapConversion`, into the mid-Pacific at 179.08E 8.46S). Reading the file
-  correctly and the model being in a sensible place are separate problems, and
-  `site-origin` is the fix for the second.
-- `<om-map>` reads its camera attributes ONCE at init, so `setAttribute("center", …)`
-  after mount moves nothing and leaves the model outside the frustum. Use
-  `map.flyTo(lonLat, zoom)`.

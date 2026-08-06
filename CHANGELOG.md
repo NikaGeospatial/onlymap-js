@@ -8,22 +8,7 @@ Note: npm collapsed a few closely-spaced releases — the GPX/FlatGeobuf (0.5.4)
 and GeoParquet (0.5.5) work shipped to npm together as **0.5.6**, so npm's
 version list jumps 0.5.3 → 0.5.6. Each logical version is listed here regardless.
 
-## 0.6.1 — 2026-08-06
-
-### Added
-- **`ylorrd` joins the curated raster colormaps**: the ColorBrewer yellow→orange→red sequential ramp now renders a proper gradient in the legend (any sprite colormap always rendered on the map; only curated names get legend ramps) and is listed in the docs as the gentler alternative to `turbo`/`jet` for heat-like fields.
-- **`selection-type` on `<om-overlay>`** (React: `selectionType` on `<OmOverlay>`): scope a selection-anchored overlay to one pick type — `"click"` or `"hover"`. Fixes the reported ghost-popup bug: a popup wired to open on click re-anchored *and re-interpolated its template* on every hover pick (deck fires hover on all pointer movement), so it followed the pointer onto other features and rendered their objects into the wrong template with blank fields — with no author-side workaround. With `selection-type="click"`, hover picks are inert; a click on empty space still dismisses (empty picks now carry the pointer-event type internally), while hovering empty space no longer does. Absent attribute keeps the old behavior. Validation warns on a typoed value and on `selection-type` without `anchor-from="selection"`; the test harness's `clearSelection()` gains a kind (`"hover"` default, `"click"` for empty-space clicks).
-- **BIM / IFC support**: `BIMLayer` loads `.ifc` files entirely in the browser (web-ifc WASM, CDN-fetched + integrity-pinned on first use, never bundled) and renders them as 3D Tiles; per-element **feature picking** on `Tile3DLayer` (`pick-features`, EXT_structural_metadata property tables, texture-backed IDs included); declarative **isolate / hide / ghost** (`feature-filter-field` + `isolate-features`/`hide-features`/`ghost-features`) and **style-by-property** (`feature-color-by`/`feature-color-scale`/`feature-palette`); **multi-model federation** (`ifc-loader federate`) and an AABB **clash-detection overlay**; widgets `ifc-loader`, `ifc-browser`, `feature-inspector` (alias `ifc-inspector`), `ifc-clash`; IFC georeferencing via `IfcMapConversion` (UTM + non-UTM projected CRS, grid-convergence heading correction) with a structured warning when a model's placement can't be trusted.
-
-### Changed
-- **Explicit-terrain contract for georeferenced BIM**: the auto-terrain reaction — the library writing `terrain="mapterhorn"` onto the map at load time — was removed as a violation of the what-you-write-is-what-you-see contract. In its place, a model that actually resolves real-world elevation (`IfcMapConversion` + `OrthogonalHeight`) loading on a map with no `terrain` attribute raises a structured **error** through the validation channel (report-only, never a write; any authored value satisfies it, including an explicit `terrain="off"`). Checked at load time against the file's resolved facts, so flat models with no elevation data don't false-positive.
-- Same contract for **basemap**: the `ifc-loader` widget no longer switches the map's `basemap` on/off as a side effect of a drop — `<om-map>` scene attributes are author-owned. A georeferenced model landing on a map with no basemap and no terrain raises a structured "no spatial context" warning instead.
-- Widgets gained a `destroy` teardown hook; removing an `ifc-loader` (or its map) now releases all loaded-model resources.
-
-### Fixed
-- **`ZarrLayer` ignored `select` changes**: writing the `select` attribute (the documented animation path) re-rendered stale cached chunks instead of re-slicing — deck's `TileLayer` only refetches when `updateTriggers.getTileData` changes, and that trigger was never wired. Scrubbing or animating any non-spatial dimension now repaints; the store stays open and cached across frames. Also guards a first-paint race on the same path: the frame drawn right after a re-slice could rasterize the reprojection mesh incompletely and stick (nothing scheduled another frame on an idle map) — one extra redraw is now poked in after the tiles load.
-
-## 0.6.0 — 2026-08-06
+## 0.6.0 — unreleased
 
 ### Changed
 - **Licensing gate reworked: free-tier caps apply only on hosted http(s) pages.** In a dev context — localhost/loopback, `file://`, any non-web scheme, or headless — every cap (5 layers / 25k rows / 20 MB) lifts entirely. The attribution badge stays in all contexts. The exemption is a technical convenience, not a license grant: commercial deployment (hosted or packaged) still requires a commercial key — enforcement for shipped apps is legal, not technical (LICENSE.md §3).

@@ -11,7 +11,7 @@ This guide is the complete workflow. It assumes a page like this (a manifest in 
               get-position="[$lon, $lat]"
               get-fill-color="scale($magnitude, sequential, ['#fee8c8','#b30000'], domain=[0,7])"
               filter-field="magnitude" filter-range="[0, 10]" pickable></om-layer>
-  <om-overlay id="detail" anchor-from="selection" selection-type="click" visible="false">
+  <om-overlay id="detail" anchor-from="selection" visible="false">
     <div><b>{{place}}</b> — M {{magnitude}}</div>
   </om-overlay>
   <om-behavior on="click" layer="quakes" action="show-overlay" target="detail"></om-behavior>
@@ -111,7 +111,7 @@ it("panning away empties viewport-scoped widgets", async () => {
 });
 ```
 
-The harness API: `pick` (synthetic picks fed through the exact code path real deck.gl picks take — columnar layers pick object-less by index, exactly like live), `clearSelection` (an empty pick — default kind `"hover"`, a hover-off that runs the tooltip auto-hide path; pass `"click"` for a click on empty space, the gesture that dismisses a `selection-type="click"` popup), `mapPoint` (a click/hover map coordinate through the real onMapPoint path — fires `om-map-point`, drives the draw controller), `emit` (any action, same payload contract as `ctx.emit`/`data-emit`), `setView`, `layers()` (the live IR), `flush`, `unmount`. Every verb settles the library's internal batching before resolving — **you never write a sleep**.
+The harness API: `pick` (synthetic picks fed through the exact code path real deck.gl picks take — columnar layers pick object-less by index, exactly like live), `clearSelection` (hover-off; runs the tooltip auto-hide path), `mapPoint` (a click/hover map coordinate through the real onMapPoint path — fires `om-map-point`, drives the draw controller), `emit` (any action, same payload contract as `ctx.emit`/`data-emit`), `setView`, `layers()` (the live IR), `flush`, `unmount`. Every verb settles the library's internal batching before resolving — **you never write a sleep**.
 
 **Remote data:** mock `fetch` and the harness waits for it via the readiness signal:
 
