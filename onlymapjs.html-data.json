@@ -127,6 +127,9 @@
             },
             {
               "name": "maptiler-terrain"
+            },
+            {
+              "name": "mapterhorn"
             }
           ]
         },
@@ -238,6 +241,9 @@
             },
             {
               "name": "ArcLayer"
+            },
+            {
+              "name": "BIMLayer"
             },
             {
               "name": "BitmapLayer"
@@ -441,6 +447,18 @@
         {
           "name": "source",
           "description": "registerSource decoder plugin name for stream messages."
+        },
+        {
+          "name": "site-origin",
+          "description": "Georeferencing (Tile3DLayer, PathLayer): where the model sits, \"[lng, lat]\" or \"[lng, lat, elevation]\". Overrides a tileset's baked position; required to place a PathLayer of local metres."
+        },
+        {
+          "name": "site-heading",
+          "description": "Georeferencing: bearing in degrees clockwise from true north. On its own, rotates the model where it stands."
+        },
+        {
+          "name": "site-scale",
+          "description": "Georeferencing: uniform scale multiplier (default 1)."
         },
         {
           "name": "get-position",
@@ -889,6 +907,54 @@
         {
           "name": "point-size",
           "description": "deck.gl pointSize."
+        },
+        {
+          "name": "pick-features",
+          "description": "deck.gl pickFeatures."
+        },
+        {
+          "name": "feature-id-property",
+          "description": "deck.gl featureIdProperty."
+        },
+        {
+          "name": "feature-styles",
+          "description": "deck.gl featureStyles."
+        },
+        {
+          "name": "feature-color-by",
+          "description": "deck.gl featureColorBy."
+        },
+        {
+          "name": "feature-color-scale",
+          "description": "deck.gl featureColorScale."
+        },
+        {
+          "name": "feature-palette",
+          "description": "deck.gl featurePalette."
+        },
+        {
+          "name": "feature-color-strength",
+          "description": "deck.gl featureColorStrength."
+        },
+        {
+          "name": "feature-filter-field",
+          "description": "deck.gl featureFilterField."
+        },
+        {
+          "name": "isolate-features",
+          "description": "deck.gl isolateFeatures."
+        },
+        {
+          "name": "hide-features",
+          "description": "deck.gl hideFeatures."
+        },
+        {
+          "name": "ghost-features",
+          "description": "deck.gl ghostFeatures."
+        },
+        {
+          "name": "ghost-opacity",
+          "description": "deck.gl ghostOpacity."
         },
         {
           "name": "get-point-color",
@@ -1525,6 +1591,18 @@
         {
           "name": "layer",
           "description": "Scope selection-anchored overlays to one layer's picks."
+        },
+        {
+          "name": "selection-type",
+          "description": "Scope selection-anchored overlays to one pick type — \"click\" keeps a click-opened popup from following hover picks; \"hover\" is the mirror. Absent: every pick applies.",
+          "values": [
+            {
+              "name": "click"
+            },
+            {
+              "name": "hover"
+            }
+          ]
         }
       ],
       "references": [
@@ -1741,6 +1819,24 @@
             },
             {
               "name": "widgets-toggle"
+            },
+            {
+              "name": "ifc-browser"
+            },
+            {
+              "name": "ifc-legend"
+            },
+            {
+              "name": "feature-inspector"
+            },
+            {
+              "name": "ifc-inspector"
+            },
+            {
+              "name": "ifc-loader"
+            },
+            {
+              "name": "ifc-clash"
             }
           ]
         },
@@ -1929,6 +2025,62 @@
         {
           "name": "options",
           "description": "Basemap-switcher: space-separated preset names to offer (default: every keyless registered preset)."
+        },
+        {
+          "name": "fields",
+          "description": "IFC widgets: space-separated property-table fields — the group-by choices offered by ifc-browser, or the rows shown by feature-inspector. Hierarchy columns render as expandable TREES and are offered automatically when the model has them: \"spatialPath\" (site → storey), \"typePath\", \"systemPath\", \"classificationPath\"."
+        },
+        {
+          "name": "scale-fields",
+          "description": "ifc-browser: space-separated NUMERIC fields offered as graduated colour ramps alongside the categorical ones."
+        },
+        {
+          "name": "rows",
+          "description": "ifc-browser: visible rows before the value list scrolls (default 6)."
+        },
+        {
+          "name": "no-color",
+          "description": "ifc-browser: hide the colour-mode select and leave the model in its own IFC surface colours."
+        },
+        {
+          "name": "show-non-physical",
+          "description": "ifc-browser: include non-physical classes (IfcSpace, IfcOpeningElement, …) in the value list, which are hidden by default."
+        },
+        {
+          "name": "placeholder",
+          "description": "feature-inspector: text shown when nothing is selected."
+        },
+        {
+          "name": "no-outlines",
+          "description": "ifc-loader: skip the companion outline PathLayer for the models it loads."
+        },
+        {
+          "name": "layers",
+          "description": "ifc-clash: the two co-registered model layer ids to compare, e.g. \"arch mep\"."
+        },
+        {
+          "name": "tolerance",
+          "description": "ifc-clash: metres of real interpenetration required before a pair counts (default 0). Raise it to ignore modelling noise."
+        },
+        {
+          "name": "wasm-path",
+          "description": "ifc-loader: serve web-ifc from your own origin instead of unpkg — required for offline, air-gapped or strict-CSP deployments. Vendor the files with `npm run vendor:web-ifc <dir>` first."
+        },
+        {
+          "name": "federate",
+          "description": "ifc-loader: accept SEVERAL models into one co-registered scene (one drop zone, one layer per model, each with its own visibility toggle) instead of replacing the previous one."
+        },
+        {
+          "name": "independent",
+          "description": "ifc-loader: do NOT share the map’s model-space origin — for pages loading unrelated models rather than disciplines of one building."
+        },
+        {
+          "name": "outline-color",
+          "description": "ifc-loader: colour for the outline overlay it builds, e.g. \"[38, 46, 58, 200]\"."
+        },
+        {
+          "name": "ghost-opacity",
+          "description": "ifc-loader: ghost fade for the mesh layer it builds (default 0.15)."
         },
         {
           "name": "title",
