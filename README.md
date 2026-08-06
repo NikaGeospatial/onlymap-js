@@ -9,7 +9,7 @@
 [![license](https://img.shields.io/badge/license-free%20for%20non--commercial-2f8fa6)](LICENSE.md)
 [![docs](https://img.shields.io/badge/docs-nikaplanet-003646)](https://docs.nikaplanet.com/onlymap/overview)
 
-**Interactive WebGL maps from plain HTML.** OnlyMapJS is a declarative mapping library built on [deck.gl](https://deck.gl), written in TypeScript, with first-class HTML and React APIs. Write a manifest — layers, widgets, popups, behaviors as custom elements — and it drives deck.gl underneath: rendering, GeoJSON/CSV/Arrow data loading, live updates, GPU picking, MapLibre basemaps, and UI, with no build step and no imperative glue code. If you've wanted a declarative deck.gl wrapper — for a geospatial dashboard, a React mapping component, or a single-file HTML map — that's the entire premise.
+OnlyMapJS is a map rendering and visualization library for web, desktop, and mobile apps. With support for popular frameworks like React, it integrates seamlessly into your existing components via a robust two-way interface for custom map behavior; overlays, charts, and finely controlled story-map animations are all first-class supported alongside 30+ data layer types. Built-in GPU acceleration also means it scales very well for both 2D and 3D use-cases. It is both human and AI agent-readable by design, and troubleshooting is effortless with a compile-time validator and runtime error debugging tools.
 
 ```html
 <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css">
@@ -36,7 +36,7 @@ That's a complete app: a no-token MapLibre basemap, data-driven colors and sizes
 
 It's also designed to be written **by AI agents**: HTML is a reliable generation target, [`llms.txt`](llms.txt) teaches the format, and `OmMap.validate()` returns structured errors **and warnings** with actionable fixes — a real feedback loop instead of a blank canvas (heed both: an "unknown attribute" warning means a prop is being silently dropped).
 
-> ⚠️ **Status: v0.2.** Proprietary — free for non-commercial use with attribution; commercial licensing terms are in [LICENSE.md](LICENSE.md). APIs may still move before 1.0.
+> ⚠️ **Status: beta.** Proprietary — free for non-commercial use with attribution; commercial licensing terms are in [LICENSE.md](LICENSE.md). APIs may still move before 1.0.
 
 ## Why not deck.gl directly?
 
