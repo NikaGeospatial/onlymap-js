@@ -822,7 +822,7 @@ declarative isolate/hide/ghost attributes work on it unchanged.
 
 Most pages should not call it directly — `<om-widget type="ifc-loader">` owns
 the drop zone, the call, the layer elements, the camera and the blob-URL
-lifetime. `examples/sandboxes/bim-workbench.html` is the whole workflow — load, browse, coordinate — in five widget tags.
+lifetime. `examples/features/terrain-3d/inspect-a-bim-model.html` is the whole workflow — a model on load, a drop zone for more, browse and coordinate — in five widget tags.
 
 ```js
 import { loadIfc, configureIfc } from "@nika-js/onlymap";

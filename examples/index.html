@@ -3,48 +3,29 @@
   Runnable examples — unlike ../../examples/ (aspirational spec-consistency
   docs pointing at a CDN package and fictional data), these import straight
   from the live dev source and load the real datasets under dev/data, so you
-  can actually open and click through them. Same shared nav bar on every
-  page for quick switching; this page is just the landing/overview.
+  can actually open and click through them. The dev server injects a sidebar of
+  every page on top of this one; this page is just the landing/overview.
 -->
 <html>
 <head>
   <meta charset="utf-8" />
   <title>OnlyMapJS — Examples</title>
   <style>
-    main { padding: 84px 24px 24px; max-width: 640px; }
-    .card { display: block; padding: 16px 18px; margin-bottom: 12px; border-radius: 10px;
-            border: 1px solid #ddd; text-decoration: none; color: inherit; }
-    .card:hover { border-color: #3355ee; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
-    .card h3 { margin: 0 0 4px; }
-    .card p { margin: 0; color: #555; font-size: 14px; }
+    /* Self-contained: this page also ships in the public mirror, where the dev
+       server's injected chrome (examples/nav.css) does not exist. */
+    body { margin: 0; background: #170d19; color: #f7ece6; font-family: system-ui, sans-serif; }
+    main { padding: 28px 24px 48px; max-width: 720px; }
+    h1 { font-size: 30px; letter-spacing: -.028em; margin: 0 0 8px; }
+    main > p { color: #a5919b; max-width: 62ch; }
+    .card { display: block; padding: 14px 16px; margin-bottom: 10px; border-radius: 10px;
+            border: 1px solid #2f2036; background: #1e1223; text-decoration: none; color: inherit; }
+    .card:hover { border-color: #eba941; }
+    .card h3 { margin: 0 0 4px; font-size: 16.5px; }
+    .card p { margin: 0; color: #a5919b; font-size: 14px; }
+    code { color: #eba941; }
   </style>
 </head>
 <body>
-
-  <header class="nav">
-    <strong>OnlyMapJS examples</strong>
-    <a href="index.html" class="current">Overview</a>
-    <a href="./features/widgets/add-widgets.html">Widgets</a>
-    <a href="./features/widgets/use-responsive-widget-manager.html">Widget manager</a>
-    <a href="./features/interaction/wire-up-behaviors-and-overlays.html">Behaviors &amp; overlays</a>
-    <a href="./features/getting-started/choose-a-basemap.html">Basemap</a>
-    <a href="./features/sources/load-columnar-data.html">Columnar data</a>
-    <a href="./features/interaction/time-series.html">Time series</a>
-    <a href="./features/rasters/display-a-geotiff.html">GeoTIFF / COG</a>
-    <a href="./features/widgets/draw-manually.html">Draw</a>
-    <a href="./features/widgets/measure-distance-and-area.html">Measure</a>
-    <a href="./features/terrain-3d/place-a-3d-model.html">3D models</a>
-    <a href="./features/terrain-3d/light-the-scene.html">Scene lighting</a>
-    <a href="./features/terrain-3d/add-terrain.html">Terrain</a>
-    <a href="./features/terrain-3d/google-3d-tiles.html">Google 3D Tiles</a>
-    <a href="./features/stories/google-3d-flyby.html">3D Flyby</a>
-    <a href="./features/terrain-3d/load-a-cityjson-model.html">CityJSON</a>
-    <a href="./features/terrain-3d/inspect-a-bim-model.html">BIM sample</a>
-    <a href="./maps/transport-logistics/bay-area-shipping.html">Live AIS</a>
-    <a href="./maps/transport-logistics/san-francisco-last-mile.html">Fleet (polling)</a>
-    <a href="./features/stories/build-a-map-story.html">Map story</a>
-    <a href="https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/react.md">React adapter</a>
-  </header>
 
   <main>
     <h1>OnlyMapJS examples</h1>

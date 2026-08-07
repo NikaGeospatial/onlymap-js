@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!--
+  This page introduces an integration rather than a map. Use it when your
+  data already lives in QGIS and you want to share the result as a web map.
+
+  The workflow: install the OnlyMap JS QGIS Plugin, export a QGIS project,
+  then open the generated OnlyMapJS page and publish it wherever you host
+  static files. The links below are the two places to start.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — QGIS2WebMap Plugin</title>
+  <style>
+    :root {
+      --integration-bg: var(--bg, #110a13);
+      --integration-panel: var(--card, #1e1223);
+      --integration-panel-soft: var(--hover, #271733);
+      --integration-text: var(--fg, #f7ece6);
+      --integration-muted: var(--muted, #c2aeb9);
+      --integration-line: var(--line, #493451);
+      --integration-accent: var(--accent, #eba941);
+      --integration-lime: var(--ok, #c5ff5a);
+    }
+    * { box-sizing: border-box; }
+    .integration-content { width: 100%; }
+    .workflow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 34px 0; }
+    .step, .details { border: 1px solid var(--integration-line); border-radius: 14px; background: var(--integration-panel); }
+    .step { min-height: 170px; padding: 20px; }
+    .number { color: var(--integration-accent); font: 18px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .integration-content h2 { margin: 9px 0 7px; font-size: 19px; }
+    .step p, .details p { margin: 0; color: var(--integration-muted); }
+    .details { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 24px; }
+    .details h2 { margin-top: 0; }
+    ul { margin: 10px 0 0; padding-left: 20px; color: var(--integration-muted); }
+    li + li { margin-top: 5px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+    a.button { display: inline-flex; align-items: center; gap: 8px; padding: 11px 15px; border: 1px solid var(--integration-accent); border-radius: 8px; color: var(--integration-bg); background: var(--integration-accent); font-weight: 700; text-decoration: none; }
+    a.button.secondary { border-color: var(--integration-line); color: var(--integration-text); background: var(--integration-panel-soft); }
+    a.button:hover { filter: brightness(1.1); }
+    @media (max-width: 650px) { .workflow, .details { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="integration-content">
+    <h1>From QGIS project to web map.</h1>
+    <p class="lede">QGIS2WebMap turns a finished QGIS project into one interactive HTML file. Send someone your map — not your QGIS project — with no account, web server or coding required.</p>
+
+    <div class="workflow" aria-label="Export workflow">
+      <section class="step">
+        <div class="number">01</div>
+        <h2>Install</h2>
+        <p>Install QGIS2WebMap from the official QGIS plugins directory, then open it from QGIS.</p>
+      </section>
+      <section class="step">
+        <div class="number">02</div>
+        <h2>Export</h2>
+        <p>Export your layers, styling and map settings to a single OnlyMapJS HTML file with panning, popups and layer switching.</p>
+      </section>
+      <section class="step">
+        <div class="number">03</div>
+        <h2>Publish</h2>
+        <p>Double-click the file to open it locally, or deploy it to GitHub Pages and any other static host.</p>
+      </section>
+    </div>
+
+    <section class="details">
+      <div>
+        <h2>Why use this workflow?</h2>
+        <p>QGIS remains the authoring desk. OnlyMapJS provides the lightweight, shareable browser output — online or offline.</p>
+      </div>
+      <div>
+        <h2>Good fit for</h2>
+        <ul>
+          <li>Cartographers who already work in QGIS</li>
+          <li>Static sites and hosted project pages</li>
+          <li>Maps that need to travel without a GIS desktop</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="actions">
+      <a class="button" href="https://plugins.qgis.org/plugins/nika_onlymap_exporter/#plugin-about" target="_blank" rel="noreferrer">Install from QGIS ↗</a>
+      <a class="button secondary" href="https://nikageospatial.github.io/qgis2webmap/" target="_blank" rel="noreferrer">Read the plugin guide ↗</a>
+    </div>
+    <p style="margin:18px 0 0;color:var(--integration-muted);font-size:13px">QGIS is a trademark of the QGIS project. This integration is independent and is not endorsed by or affiliated with QGIS.</p>
+  </div>
+</body>
+</html>
