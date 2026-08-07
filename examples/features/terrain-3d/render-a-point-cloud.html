@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<!--
+  PointCloudLayer draws rows that carry a height: get-position takes three
+  numbers instead of two, and the third one lifts the point off the ground.
+  Reach for it whenever the z matters — a lidar scan, a bathymetric survey, a
+  sampled terrain model, anything measured in three dimensions.
+
+  Whatever the source format, convert it upstream to plain rows of x, y and z
+  and load it like any other file. LAS and LAZ turn into CSV, JSON or Arrow
+  with the usual tools; the manifest never sees the difference.
+
+  The map: 24,336 elevation samples over the Matterhorn, 33 m apart, coloured
+  by height. Drag with the right mouse button, or hold Shift and drag, to swing
+  the camera around the summit.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Render a point cloud</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.3/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.3/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #101318;
+      --om-widget-fg: #f2f5f8;
+      --om-widget-muted: #8a93a0;
+      --om-widget-border: #242a32;
+      --om-widget-hover-bg: #1a1f26;
+    }
+  </style>
+</head>
+<body>
+  <om-map center="[7.675, 46]" zoom="12.1" pitch="66" bearing="18" basemap="dark-matter">
+
+    <!-- The third number in get-position is height in METRES above sea level,
+         the same unit deck.gl uses for every elevation. Give the map some
+         pitch or a cloud with real relief still reads as a flat scatter.
+
+         point-size with size-units="pixels" keeps each point the same size on
+         screen at every zoom. Leave the units off and deck.gl sizes points in
+         metres instead, so they swell into blobs as you zoom in.
+
+         get-color is an ordinary accessor, so the height that placed a point
+         can colour it too — a sequential ramp over the elevation range turns
+         the cloud into its own hypsometric map. A lidar cloud that already
+         carries RGB reads it straight from the file with `[$r, $g, $b]`.
+
+         A legend builds its ramp from get-fill-color, so a layer that colours
+         through get-color gets none. State the range in a panel of your own,
+         as below. -->
+    <om-layer id="terrain-cloud" type="PointCloudLayer"
+              data="../../data/matterhorn-points.csv"
+              label="Elevation (m)"
+              get-position="[$lon, $lat, $elevation]"
+              get-color="scale($elevation, sequential,
+                               ['#0b2545', '#1d6a96', '#4bb3a5', '#c9e265', '#fff6c2'],
+                               domain=[2000, 4400])"
+              point-size="2.6"
+              size-units="pixels"
+              opacity="0.95"
+              pickable></om-layer>
+
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: rgba(16,19,24,.9); color: #e5eaf0; padding: 10px 14px;
+                 border-radius: 8px; font-size: 13px; max-width: 260px; line-height: 1.45; }
+        .panel b { color: #c9e265; }
+      </style>
+      <div class="panel">
+        <b>The Matterhorn, as points.</b> 2,003 m at the valley floor to
+        4,353 m on the ridge. Hover a point for its height.
+      </div>
+    </om-widget>
+
+    <om-behavior on="hover" layer="terrain-cloud" action="show-tooltip" template="#point-tip"></om-behavior>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <template id="point-tip">
+    <div style="padding:6px 10px; border-radius:6px; background:#101318; color:#f2f5f8;
+                border:1px solid #242a32; font:12px system-ui, sans-serif;">
+      {{elevation}} m
+    </div>
+  </template>
+
+</body>
+</html>

@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Light the scene — OnlyMapJS</title>
+<meta name="description" content="Light extruded buildings with lighting presets, per-value lighting-* overrides, and a sun placed from a date with lighting-sun-date.">
+<link rel="canonical" href="https://onlymap.nikaplanet.com/light-the-scene/">
+<link rel="icon" href="../brand/favicon.png" sizes="64x64">
+<link rel="apple-touch-icon" href="../brand/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OnlyMapJS">
+<meta property="og:title" content="Light the scene — OnlyMapJS">
+<meta property="og:description" content="Light extruded buildings with lighting presets, per-value lighting-* overrides, and a sun placed from a date with lighting-sun-date.">
+<meta property="og:url" content="https://onlymap.nikaplanet.com/light-the-scene/">
+<meta property="og:image" content="https://onlymap.nikaplanet.com/thumbs/light-the-scene.webp">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Light the scene — OnlyMapJS">
+<meta name="twitter:description" content="Light extruded buildings with lighting presets, per-value lighting-* overrides, and a sun placed from a date with lighting-sun-date.">
+<meta name="twitter:image" content="https://onlymap.nikaplanet.com/thumbs/light-the-scene.webp">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"OnlyMapJS","item":"https://onlymap.nikaplanet.com/"},{"@type":"ListItem","position":2,"name":"Light the scene"}]}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>:root{color-scheme:light;--bg:#fbf9fc;--fg:#170d19;--muted:#63525f;--line:#e7e0ea;--card:#fff;--accent:#8f5a05;--brand:#eba941;--ok:#4f7a0c;--code:#f4f1f6;--hover:#f0ecf3;--scrim:rgba(23,13,25,.42);--wash:radial-gradient(88% 58% at 50% -12%,rgba(235,169,65,.16),rgba(235,169,65,0) 70%);--syn-comment:#6b5f69;--syn-tag:#0369a1;--syn-attr:#6d28d9;--syn-str:#15803d;--syn-lit:#9c3d1f;--nika:oklch(78% 0.14 75)}
+@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#170d19;--fg:#f7ece6;--muted:#a5919b;--line:#2f2036;--card:#1e1223;--accent:#eba941;--brand:#eba941;--ok:#c5ff5a;--code:#110a13;--hover:#271733;--scrim:rgba(0,0,0,.6);--wash:radial-gradient(88% 58% at 50% -12%,rgba(235,169,65,.11),rgba(235,169,65,0) 70%);--syn-comment:#8a7d92;--syn-tag:#7dd3fc;--syn-attr:#c4b5fd;--syn-str:#86efac;--syn-lit:#fbbf24;--nika:oklch(88% 0.20 130)}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#170d19;--fg:#f7ece6;--muted:#a5919b;--line:#2f2036;--card:#1e1223;--accent:#eba941;--brand:#eba941;--ok:#c5ff5a;--code:#110a13;--hover:#271733;--scrim:rgba(0,0,0,.6);--wash:radial-gradient(88% 58% at 50% -12%,rgba(235,169,65,.11),rgba(235,169,65,0) 70%);--syn-comment:#8a7d92;--syn-tag:#7dd3fc;--syn-attr:#c4b5fd;--syn-str:#86efac;--syn-lit:#fbbf24;--nika:oklch(88% 0.20 130)}
+:root[data-theme="light"]{color-scheme:light;--bg:#fbf9fc;--fg:#170d19;--muted:#63525f;--line:#e7e0ea;--card:#fff;--accent:#8f5a05;--brand:#eba941;--ok:#4f7a0c;--code:#f4f1f6;--hover:#f0ecf3;--scrim:rgba(23,13,25,.42);--wash:radial-gradient(88% 58% at 50% -12%,rgba(235,169,65,.16),rgba(235,169,65,0) 70%);--syn-comment:#6b5f69;--syn-tag:#0369a1;--syn-attr:#6d28d9;--syn-str:#15803d;--syn-lit:#9c3d1f;--nika:oklch(78% 0.14 75)}
+*{box-sizing:border-box}
+/* Both filters (gallery cards, sidebar items) work by setting .hidden. The UA
+   rule for [hidden] lives at UA origin, so ANY author display rule outranks
+   it — .card{display:block} alone silently defeated the gallery search. */
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:16.5px/1.62 "Space Grotesk",ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--h:53px}
+/* Fixed, not absolute — no repaint on scroll. */
+body::before{content:"";position:fixed;inset:0 0 auto;height:460px;z-index:-1;pointer-events:none;background:var(--wash)}
+a{color:var(--accent)}
+.skip{position:absolute;left:-999px;top:0;z-index:99;background:var(--card);border:1px solid var(--accent);border-radius:0 0 8px 0;padding:9px 15px}
+.skip:focus{left:0}
+header{position:sticky;top:0;z-index:30;height:var(--h);border-bottom:1px solid var(--line);background:var(--bg);padding:0 18px;display:flex;gap:14px;align-items:center}
+/* The wordmark is wrapped in <b> on purpose: bare text nodes become anonymous
+   flex items, so the gap would space out "Only | Map | JS". */
+header .brand{display:flex;align-items:center;gap:9px;flex:0 0 auto;font-weight:700;letter-spacing:-.02em;white-space:nowrap;font-size:17.5px;color:inherit;text-decoration:none}
+header .brand b{font-weight:inherit}
+header .brand span{color:var(--accent)}
+/* The source art has NO alpha — its rounded corners are filled black. Clipping
+   at the artwork's own ~22% radius is what hides them. */
+header .brand img{border-radius:22%;flex:0 0 auto}
+/* Live badge — shields re-queries GitHub, so it is not baked at build time.
+   Reserved width/height so it cannot shift the header as it loads. */
+header .ver{display:inline-flex;flex:0 0 auto;line-height:0}
+header .ver img{display:block;height:20px;width:auto}
+header a:not(.brand){font-size:15px;text-decoration:none}
+header a:not(.brand):hover{text-decoration:underline}
+
+/* --- shell: sticky sidebar + fluid main --- */
+.layout{display:flex;align-items:flex-start}
+#sidebar{position:sticky;top:var(--h);flex:0 0 292px;width:292px;height:calc(100vh - var(--h));overflow-y:auto;overscroll-behavior:contain;border-right:1px solid var(--line);background:var(--bg);padding:13px 11px 48px}
+main{flex:1;min-width:0;max-width:1180px;margin:0 auto;padding:26px 30px 90px}
+
+/* --- sidebar nav --- */
+/* Tier switch. Both segments start pressed — the default is the WHOLE tree,
+   and the control narrows it rather than choosing between two halves. */
+.tier{display:flex;margin:7px 1px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--card)}
+.tier button{flex:1;border:0;border-radius:0;background:none;padding:6px 8px;font-size:13.5px;color:var(--muted)}
+.tier button+button{border-left:1px solid var(--line)}
+.tier button:hover{background:var(--hover);color:var(--fg)}
+.tier button[aria-pressed=true]{background:var(--hover);color:var(--accent);font-weight:600}
+#navq{width:100%;max-width:none;margin:0 0 10px;font-size:14.5px;padding:7px 10px}
+.nav-group{margin:0 0 4px}
+.nav-sep{border:0;border-top:1px solid var(--line);margin:12px 8px 0}
+/* Tier heading, and a link to that tier's section on the gallery. Same rule as
+   the category headings: styled as a heading, since the site-wide
+   a{color:accent} would otherwise light up every label in the tree. */
+.nav-phase{display:block;font:12px/1 "JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700;margin:13px 8px 7px;padding:3px 0;text-decoration:none}
+a.nav-phase:hover{color:var(--accent)}
+/* The tree is always fully expanded — every example is one scroll away, never
+   one click away. Category headings stick to the top of the scroll box so the
+   reader keeps their place in a ~60-row list. */
+#sidebar .nav-cat{margin:0}
+/* The heading is a link to the gallery's section anchor, so a category is
+   reachable as a wall of cards from anywhere. Styled as a heading, not as a
+   link — the site-wide a{color:accent} rule would otherwise make twelve
+   headings compete with the current-page marker. */
+#sidebar .nav-cat-h{position:sticky;top:-1px;z-index:1;display:block;background:var(--bg);margin:0;padding:5px 8px;border-radius:6px;font-size:14.5px;font-weight:600;color:var(--fg);text-decoration:none}
+#sidebar a.nav-cat-h:hover{background:var(--hover);color:var(--accent)}
+#sidebar ul{list-style:none;margin:1px 0 5px;padding:0 0 0 13px;border-left:1px solid var(--line)}
+#sidebar a.item,#sidebar a.top{display:block;padding:4.5px 9px;border-radius:6px;font-size:14.5px;line-height:1.35;color:var(--muted);text-decoration:none}
+#sidebar a.top{font-weight:600;color:var(--fg)}
+#sidebar a.item:hover,#sidebar a.top:hover{background:var(--hover);color:var(--fg)}
+#sidebar a[aria-current=page]{background:var(--hover);color:var(--accent);font-weight:600;box-shadow:inset 2.5px 0 0 var(--brand)}
+#sidebar .navempty{color:var(--muted);font-size:14px;padding:10px 9px}
+
+/* --- theme switch (3-state: light / dark / follow the OS) --- */
+/* flex-shrink:0 is load-bearing — the header is a flex row, and without it a
+   narrow viewport squeezes this box while overflow:hidden silently clips the
+   third button off the end. */
+.theme{display:inline-flex;flex:0 0 auto;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--card)}
+.theme button{flex:0 0 auto;border:0;border-radius:0;background:none;padding:6px 9px;color:var(--muted);line-height:0;display:inline-flex}
+.theme button+button{border-left:1px solid var(--line)}
+.theme button:hover{background:var(--hover);color:var(--fg)}
+.theme button[aria-pressed=true]{background:var(--hover);color:var(--accent)}
+/* A handle on the sidebar's own edge rather than a control in the header —
+   it sits where the thing it moves is. Fixed, so it holds its place while the
+   tree scrolls, and it rides the edge from 292px to the margin as the column
+   collapses. */
+#navtoggle{position:fixed;top:calc(var(--h) + 14px);left:calc(292px - 7px);z-index:28;
+  display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;
+  border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--muted);
+  box-shadow:0 2px 10px var(--scrim);transition:left .18s,color .15s}
+#navtoggle:hover{color:var(--accent);border-color:var(--brand)}
+body.nav-collapsed #navtoggle{left:14px}
+#scrim{position:fixed;inset:var(--h) 0 0;z-index:25;background:var(--scrim);opacity:0;pointer-events:none;transition:opacity .18s}
+
+/* Under 900px the sidebar becomes an overlay drawer — a 264px fixed column
+   plus a 728px iframe does not fit a phone, and squeezing both is worse than
+   hiding one. */
+@media(max-width:900px){
+  /* Below 900px the same button drives an overlay drawer instead. */
+  #sidebar{position:fixed;top:var(--h);left:0;z-index:26;width:290px;flex-basis:290px;transform:translateX(-100%);transition:transform .18s;box-shadow:0 10px 40px var(--scrim)}
+  body.nav-open #sidebar{transform:none}
+  #navtoggle{left:14px}
+  body.nav-open #navtoggle{left:calc(290px - 7px)}
+  body.nav-open #scrim{opacity:1;pointer-events:auto}
+  main{padding:22px 18px 80px}
+  header .ver{display:none}
+}
+/* The header links duplicate the sidebar's Resources block — drop them first
+   when space runs out, rather than letting the brand or the theme switch go. */
+@media(max-width:560px){header a:not(.brand){display:none}}
+@media(min-width:901px){
+  #scrim{display:none}
+  /* flex-basis AND width — the sidebar sets both, so one alone leaves a stripe. */
+  body.nav-collapsed #sidebar{flex-basis:0;width:0;padding-left:0;padding-right:0;border-right:0;overflow:hidden}
+  body.nav-collapsed #sidebar>*{display:none}
+}
+@media(prefers-reduced-motion:reduce){#sidebar,#scrim,.card{transition:none}}
+
+/* --- content --- */
+h1{font-size:31px;font-weight:600;letter-spacing:-.028em;margin:0 0 7px}
+/* Parent-brand provenance, not advertising: the Nika wordmark plus a mono
+   descriptor, the pattern NIKA's own system prescribes for metadata. The dot
+   is #eba941 — the same amber as --brand, straight off NIKA's favicon. */
+/* First in the header, one rule ahead of the OnlyMapJS logo: the parent brand
+   reads as the thing the product sits under, not as a badge hung off it.
+   Higher specificity than the header's own link rule, which would otherwise
+   reset the tracking. */
+header a.nika{flex:0 0 auto;border-right:1px solid var(--line);padding-right:13px;margin-right:1px;font-size:15px;letter-spacing:.06em}
+header a.nika:hover{color:var(--accent);text-decoration:none}
+/* The wordmark, copied value-for-value from nika-site's own
+   components/ui/wordmark.tsx — Space Grotesk 600 / 15px / +0.06em, 4px gap,
+   and a 5px dot nudged up 2px so it sits on the cap line, not the baseline. */
+.nika{display:inline-flex;align-items:center;gap:4px;font-weight:600;font-size:15px;letter-spacing:.06em;color:var(--fg);text-decoration:none;white-space:nowrap}
+/* The dot follows the theme the way NIKA's own --accent does: lime on dark,
+   brass on light. The light value is #eba941, which is both this site's
+   --brand and the dot colour in NIKA's favicon.svg. */
+.nika i{width:5px;height:5px;border-radius:50%;background:var(--nika);display:inline-block;margin-bottom:2px;flex:0 0 auto}
+.site-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:64px 0 0;padding-top:16px;border-top:1px solid var(--line);color:var(--muted)}
+.site-foot a.out{margin-left:auto;font-size:13.5px}
+img.banner{display:block;width:100%;height:auto;border-radius:12px;margin:0 0 18px}
+h2,h3{letter-spacing:-.015em}
+p.lede{color:var(--muted);margin:0 0 22px;max-width:70ch}
+p.lede.intro{max-width:none}
+input[type=search]{flex:1;min-width:180px;max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:8px;color:var(--fg);font:inherit;font-size:15.5px;padding:8px 12px;outline:none}
+input[type=search]:focus{border-color:var(--accent)}
+h2.cat{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:34px 0 12px;font-weight:600}
+/* A rule cannot compete with a grid of full-colour thumbnails, so a tier
+   header is a PLATE: its own tinted band, full column width, amber edge. The
+   cards are var(--card) — the band is var(--hover), which is what stops it
+   reading as one more card. */
+section.phase{margin-top:58px}
+section.phase:first-of-type{margin-top:30px}
+.phase-head{margin:0 0 26px;padding:20px 24px 22px;border:1px solid var(--line);border-left:5px solid var(--brand);border-radius:0 12px 12px 0;background:var(--hover)}
+.phase-head .kicker{margin:0 0 9px;font:11px/1 "JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500;text-transform:uppercase;letter-spacing:.14em;color:var(--accent)}
+.phase-head h2{font-size:34px;font-weight:700;letter-spacing:-.032em;margin:0 0 7px}
+.phase-head p.lede{margin:0}
+/* Deep links (/#examples, /#terrain-3d) land under the sticky header without
+   this — the browser scrolls the target to y=0, which the header covers. */
+section[id]{scroll-margin-top:calc(var(--h) + 14px)}
+html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;text-decoration:none;color:inherit;display:block;transition:.15s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.card .shot{aspect-ratio:16/10;background:linear-gradient(135deg,var(--line),var(--card));display:block;width:100%;object-fit:cover}
+span.shot{display:flex;align-items:center;justify-content:center;color:var(--muted);font:12px "JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;text-align:center;padding:0 12px}
+span.shot::after{content:attr(data-placeholder) " — no screenshot yet"}
+.card .body{padding:11px 13px}
+.card h3{font-size:16px;margin:0 0 3px}
+.card p{font-size:14px;color:var(--muted);margin:0}
+.frame{width:100%;height:728px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+/* Cross-link to a sibling page, above the demo. Reads as a signpost rather
+   than a banner — an accent edge and the card background, no fill. */
+p.related{margin:0 0 12px;padding:9px 13px;border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:0 8px 8px 0;background:var(--card);font-size:14.5px}
+p.related a{text-decoration:none;font-weight:600}
+p.related a:hover{text-decoration:underline}
+.row{display:flex;gap:10px;align-items:center;margin:14px 0;flex-wrap:wrap}
+button,.btn{background:var(--card);border:1px solid var(--line);color:var(--fg);font:inherit;font-size:14.5px;padding:7px 13px;border-radius:7px;cursor:pointer;text-decoration:none}
+button:hover,.btn:hover{border-color:var(--brand);color:var(--accent)}
+button.ok,button.ok:hover{border-color:var(--ok);color:var(--ok)}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+pre{background:var(--code);border:1px solid var(--line);border-radius:9px;padding:14px 16px;overflow-x:auto;font:13.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;margin:0}
+pre code{font:inherit;background:none;padding:0}
+/* highlight.js token colours, mapped to theme variables rather than one of its
+   stock stylesheets: those are single-mode, and this site's code background
+   flips with the theme switch. Anything unmapped inherits --fg, so a token we
+   never styled stays readable instead of vanishing. */
+.hljs-comment,.hljs-quote{color:var(--syn-comment);font-style:italic}
+.hljs-tag,.hljs-name,.hljs-selector-tag,.hljs-keyword,.hljs-doctag{color:var(--syn-tag)}
+.hljs-attr,.hljs-attribute,.hljs-selector-attr,.hljs-selector-class,.hljs-selector-id{color:var(--syn-attr)}
+.hljs-string,.hljs-meta .hljs-string{color:var(--syn-str)}
+.hljs-number,.hljs-literal,.hljs-built_in,.hljs-title,.hljs-title.function_{color:var(--syn-lit)}
+nav.pager{display:flex;justify-content:space-between;margin-top:34px;gap:12px;font-size:15px}
+.empty{color:var(--muted);padding:30px 0}</style>
+<script>try{var t=localStorage.getItem("om-theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header>
+  <a class="nika hdr" href="https://nikaplanet.com" title="Built by NIKA">NIKA<i></i></a>
+  <a class="brand" href="../"><img src="../brand/logo.webp" alt="" width="28" height="28"><b>Only<span>Map</span>JS</b></a>
+  <a class="ver" href="https://github.com/NikaGeospatial/onlymap-js/releases/latest" title="Latest release on GitHub"><img src="https://img.shields.io/github/v/release/NikaGeospatial/onlymap-js?style=flat-square&amp;label=release&amp;color=eba941&amp;labelColor=3a2a44" alt="Latest release" width="104" height="20" loading="lazy"></a>
+  <span style="flex:1"></span>
+  <div class="theme" role="group" aria-label="Colour theme">
+    <button data-theme-set="light" title="Light" aria-label="Light theme" aria-pressed="false"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="3.1"/><path stroke-linecap="round" d="M8 .9v1.8M8 13.3v1.8M.9 8h1.8M13.3 8h1.8M2.9 2.9l1.3 1.3M11.8 11.8l1.3 1.3M13.1 2.9l-1.3 1.3M4.2 11.8l-1.3 1.3"/></svg></button>
+    <button data-theme-set="dark" title="Dark" aria-label="Dark theme" aria-pressed="false"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linejoin="round" d="M13.4 9.7A5.8 5.8 0 0 1 6.3 2.6a5.8 5.8 0 1 0 7.1 7.1Z"/></svg></button>
+    <button data-theme-set="system" title="Match the system" aria-label="Match the system theme" aria-pressed="true"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.4"/><path stroke-linecap="round" d="M5.5 14h5"/></svg></button>
+  </div>
+  <a href="https://github.com/NikaGeospatial/onlymap-js">GitHub</a>
+  <a href="https://docs.nikaplanet.com/onlymap/overview">Docs</a>
+</header>
+<button id="navtoggle" aria-label="Toggle navigation" aria-expanded="true" aria-controls="sidebar" title="Toggle navigation"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="2"/><path d="M6.4 2.75v10.5"/><rect x="1.75" y="2.75" width="4.65" height="10.5" rx="2" fill="currentColor" stroke="none" opacity=".3"/></svg></button>
+<div class="layout">
+<aside id="sidebar" aria-label="Examples" data-phase="features">
+  <input type="search" id="navq" placeholder="Search examples…" autocomplete="off" aria-label="Search examples">
+  <nav id="navtree">
+    <a class="top" href="../">OnlyMapJS Gallery</a>
+    <div class="tier" role="group" aria-label="Filter by tier">
+      <button type="button" data-tier="features" aria-pressed="true">Features</button>
+      <button type="button" data-tier="examples" aria-pressed="true">Examples</button>
+      <button type="button" data-tier="integrations" aria-pressed="true">Integrations</button>
+    </div>
+    <div class="nav-group" data-phase="features">
+      <hr class="nav-sep">
+      <a class="nav-phase" href="../#features">Features</a>
+      <div class="nav-cat">
+        <a class="nav-cat-h" href="../#getting-started">Getting started</a>
+        <ul>
+        <li><a class="item" href="../display-a-map/" data-hay="display a map the smallest complete onlymapjs page: one map element, one layer, and inline data. set the camera with center, zoom, pitch and bearing. getting started">Display a map</a></li>
+        <li><a class="item" href="../choose-a-basemap/" data-hay="choose a basemap switch between free maplibre basemap presets while the map runs. layers and the camera survive the change. getting started">Choose a basemap</a></li>
+        <li><a class="item" href="../build-with-an-ai-agent/" data-hay="build with an ai agent works with claude code, codex, cursor or any agent: use copy for your agent on any example, then chat to build your own customized map. getting started">Build with an AI agent</a></li>
+        </ul>
+      </div>
+      <div class="nav-cat">
+        <a class="nav-cat-h" href="../#layers">Layers</a>
+        <ul>
+        <li><a class="item" href="../add-scatterplot-points/" data-hay="add scatterplot points scatterplotlayer points from a json file, sized by population with a sqrt scale and coloured by category. layers">Add scatterplot points</a></li>
+        <li><a class="item" href="../create-a-choropleth/" data-hay="create a choropleth shade real country boundaries by gdp per capita with geojsonlayer. a threshold scale labels the legend classes. layers">Create a choropleth</a></li>
+        <li><a class="item" href="../draw-arcs-and-paths/" data-hay="draw arcs and paths the same five journeys twice: pathlayer follows the real driving route, arclayer curves straight between endpoints. layers">Draw arcs and paths</a></li>
+        <li><a class="item" href="../animate-trips/" data-hay="animate trips move 48 vehicles at once with tripslayer. each carries its own departure time, so traffic builds and thins on its own. layers">Animate trips</a></li>
+        <li><a class="item" href="../create-a-heatmap/" data-hay="create a heatmap heatmaplayer turns thousands of points into a density surface, weighted so large events outweigh clusters of small ones. layers">Create a heatmap</a></li>
+        <li><a class="item" href="../bin-points-into-hexagons/" data-hay="bin points into hexagons hexagonlayer bins points into counts you can pick, with the tally encoded as both colour and height. layers">Bin points into hexagons</a></li>
+        <li><a class="item" href="../add-icons-and-labels/" data-hay="add icons and labels mark places with iconlayer sprites cut from one atlas, then name them with textlayer. a filter keeps only the biggest cities labelled. layers">Add icons and labels</a></li>
+        <li><a class="item" href="../label-many-features/" data-hay="label many features popuplayer draws a webgl badge on every earthquake above magnitude 5, over a heat ramp of all 1,960 on a dark map. layers">Label many features</a></li>
+        <li><a class="item" href="../aggregate-by-h3-cells/" data-hay="aggregate by h3 cells h3hexagonlayer draws pre-binned data from a column of h3 cell ids: 45 years of cyclone tracks. h3clusterlayer merges cells into outlines. layers">Aggregate by H3 cells</a></li>
+        <li><a class="item" href="../draw-spatial-index-cells/" data-hay="draw spatial index cells s2layer, geohashlayer, quadkeylayer and a5layer draw spatial index cells from a column of ids. the same power stations, binned four ways. layers">Draw spatial index cells</a></li>
+        <li><a class="item" href="../draw-3d-columns/" data-hay="draw 3d columns stand a columnlayer bar on every power station, sized by capacity and coloured by fuel. gridcelllayer is the square-cell sibling. layers">Draw 3D columns</a></li>
+        </ul>
+      </div>
+      <div class="nav-cat">
+        <a class="nav-cat-h" href="../#rasters">Rasters &amp; tiles</a>
+        <ul>
+        <li><a class="item" href="../overlay-an-image/" data-hay="overlay an image pin one georeferenced picture to the map with bitmaplayer: an image and a bounds box, no data rows at all. rasters &amp; tiles">Overlay an image</a></li>
+        <li><a class="item" href="../add-a-raster-tile-layer/" data-hay="add a raster tile layer tilelayer takes a {z}/{x}/{y} url template and draws nasa satellite imagery as a layer you can toggle, fade and stack. rasters &amp; tiles">Add a raster tile layer</a></li>
+        <li><a class="item" href="../add-vector-tiles/" data-hay="add vector tiles mvtlayer turns vector tiles into real geometry styled by your own accessors: openstreetmap over venice, with no basemap at all. rasters &amp; tiles">Add vector tiles</a></li>
+        <li><a class="item" href="../display-a-geotiff/" data-hay="display a geotiff coglayer streams a cloud-optimized geotiff by http range request. recolour and restretch grand canyon elevation as gpu uniforms. rasters &amp; tiles">Display a GeoTIFF</a></li>
+        <li><a class="item" href="../place-a-drone-photo/" data-hay="place a drone photo imageoverlay reads gps, altitude and gimbal angles out of a drone jpeg's exif and xmp, then draws the photo at its own ground footprint. rasters &amp; tiles">Place a drone photo</a></li>
+        <li><a class="item" href="../slice-a-zarr-cube/" data-hay="slice a zarr cube zarrlayer draws one 2d slice of a chunked n-dimensional array. change select to step a forecast axis without reopening the store. rasters &amp; tiles">Slice a Zarr cube</a></li>
+        </ul>
+      </div>
+      <div class="nav-cat">
+        <a class="nav-cat-h" href="../#terrain-3d">3D, terrain &amp; lighting</a>
+        <ul>
+        <li><a class="item" href="../place-a-3d-model/" data-hay="place a 3d model place a gltf or glb model at map coordinates with scenegraphlayer. one asset, one instance per row, no three.js. 3d, terrain &amp; lighting">Place a 3D model</a></li>
+        <li><a class="item" href="../load-a-cityjson-model/" data-hay="load a cityjson model load 3d buildings from a cityjson city model: real lod 2.2 roof surfaces with solidpolygonlayer and full3d, or extruded footprints. 3d, terrain &amp; lighting">Load a CityJSON model</a></li>
+        <li><a class="item" href="../inspect-a-bim-model/" data-hay="inspect a bim model the bimlayer load .ifc models in the browser with the ifc-loader widget. pick any element, isolate or ghost the rest, and clash-test two federated models. 3d, terrain &amp; lighting">Inspect a BIM model</a></li>
+        <li><a class="item" href="../render-a-point-cloud/" data-hay="render a point cloud pointcloudlayer draws rows that carry a z: 24,336 elevation samples over the matterhorn, sized in pixels and coloured by height. 3d, terrain &amp; lighting">Render a point cloud</a></li>
+        <li><a class="item" href="../light-the-scene/" data-hay="light the scene light extruded buildings with lighting presets, per-value lighting-* overrides, and a sun placed from a date with lighting-sun-date. 3d, terrain &amp; lighting" aria-current="page">Light the scene</a></li>
+        <li><a class="item" href="../google-3d-tiles/" data-hay="google photorealistic 3d tiles render google photorealistic 3d tiles through tile3dlayer. needs a browser-restricted map tiles api key. 3d, terrain &amp; lighting">Google Photorealistic 3D Tiles</a></li>
+        <li><a class="item" href="../add-terrain/" data-hay="add terrain raise real terrain from a keyless dem. geographic layers drape onto the surface automatically. 3d, terrain &amp; lighting">Add terrain</a></li>
+        </ul>
+      </div>
+      <div class="nav-cat">
+        <a class="nav-cat-h" href="../#stories">Stories &amp; animation</a>
+        <ul>
+        <li><a class="item" href="../build-a-map-story/" data-hay="build a map story turn a map into a guided tour. steps fire actions on a timeline, with play, pause and scrub. stories &amp; animation">Build a map story</a></li>
+        <li><a class="item" href="../google-3d-flyby/" data-hay="google 3d tiles flyby story fly a camera across photorealistic 3d tiles as a scripted story, with a player and a scrubber. stories &amp; animation">Google 3D Tiles flyby story</a></li>
+        </ul>
+      </div>
+      <div class="nav-cat">
+        <a class="nav-cat-h" href="../#sources">Sources</a>
+        <ul>
+        <li><a class="item" href="../load-a-file/" data-hay="load a file read geojson, csv, shapefile, kml and gpx through one data attribute. the file extension picks the parser; nothing above it changes. sources">Load a file</a></li>
+        <li><a class="item" href="../extend-the-data-layer/" data-hay="extend the data layer teach the map a format it does not ship with registerformat, and decode a live socket feed with registersource. sources">Extend the data layer</a></li>
+        <li><a class="item" href="../load-columnar-data/" data-hay="load columnar data load an apache arrow file with a geoarrow geometry column, plus csv, shapefile and kml on one map. columns feed the layer with no row objects. sources">Load columnar data</a></li>
+        </ul>
+      </div>
+      <div class="nav-cat">
+        <a class="nav-cat-h" href="../#styling">Styling</a>
+        <ul>
+        <li><a class="item" href="../color-and-size-by-data/" data-hay="colour and size by data colour 243 cities four ways with scale(): sequential, threshold and diverging ramps, a categorical ternary chain, and sqrt sizing. styling">Colour and size by data</a></li>
+        <li><a class="item" href="../write-accessor-scripts/" data-hay="write accessor scripts group accessors in a script type="om/accessors" block, then opt into full javascript with js for lookup tables and string work. styling">Write accessor scripts</a></li>
+        </ul>
+      </div>
+      <div class="nav-cat">
+        <a class="nav-cat-h" href="../#interaction">Interaction</a>
+        <ul>
+        <li><a class="item" href="../filter-on-the-gpu/" data-hay="filter on the gpu cut 21,337 points live with filter-field and filter-range. the datafilterextension drops rows in the shader, so ctx.stats always agrees. interaction">Filter on the GPU</a></li>
+        <li><a class="item" href="../emit-and-register-actions/" data-hay="emit and register actions fire one custom action from a behavior, a data-emit button and ctx.emit. registeraction defines the name and the payload once. interaction">Emit and register actions</a></li>
+        <li><a class="item" href="../undo-and-redo/" data-hay="undo and redo step layer toggles, filters, basemaps and sketches back with the undo-redo widget or cmd/ctrl-z. camera moves are not undo steps. interaction">Undo and redo</a></li>
+        <li><a class="item" href="../time-series/" data-hay="time series step a month of usgs earthquakes through time with a custom slider widget that drives a gpu filter. interaction">Time series</a></li>
+        <li><a class="item" href="../wire-up-behaviors-and-overlays/" data-hay="wire up behaviors and overlays click a neighborhood for a popup, hover a bike rack for a tooltip, and filter points with a slider — all declarative. interaction">Wire up behaviors and overlays</a></li>
+        </ul>
+      </div>
+      <div class="nav-cat">
+        <a class="nav-cat-h" href="../#widgets">Widgets</a>
+        <ul>
+        <li><a class="item" href="../add-widgets/" data-hay="add widgets add a legend, zoom controls, a scale bar and a live vega-lite chart without writing any script. widgets">Add widgets</a></li>
+        <li><a class="item" href="../use-responsive-widget-manager/" data-hay="use the responsive widget manager place widgets in eight logical slots that stack, cluster, and fold into drawers on narrow screens. widgets">Use the responsive widget manager</a></li>
+        <li><a class="item" href="../measure-distance-and-area/" data-hay="measure distance and area measure geodesic distance and area on the map with the measure widget. haversine lengths, spherical-excess areas, unit toggle. widgets">Measure distance and area</a></li>
+        <li><a class="item" href="../draw-manually/" data-hay="draw manually draw points, lines and polygons on the map, then save them as geojson. sketches join undo and redo. widgets">Draw manually</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="nav-group" data-phase="examples">
+      <hr class="nav-sep">
+      <a class="nav-phase" href="../#examples">Examples</a>
+      <div class="nav-cat">
+        <a class="nav-cat-h" href="../#transport-logistics">Transport &amp; logistics</a>
+        <ul>
+        <li><a class="item" href="../live-european-airspace/" data-hay="live european airspace track real aircraft over europe from a live ads-b websocket. iconlayer with key upserts, flush coalescing and transition tweening. transport &amp; logistics">Live European airspace</a></li>
+        <li><a class="item" href="../bay-area-shipping/" data-hay="bay area shipping simulated ais vessels crossing san francisco bay over a websocket. upsert by key, coalesce bursts with flush, reconnect automatically. transport &amp; logistics">Bay Area shipping</a></li>
+        <li><a class="item" href="../san-francisco-last-mile/" data-hay="san francisco last mile fleet tracking with polled telematics: vehicle positions refreshed from a rest snapshot, with configuredata attaching the bearer token. transport &amp; logistics">San Francisco last mile</a></li>
+        </ul>
+      </div>
+      <div class="nav-cat">
+        <a class="nav-cat-h" href="../#urban-planning">Urban planning</a>
+        <ul>
+        <li><a class="item" href="../singapore-rail-growth/" data-hay="singapore rail network, 1987–2026 a year slider moves a filter-field window across geojsonlayer track and stations, so 39 years of rail network build themselves. urban planning">Singapore rail network, 1987–2026</a></li>
+        </ul>
+      </div>
+      <div class="nav-cat">
+        <a class="nav-cat-h" href="../#climate-hazards">Climate &amp; hazards</a>
+        <ul>
+        <li><a class="item" href="../tornado-alley/" data-hay="tornado alley, 1950–2024 one filter-range on a scatterplotlayer drives the map, a ctx.stats casualty panel, a vega-lite histogram and undo. 13,182 storms. climate &amp; hazards">Tornado Alley, 1950–2024</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="nav-group" data-phase="integrations">
+      <hr class="nav-sep">
+      <a class="nav-phase" href="../#integrations">Integrations</a>
+      <div class="nav-cat">
+        <ul>
+        <li><a class="item" href="../onlymap-qgis-plugin/" data-hay="qgis2webmap plugin export qgis maps to interactive onlymapjs web maps with the qgis2webmap plugin, then publish the result anywhere. integrations">QGIS2WebMap Plugin</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="navempty" hidden>No match.</p>
+  </nav>
+</aside>
+<main id="main">
+
+<p style="font-size:14.5px;margin:0 0 4px"><a href="../">← OnlyMapJS Gallery</a> <span style="color:var(--muted)">/ 3D, terrain &amp; lighting</span></p>
+<h1>Light the scene</h1>
+<p class="lede">Light extruded buildings with lighting presets, per-value lighting-* overrides, and a sun placed from a date with lighting-sun-date.</p>
+
+
+<iframe class="frame" src="../examples/features/terrain-3d/light-the-scene.html" title="Light the scene — live demo" loading="lazy"></iframe>
+<div class="row">
+  <button id="copy-src">Copy source</button>
+  <button id="copy-agent">Copy for your agent</button>
+  <a class="btn" href="../examples/features/terrain-3d/light-the-scene.html" target="_blank" rel="noopener">Open full screen ↗</a>
+  <a class="btn" href="https://github.com/NikaGeospatial/onlymap-js/blob/main/examples/features/terrain-3d/light-the-scene.html">View source ↗</a>
+</div>
+<pre id="src"><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;!--
+  Lighting is what turns extruded shapes into a solid you can read. Without
+  it every face takes the same fill and a block of buildings flattens into one
+  silhouette; with a sun in the scene, each face shades by the angle it turns
+  to that sun, and the massing becomes legible.
+
+  The `lighting` attribute picks a preset. The lighting-* attributes override
+  one number at a time, and `lighting-sun-date` goes further: give it a date
+  and a time and the sun is placed by real solar position, which is what makes
+  a shadow study possible rather than a guess.
+
+  The map: twelve real building footprints south of Market in San Francisco,
+  extruded to their heights. Drag the sliders on the right to move the sun by
+  hand, or press a time of day on the left to place it from the calendar.
+  Every control writes an attribute, so Cmd/Ctrl-Z steps back through them.
+--&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8" /&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1" /&gt;
+  &lt;title&gt;OnlyMapJS — Light the scene&lt;/title&gt;
+  &lt;link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" /&gt;
+  &lt;script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"&gt;&lt;/script&gt;
+  &lt;style&gt;
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+  &lt;!-- `daylight` is a bright outdoor sun with strong directional shading.
+       The other presets are `studio` (softer, for inspecting a model),
+       `flat` (ambient only, no direction) and `custom` (daylight's numbers as
+       a seed for your own lighting-* overrides). --&gt;
+  &lt;om-map center="[-122.3990, 37.7902]" zoom="15.7" pitch="55" bearing="20"
+          basemap="positron" lighting="daylight"&gt;
+
+    &lt;!-- `extruded` turns polygons into solids and get-elevation supplies the
+         height in metres. Leave `stroked` off on an extruded layer — an
+         outline drawn on the roof reads as a seam once the walls are up. --&gt;
+    &lt;om-layer id="blocks" type="GeoJsonLayer" label="City blocks" color="#8ca6cc"
+                extruded filled stroked="false" wireframe="false"
+                get-elevation="$height"
+                get-fill-color="'#a8bdd6'"
+                pickable auto-highlight
+                highlight-color="[255, 224, 138, 140]"&gt;
+      &lt;script type="application/json"&gt;
+        { "type": "FeatureCollection", "features": [
+          { "type": "Feature", "properties": { "name": "Mission Square", "height": 140 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.39941,37.79034],[-122.39959,37.79048],[-122.39912,37.79085],[-122.39873,37.79054],[-122.39919,37.79017],[-122.39921,37.79018],[-122.39925,37.79022],[-122.39939,37.79032],[-122.39941,37.79034]]] } },
+          { "type": "Feature", "properties": { "name": "Howard Row", "height": 65 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.4018,37.7909],[-122.40182,37.79097],[-122.40088,37.79109],[-122.4008,37.7907],[-122.401,37.79068],[-122.40104,37.79089],[-122.40112,37.79088],[-122.40111,37.79086],[-122.40113,37.79081],[-122.4012,37.7908],[-122.40124,37.79084],[-122.40124,37.79087],[-122.40152,37.79083],[-122.40148,37.79062],[-122.40174,37.79059],[-122.40174,37.79061],[-122.4018,37.7909]]] } },
+          { "type": "Feature", "properties": { "name": "Tehama Block", "height": 90 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.40161,37.79053],[-122.4015,37.79054],[-122.40108,37.79059],[-122.4011,37.79067],[-122.401,37.79068],[-122.4008,37.7907],[-122.40073,37.79032],[-122.40103,37.79029],[-122.40146,37.79024],[-122.40146,37.79028],[-122.40156,37.79027],[-122.40161,37.79053]]] } },
+          { "type": "Feature", "properties": { "name": "Natoma Tower", "height": 175 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.39806,37.79089],[-122.39855,37.79128],[-122.39824,37.79152],[-122.39775,37.79113],[-122.39806,37.79089]]] } },
+          { "type": "Feature", "properties": { "name": "Clementina Yard", "height": 45 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.39827,37.78845],[-122.39853,37.78826],[-122.39863,37.78835],[-122.39865,37.78833],[-122.39892,37.78854],[-122.39856,37.78882],[-122.39846,37.78874],[-122.39848,37.78873],[-122.39837,37.78864],[-122.39835,37.78865],[-122.39818,37.78852],[-122.39821,37.7885],[-122.39821,37.78851],[-122.39828,37.78846],[-122.39827,37.78845]]] } },
+          { "type": "Feature", "properties": { "name": "Shipley Court", "height": 110 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.40061,37.79165],[-122.40048,37.79167],[-122.40048,37.7917],[-122.40032,37.79172],[-122.40032,37.79171],[-122.40029,37.79159],[-122.40026,37.79146],[-122.40021,37.79147],[-122.40019,37.79135],[-122.40067,37.7913],[-122.40067,37.7913],[-122.40068,37.79134],[-122.40069,37.79133],[-122.40074,37.79156],[-122.40075,37.79167],[-122.40075,37.79167],[-122.40062,37.79168],[-122.40061,37.79165]]] } },
+          { "type": "Feature", "properties": { "name": "Folsom Works", "height": 70 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.40008,37.78933],[-122.39999,37.7894],[-122.39975,37.78959],[-122.39953,37.78943],[-122.3994,37.78932],[-122.39963,37.78913],[-122.39972,37.78919],[-122.39977,37.78915],[-122.39984,37.78921],[-122.39988,37.78918],[-122.40008,37.78933]]] } },
+          { "type": "Feature", "properties": { "name": "Harriet Terrace", "height": 55 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.40015,37.79136],[-122.40022,37.79173],[-122.40023,37.79173],[-122.40014,37.79174],[-122.39981,37.79178],[-122.39979,37.79167],[-122.39978,37.79165],[-122.39974,37.79141],[-122.40003,37.79138],[-122.40015,37.79136]]] } },
+          { "type": "Feature", "properties": { "name": "Hawthorne Hall", "height": 125 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.39641,37.79042],[-122.39649,37.79049],[-122.39635,37.79059],[-122.39635,37.79058],[-122.39626,37.79065],[-122.39618,37.79059],[-122.39615,37.7906],[-122.39599,37.79046],[-122.39599,37.79044],[-122.39588,37.79035],[-122.39613,37.79016],[-122.39643,37.7904],[-122.39641,37.79042]]] } },
+          { "type": "Feature", "properties": { "name": "Perry Lofts", "height": 85 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.40063,37.78964],[-122.40045,37.78979],[-122.40008,37.78949],[-122.40032,37.78931],[-122.40067,37.78959],[-122.40062,37.78963],[-122.40063,37.78964]]] } },
+          { "type": "Feature", "properties": { "name": "Rincon Point", "height": 150 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.40096,37.78936],[-122.40079,37.78949],[-122.40062,37.78936],[-122.40062,37.7891],[-122.40079,37.78897],[-122.40096,37.7891],[-122.40096,37.78936]]] } },
+          { "type": "Feature", "properties": { "name": "Minna Depot", "height": 40 },
+            "geometry": { "type": "Polygon", "coordinates": [[[-122.39921,37.79199],[-122.3996,37.79194],[-122.39965,37.79219],[-122.39918,37.79225],[-122.39914,37.79207],[-122.39922,37.79206],[-122.39921,37.79199]]] } }
+        ] }
+      &lt;/script&gt;
+    &lt;/om-layer&gt;
+
+    &lt;!-- The built-in lighting widget: preset radios plus ambient, sun,
+         azimuth, elevation and camera sliders. Every control writes a
+         lighting-* attribute through set-lighting, so a story step, a hand
+         edit and an undo all land in the same place and the widget re-syncs
+         to whatever the attributes now say. --&gt;
+    &lt;om-widget type="lighting" position="top-right"&gt;&lt;/om-widget&gt;
+
+    &lt;!-- lighting-sun-date is the shadow-study control: give it an instant and
+         the azimuth and elevation are computed from solar position, so the
+         sun stands where it really stood. Times are UTC — San Francisco is
+         eight hours behind it in winter, seven in summer. A preset click with
+         no date clears the override and returns to the plain preset. --&gt;
+    &lt;om-widget position="top-left"&gt;
+      &lt;style&gt;
+        .sun { background: #fff; border: 1px solid #d7dee8; border-radius: 10px;
+               padding: 11px 13px; font-size: 12px; color: #1f2937;
+               box-shadow: 0 2px 12px rgba(15,23,42,.14); }
+        .sun h4 { margin: 0 0 8px; font-size: 11px; letter-spacing: .06em;
+                  text-transform: uppercase; color: #64748b; }
+        .sun button { display: block; width: 100%; margin: 4px 0; padding: 6px 9px;
+                      border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc;
+                      color: #1f2937; font: 12px system-ui, sans-serif; cursor: pointer; }
+        .sun button:hover { background: #eef2f7; }
+      &lt;/style&gt;
+      &lt;div class="sun"&gt;
+        &lt;h4&gt;Time of day&lt;/h4&gt;
+        &lt;button data-emit="set-lighting" data-lighting="daylight"
+                data-sun-date="2026-06-21T15:00:00Z"&gt;Summer morning&lt;/button&gt;
+        &lt;button data-emit="set-lighting" data-lighting="daylight"
+                data-sun-date="2026-06-21T20:00:00Z"&gt;Summer midday&lt;/button&gt;
+        &lt;button data-emit="set-lighting" data-lighting="daylight"
+                data-sun-date="2026-12-22T00:30:00Z"&gt;Winter dusk&lt;/button&gt;
+        &lt;button data-emit="set-lighting" data-lighting="daylight"&gt;Reset&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/om-widget&gt;
+
+    &lt;om-widget type="zoom-controls" position="bottom-right"&gt;&lt;/om-widget&gt;
+
+    &lt;om-behavior on="hover" layer="blocks" action="show-tooltip"
+                 template="#block-tooltip"&gt;&lt;/om-behavior&gt;
+
+    &lt;om-fallback&gt;
+      &lt;p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch"&gt;
+        &lt;strong&gt;This map needs JavaScript.&lt;/strong&gt;&lt;br /&gt;
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      &lt;/p&gt;
+    &lt;/om-fallback&gt;
+
+  &lt;/om-map&gt;
+
+  &lt;template id="block-tooltip"&gt;
+    &lt;div style="background:#1f2937; color:#f8fafc; padding:5px 9px; border-radius:5px;
+                font:12px system-ui, sans-serif;"&gt;
+      &lt;b&gt;{{name}}&lt;/b&gt; — {{height}} m
+    &lt;/div&gt;
+  &lt;/template&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<nav class="pager">
+  <span><a href="../render-a-point-cloud/">← Render a point cloud</a></span>
+  <span><a href="../google-3d-tiles/">Google Photorealistic 3D Tiles →</a></span>
+</nav>
+<footer class="site-foot">
+  <a class="nika" href="https://nikaplanet.com">NIKA<i></i></a>
+  <a class="out" href="https://nikaplanet.com">nikaplanet.com →</a>
+</footer>
+</main>
+</div>
+<div id="scrim" aria-hidden="true"></div>
+<script>
+(function(){
+  var root = document.documentElement, KEY = "om-theme";
+  function stored(){ try { return localStorage.getItem(KEY) || "system" } catch(e){ return "system" } }
+  function paint(){
+    var v = stored();
+    for (var b of document.querySelectorAll("[data-theme-set]")) b.setAttribute("aria-pressed", String(b.dataset.themeSet === v));
+  }
+  for (var b of document.querySelectorAll("[data-theme-set]")) {
+    b.addEventListener("click", function(e){
+      var v = e.currentTarget.dataset.themeSet;
+      // "system" clears the override so the prefers-color-scheme rules take
+      // over again — it is the ABSENCE of a choice, not a third token set.
+      if (v === "system") { delete root.dataset.theme; try { localStorage.removeItem(KEY) } catch(e){} }
+      else { root.dataset.theme = v; try { localStorage.setItem(KEY, v) } catch(e){} }
+      paint();
+    });
+  }
+  // Another tab changing the theme should not leave this one stale.
+  addEventListener("storage", function(e){
+    if (e.key !== KEY) return;
+    if (e.newValue === "dark" || e.newValue === "light") root.dataset.theme = e.newValue; else delete root.dataset.theme;
+    paint();
+  });
+  paint();
+
+  var body = document.body, side = document.getElementById("sidebar");
+  var toggle = document.getElementById("navtoggle"), scrim = document.getElementById("scrim");
+  var NKEY = "om-nav";
+  var wide = function(){ return matchMedia("(min-width:901px)").matches; };
+  function setNav(open){ body.classList.toggle("nav-open", open); toggle.setAttribute("aria-expanded", String(open)); }
+  function setCollapsed(v){
+    body.classList.toggle("nav-collapsed", v);
+    toggle.setAttribute("aria-expanded", String(!v));
+    try { v ? localStorage.setItem(NKEY, "collapsed") : localStorage.removeItem(NKEY) } catch(e){}
+  }
+  // One button, two jobs: a persistent collapse on a wide screen, a transient
+  // drawer on a narrow one. The stored choice only ever applies to the former.
+  toggle.addEventListener("click", function(){
+    if (wide()) setCollapsed(!body.classList.contains("nav-collapsed"));
+    else setNav(!body.classList.contains("nav-open"));
+  });
+  try { if (localStorage.getItem(NKEY) === "collapsed") setCollapsed(true) } catch(e){}
+  // The drawer starts shut on a phone, so the markup default of expanded is
+  // only true on a wide screen.
+  if (!wide()) toggle.setAttribute("aria-expanded", "false");
+  scrim.addEventListener("click", function(){ setNav(false); });
+  addEventListener("keydown", function(e){ if (e.key === "Escape" && body.classList.contains("nav-open")) { setNav(false); toggle.focus(); } });
+
+  // Two filters over one tree: the tier switch and the search box. They compose
+  // — an entry shows only when it passes BOTH — so one repaint applies whatever
+  // is currently set rather than each control fighting the other.
+  var none = side.querySelector(".navempty"), TKEY = "om-tier", query = "", tier = "";
+  function repaint(){
+    var hits = 0;
+    for (var g of side.querySelectorAll(".nav-group")) {
+      var inTier = !tier || g.dataset.phase === tier, shownG = 0;
+      for (var d of g.querySelectorAll(".nav-cat")) {
+        var shown = 0;
+        for (var li of d.querySelectorAll("li")) {
+          var ok = inTier && (!query || li.firstElementChild.dataset.hay.includes(query));
+          li.hidden = !ok; if (ok) shown++;
+        }
+        d.hidden = shown === 0;
+        shownG += shown;
+      }
+      g.hidden = shownG === 0;
+      hits += shownG;
+    }
+    for (var b of side.querySelectorAll("[data-tier]")) b.setAttribute("aria-pressed", String(!tier || b.dataset.tier === tier));
+    none.hidden = hits > 0;
+  }
+  // Exposed so the gallery's single search box drives the tree too — one
+  // input per page, never two over the same 25 examples.
+  window.__omFilterNav = function(v){ query = v; repaint(); };
+
+  try { tier = localStorage.getItem(TKEY) || "" } catch(e){}
+  // Reading a page outside the stored tier means the reader left it — forget
+  // the choice rather than hiding the entry they are looking at.
+  if (tier && side.dataset.phase && side.dataset.phase !== tier) {
+    tier = ""; try { localStorage.removeItem(TKEY) } catch(e){}
+  }
+  for (var tb of side.querySelectorAll("[data-tier]")) {
+    tb.addEventListener("click", function(e){
+      // Pressing the tier already on its own restores the whole tree, so the
+      // control never traps the reader in one half.
+      var k = e.currentTarget.dataset.tier;
+      tier = tier === k ? "" : k;
+      try { tier ? localStorage.setItem(TKEY, tier) : localStorage.removeItem(TKEY) } catch(e){}
+      repaint();
+    });
+  }
+  // Gallery is the everything-link, so it clears the tier on the way out and
+  // the reader always lands on the whole tree. Modified clicks open a new tab
+  // and must not change what this one shows.
+  var home = side.querySelector("a.top");
+  if (home) home.addEventListener("click", function(e){
+    if (e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    tier = ""; try { localStorage.removeItem(TKEY) } catch(err){}
+    repaint();
+  });
+  var nq = document.getElementById("navq");
+  if (nq) nq.addEventListener("input", function(){ window.__omFilterNav(nq.value.trim().toLowerCase()); });
+  if (tier) repaint();
+
+  // Deep pages sit far down a ~60-entry tree; without this the reader lands
+  // on a sidebar scrolled to the top with no sign of where they are. Scroll the
+  // sidebar box itself rather than calling scrollIntoView, which would also
+  // scroll the page away from the h1. The 40px margin clears the sticky
+  // category heading, which would otherwise sit right on top of the entry.
+  var cur = side.querySelector("a[aria-current=page].item"), PAD = 44;
+  if (cur && (cur.offsetTop - PAD < side.scrollTop || cur.offsetTop + cur.offsetHeight > side.scrollTop + side.clientHeight)) {
+    side.scrollTop = Math.max(0, cur.offsetTop - Math.max(PAD, side.clientHeight / 2));
+  }
+})();
+</script>
+<script>
+const SRC = document.getElementById("src").textContent;
+const AGENT_PROMPT = "This is a complete, working OnlyMapJS map — one HTML file, no build step.\n\nBefore you change it:\n1. Read https://raw.githubusercontent.com/NikaGeospatial/onlymap-js/main/llms.txt\n   It is the delta from your training priors, not a tutorial. OnlyMapJS is NOT raw\n   deck.gl and NOT generic HTML — attributes are kebab-case, accessors are $field\n   expressions in attributes (never JS functions), elements never self-close, and\n   scale() always needs an explicit domain=.\n2. For attribute names, consult\n   https://raw.githubusercontent.com/NikaGeospatial/onlymap-js/main/onlymapjs.html-data.json\n   — every element and attribute the library accepts. Do not guess them.\n3. For a longer job, install the bundled skill instead of reading the above:\n   npx -y skills add NikaGeospatial/onlymap-js --skill onlymapjs --agent claude-code\n\nAfter you change it, verify — do not hand back unchecked markup:\n  OmMap.validate(html)      // structured errors, each carrying a \"fix\" instruction\n  OmMap.snapshotIR(html)    // what the manifest actually resolves to, no WebGL needed\nFix every error it reports, then re-run until clean.\n\n--- Light the scene ---\n";
+function copy(btn, text){
+  navigator.clipboard.writeText(text).then(() => {
+    const was = btn.textContent; btn.textContent = "Copied"; btn.classList.add("ok");
+    setTimeout(() => { btn.textContent = was; btn.classList.remove("ok"); }, 1300);
+  });
+}
+
+document.getElementById("copy-src").onclick = e => copy(e.target, SRC);
+document.getElementById("copy-agent").onclick = e => copy(e.target, AGENT_PROMPT + SRC);
+</script>
+<!-- Syntax highlighting for the source panel. Loaded ONLY here — the gallery
+     has no code block — and deferred, so it never blocks the demo iframe.
+     Both copy buttons read the SRC constant above rather than the DOM, so the
+     spans hljs injects cannot end up in what anyone pastes. If the CDN is
+     blocked the guard below skips it and the source stays plain text. -->
+<script defer src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js" integrity="sha384-RH2xi4eIQ/gjtbs9fUXM68sLSi99C7ZWBRX1vDrVv6GQXRibxXLbwO2NGZB74MbU" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script>
+addEventListener("DOMContentLoaded", function(){
+  var el = document.querySelector("#src code");
+  if (window.hljs && el) hljs.highlightElement(el);
+});
+</script>
+</body>
+</html>

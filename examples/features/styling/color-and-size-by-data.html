@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<!--
+  Colour and size are the two channels a map has for showing a number, and
+  scale() drives both. Which scale you pick is a reading decision, not a
+  styling one: a smooth ramp says "how much", classes say "which band", a
+  diverging ramp says "which side of a reference", and a plain ternary chain
+  says "which kind". All four are one attribute, and the legend parses that
+  attribute back — so the symbology is written once and never drifts.
+
+  The map: 243 world cities, sized by metro population on every layer. Pick a
+  different rule on the left to recolour the same cities a different way, and
+  watch the legend redraw itself to match.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Colour and size by data</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    /* One --om-widget-* block restyles every built-in widget at once — the
+       legend and the zoom buttons both pick this up untouched. */
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #14161c;
+      --om-widget-fg: #f8fafc;
+      --om-widget-muted: #8b93a7;
+      --om-widget-border: #2c3040;
+      --om-widget-hover-bg: #22262f;
+    }
+  </style>
+
+  <script type="module">
+    import { OmMap } from "https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js";
+
+    // registerAction adds an action of your own, callable from anywhere an
+    // action name is accepted — data-emit, <om-behavior>, or an <om-step>.
+    // This one shows the layer it is handed and hides the rest. The payload
+    // arrives from the data-* attributes on whatever fired it.
+    OmMap.registerAction("show-encoding", (payload, mapEl) => {
+      for (const layer of mapEl.querySelectorAll("om-layer")) {
+        layer.setAttribute("visible", String(layer.id === payload.layer));
+      }
+    });
+  </script>
+</head>
+<body>
+
+  <om-map center="[25, 20]" zoom="1.5" basemap="dark-matter">
+
+    <!-- A sequential scale blends smoothly between the ends of a range. Reach
+         for it when the number is a measurement and every step counts the
+         same. The domain is required — deriving it from the data would let the
+         colours shift on the next reload.
+
+         get-radius takes a `sqrt` scale because the eye reads a circle's AREA:
+         a linear radius makes a city twice as big look four times as big.
+         radius-units="pixels" keeps the dots that size — deck.gl measures
+         radius in metres otherwise, and they vanish as you zoom out. -->
+    <om-layer id="by-size" type="ScatterplotLayer"
+              data="../../data/world-cities.json"
+              label="Sequential — population"
+              get-position="[$lon, $lat]"
+              get-fill-color="scale($population, sequential,
+                                    ['#1e3a8a', '#0ea5e9', '#a3e635', '#fde047'],
+                                    domain=[0, 36])"
+              get-radius="scale($population, sqrt, [2.5, 22], domain=[0, 36])"
+              radius-units="pixels" radius-min-pixels="2"
+              opacity="0.85"></om-layer>
+
+    <!-- A threshold scale classes the values instead of blending them: the
+         domain lists the BREAKS, so five colours take four numbers. This is
+         the answer for a lopsided field — 106 of these cities are under a
+         million and only Tokyo clears twenty, so the smooth ramp above holds
+         most of the map in its first colour. The legend turns the breaks into
+         labelled class ranges on its own. -->
+    <om-layer id="by-band" type="ScatterplotLayer"
+              data="../../data/world-cities.json"
+              label="Threshold — population band" visible="false"
+              get-position="[$lon, $lat]"
+              get-fill-color="scale($population, threshold,
+                                    ['#1e3a5f', '#2563eb', '#22d3ee', '#a3e635', '#fde047'],
+                                    domain=[1, 5, 10, 20])"
+              get-radius="scale($population, sqrt, [2.5, 22], domain=[0, 36])"
+              radius-units="pixels" radius-min-pixels="2"
+              opacity="0.85"></om-layer>
+
+    <!-- A diverging scale is two ramps meeting at a midpoint, so colour reads
+         as distance from a reference in BOTH directions. It only says anything
+         when the middle value means something — here the equator, which 192 of
+         these cities sit north of. Give it three colours and three domain
+         numbers: low end, midpoint, high end. -->
+    <om-layer id="by-hemisphere" type="ScatterplotLayer"
+              data="../../data/world-cities.json"
+              label="Diverging — latitude" visible="false"
+              get-position="[$lon, $lat]"
+              get-fill-color="scale($lat, diverging,
+                                    ['#22d3ee', '#f1f5f9', '#fb7185'],
+                                    domain=[-90, 0, 90])"
+              get-radius="scale($population, sqrt, [2.5, 22], domain=[0, 36])"
+              radius-units="pixels" radius-min-pixels="2"
+              opacity="0.85"></om-layer>
+
+    <!-- Categories need no scale() at all — a chain of equality tests, one
+         colour each, ending in a fallback colour for anything unmatched. Use
+         it when the value is a label rather than a quantity: a city either is
+         a national capital or it is not. The legend labels each swatch with
+         the value it matched, so a chain reads best over a field that already
+         holds the words you want in the key — this one stores 1 and 0. -->
+    <om-layer id="by-status" type="ScatterplotLayer"
+              data="../../data/world-cities.json"
+              label="Categorical — capital city" visible="false"
+              get-position="[$lon, $lat]"
+              get-fill-color="$capital == 1 ? '#fbbf24' : '#38bdf8'"
+              get-radius="scale($population, sqrt, [2.5, 22], domain=[0, 36])"
+              radius-units="pixels" radius-min-pixels="2"
+              opacity="0.85"></om-layer>
+
+    <!-- The legend expands the full symbology of whichever layer is visible —
+         the ramp, the class ranges or the palette — all of it read back off
+         that layer's get-fill-color. Nothing here names a colour twice. -->
+    <om-widget type="legend" title="Symbology" position="top-right"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <!-- `data-emit` names the action a control fires: on change for a form
+         control, on click for anything else. Every other data-* attribute
+         becomes a key in the payload, so data-layer="by-band" arrives as
+         payload.layer. Radios sharing one `name` make the choice exclusive. -->
+    <om-widget position="top-left">
+      <style>
+        .panel { background: var(--om-widget-bg); color: var(--om-widget-fg);
+                 border: 1px solid var(--om-widget-border); border-radius: 10px;
+                 padding: 12px 15px; max-width: 254px; font-size: 12.5px; line-height: 1.5;
+                 box-shadow: 0 4px 18px rgba(0,0,0,.45); }
+        .panel h1 { margin: 0 0 5px; font-size: 14px; letter-spacing: .01em; }
+        .panel p { margin: 0 0 9px; }
+        .panel label { display: flex; align-items: center; gap: 7px; padding: 2px 0; cursor: pointer; }
+        .panel .field { color: var(--om-widget-muted); }
+      </style>
+      <div class="panel">
+        <h1>One dataset, four readings</h1>
+        <p>
+          243 world cities, from Tokyo at 35.7 million down to towns under
+          100,000. Dot size is metro population on every layer — only the
+          colour rule changes.
+        </p>
+        <label><input type="radio" name="encoding" checked
+                      data-emit="show-encoding" data-layer="by-size">
+               Sequential <span class="field">· population</span></label>
+        <label><input type="radio" name="encoding"
+                      data-emit="show-encoding" data-layer="by-band">
+               Threshold <span class="field">· population</span></label>
+        <label><input type="radio" name="encoding"
+                      data-emit="show-encoding" data-layer="by-hemisphere">
+               Diverging <span class="field">· latitude</span></label>
+        <label><input type="radio" name="encoding"
+                      data-emit="show-encoding" data-layer="by-status">
+               Categorical <span class="field">· capital city</span></label>
+      </div>
+    </om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

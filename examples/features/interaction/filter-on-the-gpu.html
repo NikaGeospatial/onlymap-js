@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<!--
+  `filter-field` names a numeric column and `filter-range` is the window kept.
+  Rows outside it are dropped in the shader — the data is never re-parsed, no
+  array is rebuilt, and nothing is uploaded again. That is why a slider over
+  twenty thousand points stays smooth where a JavaScript filter would not.
+
+  A filter is a plain prop rather than an accessor, so moving it never
+  triggers deck.gl's updateTriggers path. Reach for it whenever the reader's
+  question is "show me only the ones where…".
+
+  The map: 21,337 power stations worldwide, every one rated 10 MW or more.
+  Drag the capacity slider to watch the small stations fall away and the
+  fleet's real backbone appear — and watch the panel agree with it, because
+  both read the same filter.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Filter on the GPU</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.6/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.6/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #11141b;
+      --om-widget-fg: #f4f7fc;
+      --om-widget-muted: #8a93a5;
+      --om-widget-border: #252c38;
+      --om-widget-hover-bg: #1c222b;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[8, 34]" zoom="2.1" basemap="dark-matter">
+
+    <!-- filter-range is the STARTING window, not a hard limit — author it wide
+         and let the widget clamp it to the values actually present.
+
+         filter-category is the second, categorical filter: name a text column
+         and list the values to keep. It runs in the same shader pass as the
+         range, so a layer can carry both at once. Unlike the range it has no
+         built-in control and the filter-layer action does not touch it, so
+         treat a category list as authored state.
+
+         A ternary chain on get-fill-color is what the legend reads back to
+         build its key, so the palette is written once, here. -->
+    <om-layer id="stations" type="ScatterplotLayer"
+              data="../../data/global-power-plants.csv"
+              label="Power stations" color="#fbbf24"
+              get-position="[$lon, $lat]"
+              get-fill-color="$fuel == 'Nuclear' ? '#22d3ee'
+                            : $fuel == 'Coal' ? '#f43f5e'
+                            : $fuel == 'Gas' ? '#fbbf24'
+                            : $fuel == 'Hydro' ? '#4ade80'
+                            : $fuel == 'Wind' ? '#a78bfa'
+                            : $fuel == 'Solar' ? '#fde68a'
+                            : '#7c8798'"
+              get-radius="scale($capacity_mw, sqrt, [1.6, 26], domain=[10, 22500])"
+              radius-units="pixels" opacity="0.86" pickable
+              filter-field="capacity_mw" filter-range="[10, 22500]"></om-layer>
+
+    <!-- The widget emits filter-layer, which rewrites the layer's own
+         filter-range attribute — so the MANIFEST stays the source of truth and
+         an undo, a story step or a behavior moving the same filter re-syncs
+         this slider. Keep every filter on a map the same kind: a filter here
+         and a hand-rolled range control elsewhere will disagree. -->
+    <om-widget type="filter" layer="stations" field="capacity_mw" title="Capacity (MW)"
+               watch="layers data:stations" position="top-right"></om-widget>
+
+    <om-widget type="legend" title="Fuel" position="top-right" style="margin-top: 130px;"></om-widget>
+
+    <!-- ctx.stats reads the SAME declarative filter the shader is applying, so
+         a count here can never drift from what is drawn. Pass
+         { filtered: false } for a total that holds still while the slider
+         moves — this panel shows both, side by side. Watch `layers`: moving
+         the window changes filter-range, not the underlying data. -->
+    <om-widget position="top-left" watch="layers data:stations">
+      <style>
+        .panel { width: 232px; box-sizing: border-box; background: rgba(17,20,27,.92); color: #eef2f8;
+                 border: 1px solid #252c38; border-radius: 9px; padding: 11px 14px;
+                 font: 12px/1.5 system-ui, sans-serif; }
+        .panel h3 { margin: 0 0 8px; font: 650 13px system-ui, sans-serif; color: #fbbf24; }
+        .row { display: flex; justify-content: space-between; gap: 14px; margin: 3px 0; color: #8a93a5; }
+        .row b { color: #f4f7fc; font-variant-numeric: tabular-nums; }
+      </style>
+      <section class="panel" aria-live="polite">
+        <h3>Inside the window</h3>
+        <div class="row"><span>Stations shown</span><b id="shown">—</b></div>
+        <div class="row"><span>Of all stations</span><b id="total">—</b></div>
+        <div class="row"><span>Capacity shown</span><b id="gw">—</b></div>
+        <div class="row"><span>Largest</span><b id="max">—</b></div>
+      </section>
+      <script type="om/widget">
+        this.watch = ["layers", "data:stations"];
+        this.render = (ctx) => {
+          const kept = ctx.stats("stations", "capacity_mw");
+          const all = ctx.stats("stations", "capacity_mw", { filtered: false });
+          if (!all.count) return;
+          this.$("#shown").textContent = kept.count.toLocaleString();
+          this.$("#total").textContent = all.count.toLocaleString();
+          this.$("#gw").textContent = kept.count ? ((kept.mean * kept.count) / 1000).toFixed(0) + " GW" : "—";
+          this.$("#max").textContent = kept.count ? kept.max.toLocaleString() + " MW" : "—";
+        };
+      </script>
+    </om-widget>
+
+    <om-behavior on="hover" layer="stations" action="show-tooltip" template="#station-tip"></om-behavior>
+
+    <om-widget type="attribution"
+               text="Power stations © World Resources Institute, Global Power Plant Database v1.3, CC BY 4.0"
+               position="bottom-start"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <template id="station-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#11141b; color:#f4f7fc;
+                border:1px solid #252c38; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>{{name}}</b><br />
+      <span style="color:#8a93a5">{{capacity_mw}} MW · {{fuel}} · {{country}}</span>
+    </div>
+  </template>
+
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<!--
+  One filter, four consumers. `filter-range` on the layer is the only piece of
+  state this page has: the GPU cut, the casualty panel, the by-year histogram
+  and the undo stack all read it, so nothing on screen can drift out of step
+  with anything else. Reach for this shape when a dashboard has several views
+  of one dataset and they must agree.
+
+  The map: 13,182 significant U.S. tornadoes (EF2 and above), from the NOAA
+  Storm Prediction Center's 1950–2024 database. Drag the EF slider or press a
+  preset — 13,182 storms fall to 59 at EF5, while deaths only fall from 5,997
+  to 3,865, because the violent few percent cause most of them. Click a storm
+  for its record, or press ▶ (bottom-left) for the tour.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Tornado Alley, 1950–2024</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    /* The --om-widget-* variables restyle every built-in widget at once — the
+       EF slider and the story player pick this up without being touched. */
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #1a1a19;
+      --om-widget-fg: #ffffff;
+      --om-widget-muted: #898781;
+      --om-widget-border: #383835;
+      --om-widget-hover-bg: #2c2c2a;
+      --om-widget-accent: #bf403d;
+    }
+    /* The vega-lite built-in renders a bare chart, so give it a panel. */
+    om-widget[type="vega-lite"] {
+      background: #1a1a19; border: 1px solid #383835; border-radius: 6px;
+      padding: 10px 12px 6px; box-shadow: 0 4px 18px rgba(0,0,0,.45);
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-93.5, 37.8]" zoom="4.1" basemap="dark-matter">
+
+    <!-- A `threshold` scale maps the EF bands to discrete colours; its domain
+         takes the BREAKS between classes, so four colours need three numbers.
+         Radius grows faster than the rating so violent storms still read at
+         national zoom, and radius-units="pixels" keeps them that size —
+         radius is measured in metres otherwise. -->
+    <om-layer id="tornadoes" type="ScatterplotLayer"
+              data="../../data/tornadoes-ef2plus.csv"
+              label="Tornadoes" color="#ef5b52" pickable
+              filter-field="mag" filter-range="[2, 5]"
+              get-position="[$lon, $lat]"
+              get-fill-color="scale($mag, threshold, ['#8c2c2b','#bf403d','#ef5b52','#ffa198'], domain=[3,4,5])"
+              get-radius="$mag * $mag * 0.55"
+              radius-units="pixels" radius-min-pixels="1.4"
+              opacity="0.75"></om-layer>
+
+    <!-- Filter-aware AND viewport-scoped: scope:"viewport" counts only what is
+         both inside the EF window and on screen. Multiply mean by count when
+         you want a total, as the death and injury figures do here. -->
+    <om-widget position="top-start" order="1">
+      <style>
+        .panel { background: var(--om-widget-bg); color: var(--om-widget-fg);
+                 border: 1px solid var(--om-widget-border); border-radius: 10px;
+                 padding: 13px 15px; width: 218px; font-size: 12px;
+                 box-shadow: 0 4px 18px rgba(0,0,0,.45); }
+        .kicker { font-size: 10.5px; font-weight: 650; letter-spacing: .08em;
+                  text-transform: uppercase; color: var(--om-widget-muted); }
+        .hero { font-size: 27px; font-weight: 700; line-height: 1.15; margin: 2px 0 0; }
+        .ctx { color: var(--om-widget-muted); margin: 1px 0 10px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 10px;
+                border-top: 1px solid var(--om-widget-border); padding-top: 10px; }
+        .cell .v { font-size: 15px; font-weight: 650; }
+        .cell .l { color: var(--om-widget-muted); font-size: 10.5px; }
+        .deadliest { border-top: 1px solid var(--om-widget-border); margin-top: 10px;
+                     padding-top: 8px; color: #c3c2b7; line-height: 1.45; }
+        .deadliest b { color: #ffa198; }
+      </style>
+      <div class="panel">
+        <div class="kicker">In current view</div>
+        <div class="hero" id="count">—</div>
+        <div class="ctx" id="ctx">loading 75 years of records…</div>
+        <div class="grid">
+          <div class="cell"><div class="v" id="fat">—</div><div class="l">deaths</div></div>
+          <div class="cell"><div class="v" id="inj">—</div><div class="l">injuries</div></div>
+          <div class="cell"><div class="v" id="len">—</div><div class="l">longest track</div></div>
+          <div class="cell"><div class="v" id="worst">—</div><div class="l">strongest</div></div>
+        </div>
+        <div class="deadliest" id="deadliest"></div>
+      </div>
+      <script type="om/widget">
+        this.watch = ['data:tornadoes', 'viewport', 'layers'];
+        this.render = async (ctx) => {
+          const n     = ctx.stats('tornadoes', 'mag', { scope: 'viewport' });
+          const fat   = ctx.stats('tornadoes', 'fat', { scope: 'viewport' });
+          const inj   = ctx.stats('tornadoes', 'inj', { scope: 'viewport' });
+          const len   = ctx.stats('tornadoes', 'len', { scope: 'viewport' });
+          const match = ctx.stats('tornadoes', 'mag');                      // filtered, whole file
+          const total = ctx.stats('tornadoes', 'mag', { filtered: false }); // every row
+          this.$('#count').textContent = n.count.toLocaleString();
+          this.$('#ctx').textContent =
+            `${match.count.toLocaleString()} of ${total.count.toLocaleString()} tornadoes match the filter`;
+          this.$('#fat').textContent = n.count ? Math.round(fat.mean * fat.count).toLocaleString() : '—';
+          this.$('#inj').textContent = n.count ? Math.round(inj.mean * inj.count).toLocaleString() : '—';
+          this.$('#len').textContent = n.count ? len.max.toFixed(0) + ' mi' : '—';
+          this.$('#worst').textContent = n.count ? 'EF' + n.max : '—';
+          const rows = await ctx.dataInViewport('tornadoes');
+          const top = rows.reduce((a, r) => (r.fat > (a?.fat ?? -1) ? r : a), null);
+          this.$('#deadliest').innerHTML = (top && top.fat > 0)
+            ? `Deadliest in view: <b>${top.fat} killed</b> — EF${top.mag}, ${top.st}, ${top.date}`
+            : 'No fatal tornadoes in view';
+        };
+      </script>
+    </om-widget>
+
+    <!-- The built-in filter slider. Dragging it writes filter-range back onto
+         the layer element, which is why everything else on the page follows. -->
+    <om-widget type="filter" layer="tornadoes" field="mag" title="EF rating range"
+               position="top-start" order="2" watch="layers data:tornadoes"></om-widget>
+
+    <!-- Presets emit the same filter-layer action the slider does, and read
+         their active state back off the manifest — so undo (Cmd/Ctrl-Z) and
+         the tour, which clicks these very buttons, both stay in sync. -->
+    <om-widget id="ef-presets" position="top-start" order="3">
+      <style>
+        .presets { display: flex; gap: 5px; background: var(--om-widget-bg);
+                   border: 1px solid var(--om-widget-border); border-radius: 10px;
+                   padding: 6px; box-shadow: 0 4px 18px rgba(0,0,0,.45); }
+        button { flex: 1; border: none; border-radius: 6px; padding: 6px 4px;
+                 background: transparent; color: #c3c2b7; font: 600 11.5px system-ui;
+                 cursor: pointer; white-space: nowrap; }
+        button:hover { background: var(--om-widget-hover-bg); }
+        button.on { background: var(--om-widget-accent); color: #fff; }
+      </style>
+      <div class="presets">
+        <button data-lo="2">EF2+</button>
+        <button data-lo="3">EF3+</button>
+        <button data-lo="4">EF4+</button>
+        <button data-lo="5">EF5</button>
+      </div>
+      <script type="om/widget">
+        this.watch = ['layers'];
+        let last;
+        if (!this.state.wired) {
+          this.state.wired = true;
+          this.root.addEventListener('click', (e) => {
+            const b = e.target.closest('button[data-lo]');
+            if (b && last) last.emit('filter-layer',
+              { layer: 'tornadoes', field: 'mag', range: [Number(b.dataset.lo), 5] });
+          });
+        }
+        this.render = (ctx) => {
+          last = ctx;
+          const lo = ctx.layers.find(l => l.id === 'tornadoes')?.filter?.range?.[0] ?? 2;
+          for (const b of this.root.querySelectorAll('button[data-lo]'))
+            b.classList.toggle('on', Math.abs(Number(b.dataset.lo) - lo) < 0.01);
+        };
+      </script>
+    </om-widget>
+
+    <!-- A Vega-Lite spec in a <script type="application/json"> child, re-binned
+         on every pan and every filter change. At EF4+, 1974 (the Super
+         Outbreak) and 2011 (Joplin, Tuscaloosa) stand clear of everything. -->
+    <om-widget type="vega-lite" layer="tornadoes" watch="data:tornadoes viewport layers"
+               position="top-end" width="272" title="Tornadoes per year — in view">
+      <script type="application/json">
+        {
+          "background": "transparent",
+          "height": 108,
+          "mark": { "type": "bar", "color": "#ef5b52", "tooltip": true, "binSpacing": 1,
+                    "cornerRadiusTopLeft": 2, "cornerRadiusTopRight": 2 },
+          "encoding": {
+            "x": { "bin": { "maxbins": 38 }, "field": "yr", "type": "quantitative",
+                   "title": "year", "axis": { "format": "d" } },
+            "y": { "aggregate": "count", "type": "quantitative", "title": null }
+          },
+          "config": {
+            "view": { "stroke": null },
+            "axis": { "labelColor": "#898781", "titleColor": "#898781",
+                      "gridColor": "#2c2c2a", "domainColor": "#383835",
+                      "tickColor": "#383835", "labelFont": "system-ui",
+                      "titleFont": "system-ui", "labelFontSize": 10, "titleFontSize": 10 }
+          }
+        }
+      </script>
+    </om-widget>
+
+    <!-- Write the key by hand when the classes carry something a reader needs
+         named — the built-in legend draws a scale's swatches, and the words
+         beside them are yours. -->
+    <om-widget position="bottom-end">
+      <style>
+        .legend { background: var(--om-widget-bg); color: var(--om-widget-fg);
+                  border: 1px solid var(--om-widget-border); border-radius: 10px;
+                  padding: 11px 13px; font-size: 11.5px; min-width: 148px;
+                  box-shadow: 0 4px 18px rgba(0,0,0,.45); }
+        .legend h4 { margin: 0 0 7px; font-size: 12px; }
+        .row { display: flex; align-items: center; gap: 7px; margin: 4px 0; }
+        .dot { border-radius: 50%; flex: none; }
+        .row span:last-child { color: #c3c2b7; }
+        .row b { min-width: 26px; }
+      </style>
+      <div class="legend">
+        <h4>Enhanced Fujita scale</h4>
+        <div class="row"><span class="dot" style="width:7px;height:7px;background:#8c2c2b"></span><b>EF2</b><span>111–135 mph</span></div>
+        <div class="row"><span class="dot" style="width:9px;height:9px;background:#bf403d"></span><b>EF3</b><span>136–165 mph</span></div>
+        <div class="row"><span class="dot" style="width:11px;height:11px;background:#ef5b52"></span><b>EF4</b><span>166–200 mph</span></div>
+        <div class="row"><span class="dot" style="width:13px;height:13px;background:#ffa198"></span><b>EF5</b><span>&gt;200 mph</span></div>
+      </div>
+    </om-widget>
+
+    <!-- anchor-from="selection" pins the overlay to whatever was last clicked,
+         and {{field}} reads that feature's own CSV row. -->
+    <om-overlay id="storm-detail" anchor-from="selection" anchor-offset="bottom-center" visible="false">
+      <style>
+        .popup { background: #1a1a19; color: #fff; border: 1px solid #383835;
+                 border-radius: 10px; padding: 13px 15px; min-width: 200px;
+                 font: 12.5px system-ui; box-shadow: 0 8px 26px rgba(0,0,0,.55); }
+        .close { float: right; cursor: pointer; color: #898781; }
+        .when { font-weight: 650; }
+        .ef { font-size: 25px; font-weight: 700; color: #ef5b52; margin: 3px 0 7px; }
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 1.5px 0; color: #c3c2b7; }
+        td:last-child { text-align: right; color: #898781; }
+      </style>
+      <div class="popup">
+        <span class="close" data-emit="hide-overlay" data-target="storm-detail">✕</span>
+        <div class="when">{{date}} — {{st}}</div>
+        <div class="ef">EF{{mag}}</div>
+        <table>
+          <tr><td>Deaths</td><td>{{fat}}</td></tr>
+          <tr><td>Injuries</td><td>{{inj}}</td></tr>
+          <tr><td>Path</td><td>{{len}} mi × {{wid}} yd</td></tr>
+        </table>
+      </div>
+    </om-overlay>
+
+    <om-behavior on="click" layer="tornadoes" action="show-overlay" target="storm-detail"></om-behavior>
+
+    <!-- Tour cards. Each one shows the real markup powering what is on screen
+         at that moment. -->
+
+    <om-overlay id="tour-intro" anchor="[-93.5, 37.8]" anchor-offset="center" visible="false">
+      <style>
+        .card { width:min(400px,calc(100vw - 32px)); box-sizing:border-box; padding:14px;
+                border-radius:11px; background:rgba(255,255,255,.97); color:#172033;
+                box-shadow:0 6px 24px rgba(0,0,0,.28); font:650 13.5px/1.45 system-ui,sans-serif;
+                text-align:center; }
+      </style>
+      <div class="card">75 years of significant U.S. tornadoes — 13,182 records,
+        one declarative HTML file, zero build.</div>
+    </om-overlay>
+
+    <om-overlay id="tour-layer-card" anchor="[-93.5, 37.8]" anchor-offset="center" visible="false">
+      <style>
+        .card { width:min(410px,calc(100vw - 32px)); box-sizing:border-box; padding:14px;
+                border-radius:11px; background:rgba(255,255,255,.97); color:#172033;
+                box-shadow:0 6px 24px rgba(0,0,0,.28); font:13px/1.4 system-ui,sans-serif; }
+        .caption { margin-bottom:10px; font-weight:650; }
+        pre { margin:0; padding:11px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:#111827; color:#dbeafe; font:10.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .tag { color:#7dd3fc; } .attr { color:#c4b5fd; } .value { color:#86efac; }
+        .key { color:#fbbf24; font-weight:700; }
+      </style>
+      <div class="card">
+        <div class="caption">All 13,182 dots come from one <code>om-layer</code> element — the EF
+          bands are a declarative <code>threshold</code> scale, filtered on the GPU.</div>
+        <pre><code><span class="tag">&lt;om-layer</span> <span class="attr">id</span>=<span class="value">"tornadoes"</span> <span class="attr">type</span>=<span class="key">"ScatterplotLayer"</span>
+  <span class="attr">data</span>=<span class="value">"tornadoes-ef2plus.csv"</span>
+  <span class="attr">get-fill-color</span>=<span class="value">"scale($mag, threshold, …)"</span>
+  <span class="attr">filter-field</span>=<span class="key">"mag"</span> <span class="attr">filter-range</span>=<span class="value">"[2, 5]"</span><span class="tag">&gt;
+&lt;/om-layer&gt;</span></code></pre>
+      </div>
+    </om-overlay>
+
+    <!-- A widget sits in a managed screen slot and holds still while the
+         camera moves under it; an overlay is geo-anchored and travels with
+         the map. Pick the one that matches what the card is about. The module
+         script at the end toggles this one on the story's own clock. -->
+    <om-widget id="tour-stats-card" position="bottom-center" style="display:none" aria-hidden="true">
+      <style>
+        .card { width:min(430px,calc(100vw - 32px)); box-sizing:border-box; padding:14px;
+                border-radius:11px; background:rgba(255,255,255,.97); color:#172033;
+                box-shadow:0 6px 24px rgba(0,0,0,.28); font:13px/1.4 system-ui,sans-serif; }
+        .caption { margin-bottom:10px; font-weight:650; }
+        pre { margin:0; padding:11px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:#111827; color:#dbeafe; font:10.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .tag { color:#7dd3fc; } .attr { color:#c4b5fd; } .value { color:#86efac; }
+        .key { color:#fbbf24; font-weight:700; } .method { color:#f9a8d4; }
+      </style>
+      <div class="card">
+        <div class="caption">The casualty panel is a widget script — <code>ctx.stats()</code> is
+          filter-aware and viewport-scoped, so the numbers can never disagree with the dots.</div>
+        <pre><code><span class="tag">&lt;script</span> <span class="attr">type</span>=<span class="value">"om/widget"</span><span class="tag">&gt;</span>
+  <span class="key">this.render</span> = (ctx) =&gt; {
+    const deaths = ctx.<span class="method">stats</span>(<span class="value">"tornadoes"</span>, <span class="value">"fat"</span>,
+      { scope: <span class="key">"viewport"</span> });
+  };
+<span class="tag">&lt;/script&gt;</span></code></pre>
+      </div>
+    </om-widget>
+
+    <om-overlay id="tour-filter-card" anchor="[-93.5, 37.8]" anchor-offset="center" visible="false">
+      <style>
+        .card { transform:translate(calc(-50vw + 505px),calc(-50vh + 430px));
+                width:min(430px,calc(100vw - 32px)); box-sizing:border-box; padding:14px;
+                border-radius:11px; background:rgba(255,255,255,.97); color:#172033;
+                box-shadow:0 6px 24px rgba(0,0,0,.28); font:13px/1.4 system-ui,sans-serif; }
+        .caption { margin-bottom:10px; font-weight:650; }
+        pre { margin:0; padding:11px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:#111827; color:#dbeafe; font:10.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .tag { color:#7dd3fc; } .attr { color:#c4b5fd; } .value { color:#86efac; }
+        .key { color:#fbbf24; font-weight:700; } .method { color:#f9a8d4; }
+        @media (max-width:700px) { .card { transform:translate(0,35px); } }
+      </style>
+      <div class="card">
+        <div class="caption">One attribute drives everything. The slider, the preset buttons, and
+          the story you're watching all emit the same action — layer, stats, histogram, and undo
+          history follow.</div>
+        <pre><code><span class="tag">&lt;om-widget</span> <span class="attr">type</span>=<span class="key">"filter"</span> <span class="attr">layer</span>=<span class="value">"tornadoes"</span> <span class="attr">field</span>=<span class="value">"mag"</span><span class="tag">&gt;</span>
+
+ctx.<span class="method">emit</span>(<span class="value">"filter-layer"</span>,
+  { field: <span class="key">"mag"</span>, range: [4, 5] });</code></pre>
+      </div>
+    </om-overlay>
+
+    <om-overlay id="tour-action-card" anchor="[-93.5, 37.8]" anchor-offset="center" visible="false">
+      <style>
+        .card { width:min(390px,calc(100vw - 32px)); box-sizing:border-box; padding:14px;
+                border-radius:11px; background:rgba(255,255,255,.97); color:#172033;
+                box-shadow:0 6px 24px rgba(0,0,0,.28); font:650 13.5px/1.4 system-ui,sans-serif;
+                text-align:center; }
+      </style>
+      <div class="card">Now watch it climb the Enhanced Fujita scale —</div>
+    </om-overlay>
+
+    <om-overlay id="tour-joplin-card" anchor="[-94.5932, 37.0524]" anchor-offset="bottom-center" visible="false">
+      <style>
+        .card { width:min(370px,calc(100vw - 32px)); box-sizing:border-box; padding:14px 16px;
+                border-radius:11px; background:rgba(255,255,255,.97); color:#172033;
+                box-shadow:0 6px 24px rgba(0,0,0,.28); font:13px/1.45 system-ui,sans-serif;
+                margin-bottom:14px; }
+        .ef5 { color:#bf403d; font-weight:750; font-size:15px; }
+      </style>
+      <div class="card">
+        <div class="ef5">EF5 — Joplin, Missouri · May 22, 2011</div>
+        158 killed, 1,150 injured along a 21.6-mile track — the deadliest U.S. tornado
+        since modern records began, one of only 59 EF5s in 75 years.
+      </div>
+    </om-overlay>
+
+    <om-overlay id="tour-cta-card" anchor="[-93.5, 37.8]" anchor-offset="center" visible="false">
+      <style>
+        .card { display:grid; grid-template-columns:minmax(175px,.85fr) minmax(235px,1.15fr);
+                gap:14px; align-items:center; width:min(520px,calc(100vw - 32px));
+                box-sizing:border-box; padding:14px 18px; border-radius:11px;
+                background:rgba(255,255,255,.97); color:#172033;
+                box-shadow:0 6px 24px rgba(0,0,0,.28); font:14px/1.4 system-ui,sans-serif; }
+        .package { color:#bf403d; font-weight:700; }
+        pre { margin:0; padding:10px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:#111827; color:#dbeafe; font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .command { color:#fbbf24; } .package-code { color:#86efac; font-weight:700; }
+        @media (max-width:700px) { .card { grid-template-columns:1fr; width:min(340px,calc(100vw - 32px)); } }
+      </style>
+      <div class="card">
+        <div>Try it today: OnlyMapJS on npm at <span class="package">@nika-js/onlymap</span></div>
+        <pre><code><span class="command">npm install</span> <span class="package-code">@nika-js/onlymap</span></code></pre>
+      </div>
+    </om-overlay>
+
+    <!-- The timeline. Steps fire the same actions a button or a behavior does,
+         and the story is a SIBLING of the scene — delete it and the map above
+         is unchanged. The EF beats are fly-to steps; the module script below
+         watches the clock and presses the matching preset at each one. -->
+    <om-story id="tornado-tour" interrupt="pause">
+      <om-step duration="4000ms" action="show-overlay" target="tour-intro"></om-step>
+      <om-step action="hide-overlay" target="tour-intro"></om-step>
+      <om-step duration="5000ms" action="show-overlay" target="tour-layer-card"></om-step>
+      <om-step action="hide-overlay" target="tour-layer-card"></om-step>
+      <!-- Dive into the dense east, sweep west, settle home. Every in-view
+           number re-derives on each move — the proof the panel cannot lie. -->
+      <om-step duration="2100ms" action="fly-to" center="[-86.5, 38.6]" zoom="4.9"></om-step>
+      <om-step duration="1600ms" action="fly-to" center="[-99.8, 36.5]" zoom="4.7"></om-step>
+      <om-step duration="1300ms" action="fly-to" center="[-93.5, 37.8]" zoom="4.1"></om-step>
+      <om-step duration="5000ms" action="show-overlay" target="tour-filter-card"></om-step>
+      <om-step action="hide-overlay" target="tour-filter-card"></om-step>
+      <om-step duration="2200ms" action="show-overlay" target="tour-action-card"></om-step>
+      <om-step action="hide-overlay" target="tour-action-card"></om-step>
+      <om-step duration="2400ms" action="fly-to" center="[-93.5, 37.8]" zoom="4.15"></om-step>
+      <om-step duration="2400ms" action="fly-to" center="[-93.5, 37.8]" zoom="4.25"></om-step>
+      <om-step duration="3000ms" action="fly-to" center="[-94.5932, 37.0524]" zoom="6.3" curve></om-step>
+      <om-step duration="5000ms" action="show-overlay" target="tour-joplin-card"></om-step>
+      <om-step action="hide-overlay" target="tour-joplin-card"></om-step>
+      <om-step duration="2400ms" action="fly-to" center="[-93.5, 37.8]" zoom="4.1"></om-step>
+      <om-step duration="4500ms" action="show-overlay" target="tour-cta-card"></om-step>
+      <om-step action="hide-overlay" target="tour-cta-card"></om-step>
+    </om-story>
+
+    <om-widget type="player" story="tornado-tour" position="bottom-start"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file from a web server in a browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <script type="module">
+    // The EF beats press the page's OWN preset buttons, so the buttons light
+    // up and the layer, stats and histogram react exactly as they would for a
+    // human click. `om-story-tick` carries the story clock; the thresholds
+    // mirror the timeline above.
+    await customElements.whenDefined("om-story");
+    const tour = document.querySelector("#tornado-tour");
+    const presets = document.querySelector("#ef-presets");
+    const statsCard = document.querySelector("#tour-stats-card");
+    const BEATS = [        // [story time ms, EF preset to press]
+      [34000, 2],          // flight home → reset to EF2+
+      [26000, 5],          // Joplin flight + card
+      [23600, 4],
+      [21200, 3],
+      [0, 2],
+    ];
+    let applied = 2;
+    tour.addEventListener("om-story-tick", (event) => {
+      const t = event.detail.t;
+      const cardOn = t >= 9000 && t < 14000;   // rides the camera-sweep window
+      statsCard.style.display = cardOn ? "" : "none";
+      statsCard.setAttribute("aria-hidden", String(!cardOn));
+      const lo = BEATS.find(([at]) => t >= at)[1];
+      if (lo === applied) return;
+      applied = lo;
+      presets.shadowRoot?.querySelector(`button[data-lo="${lo}"]`)?.click();
+    });
+  </script>
+
+</body>
+</html>

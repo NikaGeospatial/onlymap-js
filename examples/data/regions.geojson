@@ -1,0 +1,38 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "North Beach", "population": 12400, "area_km2": 1.9, "founded": 1847 },
+      "id": "north-beach",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.415, 37.805], [-122.400, 37.805], [-122.400, 37.798], [-122.415, 37.798], [-122.415, 37.805]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Mission", "population": 58900, "area_km2": 6.3, "founded": 1776 },
+      "id": "mission",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.425, 37.765], [-122.405, 37.765], [-122.405, 37.748], [-122.425, 37.748], [-122.425, 37.765]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Sunset", "population": 85300, "area_km2": 10.1, "founded": 1890 },
+      "id": "sunset",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.51, 37.765], [-122.485, 37.765], [-122.485, 37.740], [-122.51, 37.740], [-122.51, 37.765]
+        ]]
+      }
+    }
+  ]
+}

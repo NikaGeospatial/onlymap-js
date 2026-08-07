@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<!--
+  TileLayer draws imagery that a server publishes as a pyramid of {z}/{x}/{y}
+  tiles — the same shape a basemap uses, but as a layer you own: it sits in the
+  layer stack, takes an opacity, and toggles like anything else.
+
+  Point `data` at the URL TEMPLATE, not at a file. OnlyMapJS recognises the
+  {z}/{x}/{y} tokens and hands the template to deck.gl instead of fetching it,
+  so nothing tries to parse a JPEG as rows.
+
+  The map: NASA's MODIS true-colour mosaic for one day. Every cloud on screen
+  was photographed that morning. Change the date in the URL and the whole map
+  moves to another day.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Add a raster tile layer</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.3/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.3/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #10141c;
+      --om-widget-fg: #f1f5f9;
+      --om-widget-muted: #8b93a7;
+      --om-widget-border: #262e3a;
+      --om-widget-hover-bg: #1b212b;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[20, 18]" zoom="2.2" basemap="dark-matter">
+
+    <!-- The tokens may appear in any order: NASA serves {z}/{y}/{x} and
+         deck.gl substitutes by name, so a published URL goes in unchanged. A
+         raster tile layer needs no accessors at all — there are no rows.
+
+         max-zoom stops the layer asking for levels the service never made.
+         Past it deck.gl keeps stretching the deepest tiles it has instead of
+         collecting 404s; this product stops at level 8.
+
+         tile-size is the pixel size of one tile, 256 for almost every XYZ
+         service. Lower the opacity and the basemap shows through, which is how
+         you use imagery as an underlay rather than as the whole map.
+
+         `color` never touches the pixels — imagery arrives already coloured.
+         It is the swatch the legend puts beside the layer name, so pick
+         something that reads against the rest of the map. -->
+    <om-layer id="satellite" type="TileLayer"
+              data="https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2026-07-20/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg"
+              label="MODIS true colour · 20 July 2026" color="#38bdf8"
+              min-zoom="0" max-zoom="8"
+              tile-size="256"
+              opacity="1"></om-layer>
+
+    <om-widget type="attribution"
+               text="Imagery: NASA Global Imagery Browse Services (GIBS), part of NASA ESDIS"
+               position="bottom-start"></om-widget>
+
+    <om-widget type="legend" title="Layers" position="top-right" interactive></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: rgba(16,20,28,.88); color: #e2e8f0; padding: 10px 14px;
+                 border-radius: 8px; font-size: 13px; max-width: 265px; line-height: 1.45; }
+        .panel b { color: #7dd3fc; }
+      </style>
+      <div class="panel">
+        <b>One day of weather, from orbit.</b> Toggle the layer off in the
+        legend to see the basemap underneath — the imagery is a layer, not a
+        basemap.
+      </div>
+    </om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

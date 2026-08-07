@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<!--
+  A whole map built around ONE number. Every station and every stretch of
+  track carries the year it opened, and a single slider moves a filter across
+  that field — so the same 1987-to-2026 attribute drives the geometry, the
+  station dots, the running totals, and the caption together. Reach for this
+  shape whenever your data has a date on it and the story is how something
+  grew.
+
+  The map: 39 years of the Singapore MRT and LRT, drawn from OpenStreetMap.
+  Track is split at every station, so each piece appears in the year its own
+  two stations opened — the network really does grow line by line rather than
+  switching on whole. Drag the year slider at the bottom, or press ▶ and watch
+  16 km become 273. Hover any station for its name and opening year.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Singapore rail network, 1987–2026</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    /* The --om-widget-* variables restyle every built-in widget at once, so
+       the legend and scale bar match the dark basemap without touching them. */
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #12161d;
+      --om-widget-fg: #f1f5f9;
+      --om-widget-muted: #7d8899;
+      --om-widget-border: #26303d;
+      --om-widget-hover-bg: #1d2530;
+      --om-widget-accent: #38bdf8;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[103.83, 1.352]" zoom="10.9" basemap="dark-matter">
+
+    <!-- Track, one feature per station-to-station hop. `$color` reads the
+         official line colour straight off each feature, so the palette lives
+         in the data instead of the markup. filter-range is the live window —
+         the scrubber below rewrites its upper bound, and the cut is applied
+         on the GPU without reloading anything. -->
+    <om-layer id="track" type="GeoJsonLayer"
+              data="../../data/sg-rail-lines.geojson"
+              label="Track" color="#94a3b8"
+              get-line-color="$color"
+              line-width-min-pixels="2.4" line-width-units="pixels"
+              stroked filled="false" pickable
+              filter-field="year" filter-range="[1987, 2026]"></om-layer>
+
+    <!-- Stations sit above the track. point-radius-units="pixels" keeps the
+         dots a fixed size — radius is measured in metres otherwise, and they
+         shrink to nothing as you zoom out to see the whole island. -->
+    <om-layer id="stations" type="GeoJsonLayer"
+              data="../../data/sg-rail-stations.geojson"
+              label="Stations" color="#e2e8f0"
+              get-fill-color="$color"
+              get-line-color="[255, 255, 255]"
+              get-point-radius="4"
+              point-radius-units="pixels" point-radius-min-pixels="2.5"
+              line-width-min-pixels="1.2"
+              filled stroked pickable
+              filter-field="year" filter-range="[1987, 2026]"></om-layer>
+
+    <om-widget position="top-left" order="-10">
+      <style>
+        .title { width: 236px; box-sizing: border-box; padding: 11px 14px; border-radius: 10px;
+                 background: var(--om-widget-bg); border: 1px solid var(--om-widget-border);
+                 color: var(--om-widget-fg); box-shadow: 0 4px 18px rgba(0,0,0,.45);
+                 font: 700 15px/1.25 system-ui, sans-serif; }
+        .title small { display: block; margin-top: 3px; color: var(--om-widget-muted);
+                       font: 400 11.5px/1.35 system-ui, sans-serif; }
+      </style>
+      <div class="title">
+        Singapore rail, 1987–2026
+        <small>Every station and every kilometre, in the year it opened</small>
+      </div>
+    </om-widget>
+
+    <!-- Running totals. ctx.stats is filter-aware, so both numbers fall out of
+         the same window the slider set — they cannot disagree with the map.
+         Multiply mean by count when you want a total. -->
+    <om-widget id="totals" position="top-left" watch="data:track data:stations layers">
+      <style>
+        .panel { width: 236px; box-sizing: border-box; padding: 13px 15px; border-radius: 10px;
+                 background: var(--om-widget-bg); border: 1px solid var(--om-widget-border);
+                 color: var(--om-widget-fg); box-shadow: 0 4px 18px rgba(0,0,0,.45);
+                 font: 12px/1.35 system-ui, sans-serif; }
+        .year { font: 700 30px/1 system-ui, sans-serif; letter-spacing: -.01em; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-top: 11px;
+                border-top: 1px solid var(--om-widget-border); padding-top: 10px; }
+        .v { font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
+        .l { color: var(--om-widget-muted); font-size: 10.5px; }
+        .note { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--om-widget-border);
+                color: var(--om-widget-muted); font-size: 10.5px; line-height: 1.45; }
+        .note a { color: #7dd3fc; }
+      </style>
+      <div class="panel">
+        <div class="year" id="year">—</div>
+        <div class="grid">
+          <div><div class="v" id="stations">—</div><div class="l">stations open</div></div>
+          <div><div class="v" id="km">—</div><div class="l">route km</div></div>
+        </div>
+        <div class="note">
+          Geometry and station positions from
+          <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>;
+          opening dates from Wikidata.
+        </div>
+      </div>
+      <script type="om/widget">
+        this.watch = ["data:track", "data:stations", "layers"];
+        this.render = (ctx) => {
+          const window = ctx.layers.find((l) => l.id === "track")?.filter?.range;
+          const km = ctx.stats("track", "km");
+          const open = ctx.stats("stations", "year");
+          this.$("#year").textContent = window ? Math.round(window[1]) : "—";
+          this.$("#stations").textContent = open.count || "—";
+          this.$("#km").textContent = km.count ? Math.round(km.mean * km.count) : "—";
+        };
+      </script>
+    </om-widget>
+
+    <!-- The scrubber emits filter-layer on both layers — the same action a
+         behavior or a built-in <om-widget type="filter"> emits. The action is
+         the contract: whatever sends it, the layers and the stats follow.
+         Write a widget script like this when you want a control of your own,
+         here a play button and a plain year stamp. -->
+    <om-widget id="scrubber" position="bottom-center" style="margin-bottom:14px">
+      <style>
+        .bar { display: flex; align-items: center; gap: 13px;
+               width: min(560px, calc(100vw - 32px)); box-sizing: border-box;
+               padding: 11px 15px; border-radius: 12px;
+               background: var(--om-widget-bg); border: 1px solid var(--om-widget-border);
+               color: var(--om-widget-fg); box-shadow: 0 4px 20px rgba(0,0,0,.5);
+               font: 12px/1.2 system-ui, sans-serif; }
+        button { flex: none; width: 34px; height: 34px; border: 0; border-radius: 50%;
+                 background: var(--om-widget-accent); color: #06121c; font-size: 13px; cursor: pointer; }
+        input { flex: 1; min-width: 0; accent-color: var(--om-widget-accent); cursor: ew-resize; }
+        .stamp { flex: none; min-width: 4ch; font-weight: 650; font-variant-numeric: tabular-nums; }
+        .caption { flex: none; width: 15ch; color: var(--om-widget-muted); font-size: 11px; }
+        @media (max-width: 560px) { .caption { display: none; } }
+      </style>
+      <div class="bar">
+        <button id="play" type="button" aria-label="Play the network growing">▶</button>
+        <input id="year" type="range" min="1987" max="2026" step="1" value="2026"
+               aria-label="Show the network as it stood in this year" />
+        <span class="stamp" id="stamp">2026</span>
+        <span class="caption" id="caption"></span>
+      </div>
+      <script type="om/widget">
+        // Opening years, so the caption can name what arrived in each one.
+        const OPENED = {
+          1987: "North South Line", 1990: "East West Line complete", 1996: "Woodlands extension",
+          1999: "Bukit Panjang LRT", 2002: "Changi Airport", 2003: "North East Line",
+          2005: "Punggol LRT", 2009: "Circle Line", 2013: "Downtown Line",
+          2017: "Tuas West extension", 2020: "Thomson-East Coast Line", 2026: "Circle Line closes the loop",
+        };
+        this.watch = [];
+        this.render = (ctx) => {
+          if (this.state.ready) return;
+          this.state.ready = true;
+          const slider = this.$("#year");
+          const button = this.$("#play");
+          // Read the opening view off the map element so there is one source
+          // of truth for it; fly-to parses the center string for you.
+          const map = this.closest("om-map");
+          const home = { center: map.getAttribute("center"), zoom: map.getAttribute("zoom") };
+
+          const apply = (year) => {
+            this.$("#stamp").textContent = year;
+            this.$("#caption").textContent = OPENED[year] ?? "";
+            for (const layer of ["track", "stations"]) {
+              ctx.emit("filter-layer", { layer, field: "year", range: [1987, year] });
+            }
+          };
+          const stop = () => {
+            clearInterval(this.state.timer);
+            this.state.timer = null;
+            button.textContent = "▶";
+          };
+
+          slider.addEventListener("input", () => { stop(); apply(Number(slider.value)); });
+          button.addEventListener("click", () => {
+            if (this.state.timer) return stop();
+            if (Number(slider.value) >= 2026) slider.value = "1987";
+            // Frame the whole island again — panning away mid-playback would
+            // otherwise leave the network growing off screen.
+            ctx.emit("fly-to", { ...home, duration: 700, curve: true });
+            button.textContent = "❚❚";
+            apply(Number(slider.value));
+            this.state.timer = setInterval(() => {
+              // A widget outlives no map: stop the clock if this one is gone.
+              if (!this.isConnected || Number(slider.value) >= 2026) return stop();
+              slider.value = String(Number(slider.value) + 1);
+              apply(Number(slider.value));
+            }, 420);
+          });
+          apply(2026);
+        };
+      </script>
+    </om-widget>
+
+    <!-- Reach for the built-in legend when your fill is a scale(), and write
+         the key by hand when colour comes straight off a field like `$color`
+         — as it does here, where each line carries the operator's own. -->
+    <om-widget position="bottom-right">
+      <style>
+        .key { padding: 11px 13px; border-radius: 10px; min-width: 150px;
+               background: var(--om-widget-bg); border: 1px solid var(--om-widget-border);
+               color: var(--om-widget-fg); box-shadow: 0 4px 18px rgba(0,0,0,.45);
+               font: 11.5px/1.2 system-ui, sans-serif; }
+        .key h4 { margin: 0 0 8px; font-size: 12px; }
+        .row { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+        .dash { width: 15px; height: 3px; border-radius: 2px; flex: none; }
+        .row span { color: #c2ccd9; }
+      </style>
+      <div class="key">
+        <h4>Lines</h4>
+        <div class="row"><i class="dash" style="background:#DF2518"></i><span>North South</span></div>
+        <div class="row"><i class="dash" style="background:#009D57"></i><span>East West</span></div>
+        <div class="row"><i class="dash" style="background:#851197"></i><span>North East</span></div>
+        <div class="row"><i class="dash" style="background:#F79F07"></i><span>Circle</span></div>
+        <div class="row"><i class="dash" style="background:#03529F"></i><span>Downtown</span></div>
+        <div class="row"><i class="dash" style="background:#9D5B25"></i><span>Thomson-East Coast</span></div>
+        <div class="row"><i class="dash" style="background:#748477"></i><span>LRT</span></div>
+      </div>
+    </om-widget>
+
+    <om-behavior on="hover" layer="stations" action="show-tooltip" template="#station-tip"></om-behavior>
+    <om-behavior on="hover" layer="track" action="show-tooltip" template="#track-tip"></om-behavior>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <!-- One template per layer, each named by id from its own behavior above.
+       {{field}} reads the hovered feature's own properties. -->
+  <template id="station-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#12161d; color:#f1f5f9;
+                border:1px solid #26303d; box-shadow:0 3px 12px rgba(0,0,0,.5);
+                font:12px/1.35 system-ui, sans-serif;">
+      <strong>{{name}}</strong> {{name_zh}}<br />
+      <span style="color:#7d8899">{{codes}} · opened {{year}}</span>
+    </div>
+  </template>
+
+  <template id="track-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#12161d; color:#f1f5f9;
+                border:1px solid #26303d; box-shadow:0 3px 12px rgba(0,0,0,.5);
+                font:12px/1.35 system-ui, sans-serif;">
+      <strong>{{line}}</strong><br />
+      <span style="color:#7d8899">{{from}} → {{to}} · {{year}}</span>
+    </div>
+  </template>
+
+</body>
+</html>

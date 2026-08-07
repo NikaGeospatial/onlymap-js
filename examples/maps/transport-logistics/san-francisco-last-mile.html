@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<!--
+  A fleet-tracking map: twenty delivery vehicles polled from a REST endpoint,
+  drawn over the rounds they are assigned. `refresh="1s"` re-fetches the
+  vehicle snapshot every second and each poll REPLACES the rows — polling is
+  the transport to reach for when the server owns the state and a second of
+  latency is fine. A feed that pushes only what changed wants a socket and an
+  upsert `key` instead; Bay Area shipping is that half.
+
+  The rounds come from the same service, fetched ONCE — positions and route
+  geometry share an origin, so a vehicle can never drift beside its own line.
+  Keep them together whenever one service owns both.
+
+  The map: watch a vehicle long enough and it closes its loop. Hover a vehicle
+  or a route for details, click a vehicle to pick out its round. The endpoint
+  401s without a bearer token, attached programmatically in the head —
+  credentials go in a header you set, never in the markup itself.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — San Francisco last mile</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.12/dist/onlymapjs.css" />
+  <script type="module">
+    import { OmMap } from "https://unpkg.com/@nika-js/onlymap@0.5.12/dist/onlymap.standalone.js";
+    OmMap.configureData({ headers: { Authorization: "Bearer demo-fleet-token" } });
+
+    // A custom action is the seam for anything spanning two layers: the
+    // built-ins take one layer from the pick, and this needs both. Writing
+    // `highlighted-id` keeps the result in the manifest, so it is inspectable
+    // and undoable.
+    OmMap.registerAction("select-round", (payload, mapEl) => {
+      const id = payload.feature?.id ?? null;
+      for (const layer of ["rounds", "drivers"]) {
+        const el = mapEl.querySelector(`om-layer[id="${layer}"]`);
+        if (id == null) el.removeAttribute("highlighted-id");
+        else el.setAttribute("highlighted-id", String(id));
+      }
+    });
+  </script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-122.41, 37.765]" zoom="13" basemap="liberty">
+
+    <!-- Declared FIRST — layers paint in document order, so these lines would
+         otherwise cover the vehicles.
+
+         Light, thin and behind, because the route is context and the vehicle
+         is the subject. Give both the same weight and they read as one smear.
+
+         `highlighted-id` lights the selection in deck's own highlight colour.
+         When a selection has to match your palette, colour it through
+         `get-color` instead. -->
+    <om-layer id="rounds" type="PathLayer"
+                data="https://om-examples.nika.eco/rounds"
+                label="Delivery rounds" color="#60a5fa"
+                get-path="$path"
+                get-color="[96, 165, 250, 130]"
+                get-width="2" width-units="pixels" width-min-pixels="1.2"
+                cap-rounded joint-rounded pickable></om-layer>
+
+    <om-layer id="drivers" type="IconLayer"
+                data="https://om-examples.nika.eco/fleet" refresh="1s"
+                label="Vehicles (polled every second)" color="#1e3a8a"
+                icon-atlas="../../data/vehicle.svg"
+                icon-mapping='{"vehicle": {"x": 0, "y": 0, "width": 64, "height": 64, "mask": true, "anchorX": 32, "anchorY": 32}}'
+                get-icon="'vehicle'"
+                get-position="[$lon, $lat]"
+                get-angle="-$heading"
+                get-color="scale($speed, sequential, ['#1e3a8a', '#0b1220'], domain=[0, 60])"
+                get-size="20"
+                pickable></om-layer>
+
+    <om-widget type="legend" title="Layers" position="top-right"></om-widget>
+
+    <om-widget position="top-left" watch="data:drivers">
+      <style>
+        .panel { background: #fff; padding: 10px 14px; border-radius: 8px; font: 12px system-ui;
+                 box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+        .row { display: flex; justify-content: space-between; gap: 18px; margin: 3px 0; }
+      </style>
+      <div class="panel">
+        <strong>Fleet</strong>
+        <div class="row"><span>Drivers</span><b id="count">—</b></div>
+        <div class="row"><span>Mean speed</span><b id="mean">—</b></div>
+        <div class="row"><span>Fastest</span><b id="max">—</b></div>
+      </div>
+      <script type="om/widget">
+        this.watch = ["data:drivers"];
+        this.render = (ctx) => {
+          const s = ctx.stats("drivers", "speed");
+          if (!s.count) return;
+          this.$("#count").textContent = s.count;
+          this.$("#mean").textContent = s.mean.toFixed(0) + " km/h";
+          this.$("#max").textContent = s.max.toFixed(0) + " km/h";
+        };
+      </script>
+    </om-widget>
+
+    <om-behavior on="hover" layer="drivers" action="show-tooltip"
+                   template="#driver-tooltip"></om-behavior>
+
+    <!-- Click a vehicle to pick out the round it is working. The selection
+         stays until you click another vehicle. -->
+    <om-behavior on="click" layer="drivers" action="select-round"></om-behavior>
+
+    <!-- One behavior per (event, layer) pair, so the rounds get their own —
+         the properties come from the GeoJSON, not from the live feed. -->
+    <om-behavior on="hover" layer="rounds" action="show-tooltip"
+                   template="#round-tooltip"></om-behavior>
+
+  </om-map>
+
+  <template id="round-tooltip">
+    <div style="background:#222; color:#fff; padding:4px 8px; border-radius:4px; font:12px system-ui, sans-serif;">
+      <b>{{driver}}</b>'s round — {{km}} km, about {{minutes}} min
+    </div>
+  </template>
+
+  <template id="driver-tooltip">
+    <div style="background:#222; color:#fff; padding:4px 8px; border-radius:4px; font:12px system-ui, sans-serif;">
+      <b>{{name}}</b> ({{id}}) — {{speed}} km/h
+    </div>
+  </template>
+
+</body>
+</html>

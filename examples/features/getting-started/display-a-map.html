@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<!--
+  The smallest complete OnlyMapJS page: one <om-map>, one <om-layer>, and the
+  data inline. No build step, no JavaScript of your own, no fetch.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Display a map</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <!-- center is [lng, lat] — longitude first. pitch tilts (0-60), bearing
+       rotates (0 = north up). Edit any attribute live and the map follows. -->
+  <om-map center="[-122.42, 37.77]" zoom="12.5" pitch="45" bearing="-20" basemap="voyager">
+
+    <!-- Inline data goes in a <script type="application/json"> child. It wins
+         over the `data` attribute, so the layer has none. Read fields with $. -->
+    <om-layer id="landmarks" type="ScatterplotLayer"
+              label="San Francisco landmarks" color="#e6550d"
+              get-position="[$lon, $lat]"
+              get-radius="scale($visitors, sqrt, [6, 26], domain=[0, 20])"
+              radius-units="pixels" pickable>
+      <script type="application/json">
+        [
+          { "name": "Golden Gate Bridge", "lon": -122.4783, "lat": 37.8199, "visitors": 15 },
+          { "name": "Ferry Building",     "lon": -122.3934, "lat": 37.7955, "visitors": 8 },
+          { "name": "Coit Tower",         "lon": -122.4058, "lat": 37.8024, "visitors": 5 },
+          { "name": "Painted Ladies",     "lon": -122.4327, "lat": 37.7762, "visitors": 4 },
+          { "name": "Ocean Beach",        "lon": -122.5097, "lat": 37.7594, "visitors": 11 },
+          { "name": "Mission Dolores",    "lon": -122.4269, "lat": 37.7644, "visitors": 3 }
+        ]
+      </script>
+    </om-layer>
+
+    <!-- The legend reads `label` and `color` off each layer. -->
+    <om-widget type="legend" position="top-right"></om-widget>
+
+    <!-- Click a point: {{name}} interpolates from the picked row. -->
+    <om-overlay id="detail" anchor-from="selection" visible="false">
+      <style>
+        .card { background: #fff; padding: 8px 12px; border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,.2); font-size: 13px; white-space: nowrap; }
+      </style>
+      <div class="card"><strong>{{name}}</strong><br />{{visitors}}M visitors a year</div>
+    </om-overlay>
+    <om-behavior on="click" layer="landmarks" action="show-overlay" target="detail"></om-behavior>
+
+    <!-- Shown only where scripts never run (email and chat file previews,
+         iOS QuickLook); hidden once the map boots. Worth adding to any page.
+         The gate is pure CSS, which is why the <link> above is a real one. -->
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        You are seeing a preview that does not run scripts. Open this file in a
+        web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

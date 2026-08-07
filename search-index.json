@@ -1,0 +1,345 @@
+[
+  {
+    "slug": "display-a-map",
+    "title": "Display a map",
+    "phase": "features",
+    "category": "getting-started",
+    "description": "The smallest complete OnlyMapJS page: one map element, one layer, and inline data. Set the camera with center, zoom, pitch and bearing."
+  },
+  {
+    "slug": "choose-a-basemap",
+    "title": "Choose a basemap",
+    "phase": "features",
+    "category": "getting-started",
+    "description": "Switch between free MapLibre basemap presets while the map runs. Layers and the camera survive the change."
+  },
+  {
+    "slug": "build-with-an-ai-agent",
+    "title": "Build with an AI agent",
+    "phase": "features",
+    "category": "getting-started",
+    "description": "Works with Claude Code, Codex, Cursor or any agent: use Copy for Your Agent on any example, then chat to build your own customized map."
+  },
+  {
+    "slug": "add-scatterplot-points",
+    "title": "Add scatterplot points",
+    "phase": "features",
+    "category": "layers",
+    "description": "ScatterplotLayer points from a JSON file, sized by population with a sqrt scale and coloured by category."
+  },
+  {
+    "slug": "create-a-choropleth",
+    "title": "Create a choropleth",
+    "phase": "features",
+    "category": "layers",
+    "description": "Shade real country boundaries by GDP per capita with GeoJsonLayer. A threshold scale labels the legend classes."
+  },
+  {
+    "slug": "draw-arcs-and-paths",
+    "title": "Draw arcs and paths",
+    "phase": "features",
+    "category": "layers",
+    "description": "The same five journeys twice: PathLayer follows the real driving route, ArcLayer curves straight between endpoints."
+  },
+  {
+    "slug": "animate-trips",
+    "title": "Animate trips",
+    "phase": "features",
+    "category": "layers",
+    "description": "Move 48 vehicles at once with TripsLayer. Each carries its own departure time, so traffic builds and thins on its own."
+  },
+  {
+    "slug": "create-a-heatmap",
+    "title": "Create a heatmap",
+    "phase": "features",
+    "category": "layers",
+    "description": "HeatmapLayer turns thousands of points into a density surface, weighted so large events outweigh clusters of small ones."
+  },
+  {
+    "slug": "bin-points-into-hexagons",
+    "title": "Bin points into hexagons",
+    "phase": "features",
+    "category": "layers",
+    "description": "HexagonLayer bins points into counts you can pick, with the tally encoded as both colour and height."
+  },
+  {
+    "slug": "add-icons-and-labels",
+    "title": "Add icons and labels",
+    "phase": "features",
+    "category": "layers",
+    "description": "Mark places with IconLayer sprites cut from one atlas, then name them with TextLayer. A filter keeps only the biggest cities labelled."
+  },
+  {
+    "slug": "label-many-features",
+    "title": "Label many features",
+    "phase": "features",
+    "category": "layers",
+    "description": "PopupLayer draws a WebGL badge on every earthquake above magnitude 5, over a heat ramp of all 1,960 on a dark map."
+  },
+  {
+    "slug": "aggregate-by-h3-cells",
+    "title": "Aggregate by H3 cells",
+    "phase": "features",
+    "category": "layers",
+    "description": "H3HexagonLayer draws pre-binned data from a column of H3 cell ids: 45 years of cyclone tracks. H3ClusterLayer merges cells into outlines."
+  },
+  {
+    "slug": "draw-spatial-index-cells",
+    "title": "Draw spatial index cells",
+    "phase": "features",
+    "category": "layers",
+    "description": "S2Layer, GeohashLayer, QuadkeyLayer and A5Layer draw spatial index cells from a column of ids. The same power stations, binned four ways."
+  },
+  {
+    "slug": "draw-3d-columns",
+    "title": "Draw 3D columns",
+    "phase": "features",
+    "category": "layers",
+    "description": "Stand a ColumnLayer bar on every power station, sized by capacity and coloured by fuel. GridCellLayer is the square-cell sibling."
+  },
+  {
+    "slug": "overlay-an-image",
+    "title": "Overlay an image",
+    "phase": "features",
+    "category": "rasters",
+    "description": "Pin one georeferenced picture to the map with BitmapLayer: an image and a bounds box, no data rows at all."
+  },
+  {
+    "slug": "add-a-raster-tile-layer",
+    "title": "Add a raster tile layer",
+    "phase": "features",
+    "category": "rasters",
+    "description": "TileLayer takes a {z}/{x}/{y} URL template and draws NASA satellite imagery as a layer you can toggle, fade and stack."
+  },
+  {
+    "slug": "add-vector-tiles",
+    "title": "Add vector tiles",
+    "phase": "features",
+    "category": "rasters",
+    "description": "MVTLayer turns vector tiles into real geometry styled by your own accessors: OpenStreetMap over Venice, with no basemap at all."
+  },
+  {
+    "slug": "display-a-geotiff",
+    "title": "Display a GeoTIFF",
+    "phase": "features",
+    "category": "rasters",
+    "description": "COGLayer streams a Cloud-Optimized GeoTIFF by HTTP range request. Recolour and restretch Grand Canyon elevation as GPU uniforms."
+  },
+  {
+    "slug": "place-a-drone-photo",
+    "title": "Place a drone photo",
+    "phase": "features",
+    "category": "rasters",
+    "description": "ImageOverlay reads GPS, altitude and gimbal angles out of a drone JPEG's EXIF and XMP, then draws the photo at its own ground footprint."
+  },
+  {
+    "slug": "slice-a-zarr-cube",
+    "title": "Slice a Zarr cube",
+    "phase": "features",
+    "category": "rasters",
+    "description": "ZarrLayer draws one 2D slice of a chunked N-dimensional array. Change select to step a forecast axis without reopening the store."
+  },
+  {
+    "slug": "place-a-3d-model",
+    "title": "Place a 3D model",
+    "phase": "features",
+    "category": "terrain-3d",
+    "description": "Place a glTF or GLB model at map coordinates with ScenegraphLayer. One asset, one instance per row, no three.js."
+  },
+  {
+    "slug": "load-a-cityjson-model",
+    "title": "Load a CityJSON model",
+    "phase": "features",
+    "category": "terrain-3d",
+    "description": "Load 3D buildings from a CityJSON city model: real LoD 2.2 roof surfaces with SolidPolygonLayer and full3d, or extruded footprints."
+  },
+  {
+    "slug": "inspect-a-bim-model",
+    "title": "Inspect a BIM model",
+    "phase": "features",
+    "category": "terrain-3d",
+    "description": "The BIMLayer load .ifc models in the browser with the ifc-loader widget. Pick any element, isolate or ghost the rest, and clash-test two federated models."
+  },
+  {
+    "slug": "render-a-point-cloud",
+    "title": "Render a point cloud",
+    "phase": "features",
+    "category": "terrain-3d",
+    "description": "PointCloudLayer draws rows that carry a z: 24,336 elevation samples over the Matterhorn, sized in pixels and coloured by height."
+  },
+  {
+    "slug": "light-the-scene",
+    "title": "Light the scene",
+    "phase": "features",
+    "category": "terrain-3d",
+    "description": "Light extruded buildings with lighting presets, per-value lighting-* overrides, and a sun placed from a date with lighting-sun-date."
+  },
+  {
+    "slug": "google-3d-tiles",
+    "title": "Google Photorealistic 3D Tiles",
+    "phase": "features",
+    "category": "terrain-3d",
+    "description": "Render Google Photorealistic 3D Tiles through Tile3DLayer. Needs a browser-restricted Map Tiles API key."
+  },
+  {
+    "slug": "add-terrain",
+    "title": "Add terrain",
+    "phase": "features",
+    "category": "terrain-3d",
+    "description": "Raise real terrain from a keyless DEM. Geographic layers drape onto the surface automatically."
+  },
+  {
+    "slug": "build-a-map-story",
+    "title": "Build a map story",
+    "phase": "features",
+    "category": "stories",
+    "description": "Turn a map into a guided tour. Steps fire actions on a timeline, with play, pause and scrub."
+  },
+  {
+    "slug": "google-3d-flyby",
+    "title": "Google 3D Tiles flyby story",
+    "phase": "features",
+    "category": "stories",
+    "description": "Fly a camera across photorealistic 3D Tiles as a scripted story, with a player and a scrubber."
+  },
+  {
+    "slug": "load-a-file",
+    "title": "Load a file",
+    "phase": "features",
+    "category": "sources",
+    "description": "Read GeoJSON, CSV, Shapefile, KML and GPX through one data attribute. The file extension picks the parser; nothing above it changes."
+  },
+  {
+    "slug": "extend-the-data-layer",
+    "title": "Extend the data layer",
+    "phase": "features",
+    "category": "sources",
+    "description": "Teach the map a format it does not ship with registerFormat, and decode a live socket feed with registerSource."
+  },
+  {
+    "slug": "load-columnar-data",
+    "title": "Load columnar data",
+    "phase": "features",
+    "category": "sources",
+    "description": "Load an Apache Arrow file with a GeoArrow geometry column, plus CSV, Shapefile and KML on one map. Columns feed the layer with no row objects."
+  },
+  {
+    "slug": "color-and-size-by-data",
+    "title": "Colour and size by data",
+    "phase": "features",
+    "category": "styling",
+    "description": "Colour 243 cities four ways with scale(): sequential, threshold and diverging ramps, a categorical ternary chain, and sqrt sizing."
+  },
+  {
+    "slug": "write-accessor-scripts",
+    "title": "Write accessor scripts",
+    "phase": "features",
+    "category": "styling",
+    "description": "Group accessors in a script type=\"om/accessors\" block, then opt into full JavaScript with js for lookup tables and string work."
+  },
+  {
+    "slug": "filter-on-the-gpu",
+    "title": "Filter on the GPU",
+    "phase": "features",
+    "category": "interaction",
+    "description": "Cut 21,337 points live with filter-field and filter-range. The DataFilterExtension drops rows in the shader, so ctx.stats always agrees."
+  },
+  {
+    "slug": "emit-and-register-actions",
+    "title": "Emit and register actions",
+    "phase": "features",
+    "category": "interaction",
+    "description": "Fire one custom action from a behavior, a data-emit button and ctx.emit. registerAction defines the name and the payload once."
+  },
+  {
+    "slug": "undo-and-redo",
+    "title": "Undo and redo",
+    "phase": "features",
+    "category": "interaction",
+    "description": "Step layer toggles, filters, basemaps and sketches back with the undo-redo widget or Cmd/Ctrl-Z. Camera moves are not undo steps."
+  },
+  {
+    "slug": "time-series",
+    "title": "Time series",
+    "phase": "features",
+    "category": "interaction",
+    "description": "Step a month of USGS earthquakes through time with a custom slider widget that drives a GPU filter."
+  },
+  {
+    "slug": "wire-up-behaviors-and-overlays",
+    "title": "Wire up behaviors and overlays",
+    "phase": "features",
+    "category": "interaction",
+    "description": "Click a neighborhood for a popup, hover a bike rack for a tooltip, and filter points with a slider — all declarative."
+  },
+  {
+    "slug": "add-widgets",
+    "title": "Add widgets",
+    "phase": "features",
+    "category": "widgets",
+    "description": "Add a legend, zoom controls, a scale bar and a live Vega-Lite chart without writing any script."
+  },
+  {
+    "slug": "use-responsive-widget-manager",
+    "title": "Use the responsive widget manager",
+    "phase": "features",
+    "category": "widgets",
+    "description": "Place widgets in eight logical slots that stack, cluster, and fold into drawers on narrow screens."
+  },
+  {
+    "slug": "measure-distance-and-area",
+    "title": "Measure distance and area",
+    "phase": "features",
+    "category": "widgets",
+    "description": "Measure geodesic distance and area on the map with the measure widget. Haversine lengths, spherical-excess areas, unit toggle."
+  },
+  {
+    "slug": "draw-manually",
+    "title": "Draw manually",
+    "phase": "features",
+    "category": "widgets",
+    "description": "Draw points, lines and polygons on the map, then save them as GeoJSON. Sketches join undo and redo."
+  },
+  {
+    "slug": "live-european-airspace",
+    "title": "Live European airspace",
+    "phase": "examples",
+    "category": "transport-logistics",
+    "description": "Track real aircraft over Europe from a live ADS-B websocket. IconLayer with key upserts, flush coalescing and transition tweening."
+  },
+  {
+    "slug": "bay-area-shipping",
+    "title": "Bay Area shipping",
+    "phase": "examples",
+    "category": "transport-logistics",
+    "description": "Simulated AIS vessels crossing San Francisco Bay over a websocket. Upsert by key, coalesce bursts with flush, reconnect automatically."
+  },
+  {
+    "slug": "san-francisco-last-mile",
+    "title": "San Francisco last mile",
+    "phase": "examples",
+    "category": "transport-logistics",
+    "description": "Fleet tracking with polled telematics: vehicle positions refreshed from a REST snapshot, with configureData attaching the bearer token."
+  },
+  {
+    "slug": "singapore-rail-growth",
+    "title": "Singapore rail network, 1987–2026",
+    "phase": "examples",
+    "category": "urban-planning",
+    "description": "A year slider moves a filter-field window across GeoJsonLayer track and stations, so 39 years of rail network build themselves."
+  },
+  {
+    "slug": "tornado-alley",
+    "title": "Tornado Alley, 1950–2024",
+    "phase": "examples",
+    "category": "climate-hazards",
+    "description": "One filter-range on a ScatterplotLayer drives the map, a ctx.stats casualty panel, a Vega-Lite histogram and undo. 13,182 storms."
+  },
+  {
+    "slug": "onlymap-qgis-plugin",
+    "title": "QGIS2WebMap Plugin",
+    "phase": "integrations",
+    "category": "integrations",
+    "description": "Export QGIS maps to interactive OnlyMapJS web maps with the QGIS2WebMap plugin, then publish the result anywhere."
+  }
+]
