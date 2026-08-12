@@ -158,6 +158,44 @@
           "description": "Optional {z}/{x}/{y} imagery template draped over the surface (satellite, etc.)."
         },
         {
+          "name": "clip-box-min",
+          "description": "3D clip box corner \"[lng, lat, elevation]\" — with clip-box-max, cuts every layer (opt out per-layer with clip=\"off\") down to what's inside the box. Axis-aligned."
+        },
+        {
+          "name": "clip-box-max",
+          "description": "3D clip box opposite corner \"[lng, lat, elevation]\" — see clip-box-min."
+        },
+        {
+          "name": "clip-box-invert",
+          "description": "Show what's OUTSIDE the clip box instead of inside."
+        },
+        {
+          "name": "clip-box-highlight",
+          "description": "Dim clipped-out geometry instead of discarding it (non-destructive preview) — nothing disappears, it just de-emphasizes."
+        },
+        {
+          "name": "snap",
+          "description": "XY snapping for draw/measure vertex capture: space-separated agents (vertex, edge, midpoint). Refines deck's own hover/click pick to the nearest vertex/edge/midpoint of the ALREADY-picked feature within snap-tolerance pixels — searches every pickable vector layer's geometry by default, opt a layer out with snap=\"off\". Hold Space to suppress momentarily.",
+          "values": [
+            {
+              "name": "vertex edge midpoint"
+            },
+            {
+              "name": "vertex"
+            },
+            {
+              "name": "edge"
+            },
+            {
+              "name": "midpoint"
+            }
+          ]
+        },
+        {
+          "name": "snap-tolerance",
+          "description": "Snap search radius in screen pixels (default 12)."
+        },
+        {
           "name": "widget-style",
           "description": "Layout-token sugar: space-separated key:number pairs → --om-widget-* custom properties (e.g. \"gap:10 opacity:0.9\"). Keys: inset, gap (shorthands), inset-x/-y, gap-x/-y, opacity, radius, size. Numbers are px except opacity."
         },
@@ -427,6 +465,24 @@
             {
               "name": "offset"
             },
+            {
+              "name": "off"
+            }
+          ]
+        },
+        {
+          "name": "clip",
+          "description": "Opt out of the map's active clip box (<om-map clip-box-min/max>) with \"off\" — clipping applies to every layer by default once a box is configured.",
+          "values": [
+            {
+              "name": "off"
+            }
+          ]
+        },
+        {
+          "name": "snap",
+          "description": "Opt out of the map's active XY snapping (<om-map snap>) with \"off\" — snapping searches every layer's own geometry by default once enabled, including a BIMLayer's edge overlay.",
+          "values": [
             {
               "name": "off"
             }
@@ -1603,6 +1659,10 @@
               "name": "hover"
             }
           ]
+        },
+        {
+          "name": "clip-to-map",
+          "description": "Hide the overlay when its own BOX would spill past the map viewport, not just when its anchor leaves (the default). Opt-in: an overhanging absolutely-positioned box inflates the page's scrollable overflow, and the resulting scrollbar → map resize → reprojection loop shows as view jitter. Use it for small transient tips that track the cursor; an authored popup near an edge normally wants to keep showing its visible half."
         }
       ],
       "references": [
@@ -1732,6 +1792,9 @@
               "name": "draw-save"
             },
             {
+              "name": "export-region-3d"
+            },
+            {
               "name": "measure-mode"
             },
             {
@@ -1748,6 +1811,12 @@
             },
             {
               "name": "set-terrain"
+            },
+            {
+              "name": "set-clip-box"
+            },
+            {
+              "name": "clip-box-edit"
             },
             {
               "name": "set-widgets-visible"
@@ -1800,6 +1869,9 @@
               "name": "vega-lite"
             },
             {
+              "name": "dynamic-chart"
+            },
+            {
               "name": "player"
             },
             {
@@ -1813,6 +1885,9 @@
             },
             {
               "name": "lighting"
+            },
+            {
+              "name": "clip-box"
             },
             {
               "name": "undo-redo"
@@ -1920,6 +1995,14 @@
           "description": "Data field (filter / vega-lite widgets)."
         },
         {
+          "name": "on",
+          "description": "dynamic-chart widget: the <om-map> event name to listen for (required), e.g. \"om-measure\"."
+        },
+        {
+          "name": "series-field",
+          "description": "dynamic-chart widget: the event.detail field holding the chart's data array (default \"series\")."
+        },
+        {
           "name": "format",
           "description": "Filter value-label format. Use date for epoch-millisecond fields; default number.",
           "values": [
@@ -1963,7 +2046,7 @@
         },
         {
           "name": "modes",
-          "description": "Draw widget: space-separated tools (point line polygon). Measure widget: space-separated modes (distance area).",
+          "description": "Draw widget: space-separated tools (point line polygon). Measure widget: space-separated modes (distance area volume) — volume needs terrain on <om-map>.",
           "values": [
             {
               "name": "point line polygon"
@@ -1978,13 +2061,16 @@
               "name": "polygon"
             },
             {
-              "name": "distance area"
+              "name": "distance area volume"
             },
             {
               "name": "distance"
             },
             {
               "name": "area"
+            },
+            {
+              "name": "volume"
             }
           ]
         },
@@ -2008,6 +2094,26 @@
           "description": "Draw widget: localStorage key — mirrors the sketch and restores it on reload."
         },
         {
+          "name": "export-3d",
+          "description": "Draw widget: adds an \"Export 3D\" button — clips loaded Tile3DLayer/BIMLayer content to the drawn footprint and downloads it. Bare = GLB (default); \"b3dm\" wraps it for Cesium/3D-Tiles pipelines.",
+          "values": [
+            {
+              "name": "glb"
+            },
+            {
+              "name": "b3dm"
+            }
+          ]
+        },
+        {
+          "name": "fill-color",
+          "description": "Draw widget: shades the committed (closed) shape's interior — CSS color (hex/named/rgb()/rgba()) or a JSON [r,g,b,a?] array. Auto-creates a committed-geometry layer bound to the draw target; without this (or line-color), a closed shape has no built-in visual once the in-progress preview clears."
+        },
+        {
+          "name": "line-color",
+          "description": "Draw widget: the committed (closed) shape's boundary color — same formats as fill-color. Given alone, a translucent fill in the same hue is derived automatically so the shape still reads as an area, not just an outline."
+        },
+        {
           "name": "units",
           "description": "Measure / scale-bar widget: unit system for length and area.",
           "values": [
@@ -2019,6 +2125,50 @@
             },
             {
               "name": "nautical"
+            }
+          ]
+        },
+        {
+          "name": "profile",
+          "description": "Measure widget: volume-mode attribute — closing a footprint also samples elevation around its own perimeter, for a paired dynamic-chart widget reading the om-measure event's profileSeries field. No effect without \"volume\" in modes."
+        },
+        {
+          "name": "density",
+          "description": "Measure widget: volume-mode attribute — material density for a tonnage readout (t/m³ metric, lb/yd³ imperial). Omit to skip tonnage reporting."
+        },
+        {
+          "name": "swell",
+          "description": "Measure widget: volume-mode attribute — bulking multiplier applied to the reported Cut volume (excavated material occupies more space loose than in situ). Default 1 (no adjustment)."
+        },
+        {
+          "name": "shrink",
+          "description": "Measure widget: volume-mode attribute — compaction multiplier applied to the reported Fill volume. Default 1 (no adjustment)."
+        },
+        {
+          "name": "deadband",
+          "description": "Measure widget: volume-mode attribute — Cut/Fill below this many m³ reports as zero, filtering drag noise near zero height. Default 0 (no deadband)."
+        },
+        {
+          "name": "base-surface",
+          "description": "Measure widget: volume-mode base-surface strategy. \"custom\" (default) is the draggable gizmo's target plane; \"triangulated\" (boundary TIN), \"plane\" (least-squares fit), \"lowest\"/\"highest\"/\"average\" derive the base from the footprint's own boundary elevations — stockpile-style, no gizmo.",
+          "values": [
+            {
+              "name": "custom"
+            },
+            {
+              "name": "triangulated"
+            },
+            {
+              "name": "plane"
+            },
+            {
+              "name": "lowest"
+            },
+            {
+              "name": "highest"
+            },
+            {
+              "name": "average"
             }
           ]
         },
@@ -2214,6 +2364,9 @@
               "name": "draw-save"
             },
             {
+              "name": "export-region-3d"
+            },
+            {
               "name": "measure-mode"
             },
             {
@@ -2230,6 +2383,12 @@
             },
             {
               "name": "set-terrain"
+            },
+            {
+              "name": "set-clip-box"
+            },
+            {
+              "name": "clip-box-edit"
             },
             {
               "name": "set-widgets-visible"

@@ -36,5 +36,12 @@ CC BY 4.0.
 the Singapore rail network; and road-snapped routes generated with OSRM.
 © OpenStreetMap contributors, ODbL.
 
+**buildingSMART International** — the IFC/BIM sample models under
+`ifc-clinic/`, `ifc-duplex/`, `ifc-bridge/` and `ifc-utm-scale/`.
+© buildingSMART International Ltd., CC BY 4.0. Each directory carries its own
+`COPYRIGHT.md` naming the exact source file, licence, and any modifications —
+that per-directory record is the authoritative one for BIM assets, and any new
+model added here must ship with one.
+
 ODbL asks that a publicly distributed derived database stay under ODbL. That
 applies to the OpenStreetMap-derived files here, not to OnlyMapJS.

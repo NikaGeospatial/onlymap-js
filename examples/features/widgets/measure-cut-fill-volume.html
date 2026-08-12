@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<!--
+  Cut/fill volume — the measure widget's third mode, alongside distance and
+  area. Pick "Measure volume", click the map to outline a footprint vertex by
+  vertex, and double-click (or Enter) to close it — the footprint turns a
+  solid teal to signal it's ready for extrusion. A double-headed arrow appears
+  at its centroid: drag it up to add fill, down to cut, and the panel reads
+  out Cut / Fill / Net (signed, fill − cut) / Total (unsigned, cut + fill)
+  volume plus Area / Perimeter live — RAW geometric figures, always shown,
+  never altered by density/swell/shrink (they answer "does this reach target
+  elevation," which shouldn't move depending on what material you happen to
+  have configured). `density`/`swell`/`shrink` below (1.6 t/m³, 1.25×, 0.9×)
+  add a separate "Material" section underneath instead — Bank/Loose/
+  Compacted-adjusted Cut/Fill plus tonnage, standard earthworks convention:
+  Adjusted Cut = raw × swell (excavating adds air voids, so the loose/haul
+  volume is BIGGER than the in-situ bank volume you removed); Adjusted Fill =
+  raw ÷ shrink (the raw fill number is already the compacted target void, so
+  the loose/borrow material you need to truck in is also BIGGER, since it'll
+  settle down once placed). Tonnage is computed from the RAW volume either
+  way — swell/shrink change volume via air voids, not the actual mass of
+  dirt, so there's only one physically real tonnage per side. Try removing
+  the three attributes: the whole Material section disappears (it only shows
+  when at least one of them is actually configured), Cut/Fill/Net/Total stay
+  exactly as they were.
+
+  The math is a REAL per-cell grid integration (not a flat approximation):
+  closing the footprint bulk-loads the DEM tiles covering it, lays a metric
+  grid over the polygon in a local tangent frame at its centroid (cell size
+  = the DEM's own ground-sample distance at this latitude), and integrates
+  terrain-vs-base per cell — so on undulating ground one footprint reports
+  cut AND fill at the same time, each with a published ±error (per-cell
+  cellArea × 1.5 × GSD, the readout's "±" figures) plus the cell size it
+  was computed at. Dragging the gizmo re-sums the cached grid live. That's
+  why the tool REQUIRES terrain: cut/fill against a flat basemap with no
+  elevation surface has nothing to measure against (the validator warns if
+  you drop "volume" into modes with no terrain= on <om-map> — try removing
+  it below; the tool then falls back to a flat-plane approximation with no
+  error figures, since there'd be nothing honest to quote).
+
+  A `base-surface` attribute picks the reference surface: "custom" (default,
+  the gizmo's draggable target plane), or boundary-derived strategies for
+  stockpile measurement with no gizmo at all — "triangulated" (a TIN over
+  the footprint's own boundary elevations, following the toe of a pile all
+  the way around, the drone-survey industry default), "plane" (least-squares
+  fit), "lowest"/"highest"/"average". Try base-surface="triangulated" on the
+  widget below, then outline a hill: the readout reports the mound's volume
+  above its own boundary immediately on close — no dragging needed.
+
+  Elevation profile (the `profile` attribute, alongside `modes`): closing a
+  volume footprint with `profile` set ALSO samples elevation around that same
+  footprint's own perimeter and renders it as a chart right inside the
+  measure widget's own panel — no second widget to declare. It's not a mode
+  of its own: there's no second line to draw, the shape you already outlined
+  for cut/fill IS the line. Draw somewhere with visible slope (not dead flat,
+  not a sheer drop) for the most legible chart, and watch it clear if you
+  switch to "Measure distance"/"Measure area" or hit Clear — those don't
+  have a footprint for a profile to describe.
+
+  The map: the South Rim of the Grand Canyon — real, legible relief (so the
+  elevation profile is worth looking at) without being a sheer cliff face
+  everywhere (so a modestly sized cut/fill footprint still reads sensibly).
+  Terrain is mapterhorn (keyless global DEM + a CARTO Positron drape).
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Cut/fill volume + elevation profile</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-112.11, 36.06]" zoom="13" pitch="50" bearing="0"
+          terrain="mapterhorn" validate>
+
+    <!-- `volume` alongside the existing distance/area modes — see
+         examples/features/widgets/measure-distance-and-area.html for
+         those on their own, with no terrain required. `profile` is an
+         ATTRIBUTE (not a mode/button): it makes closing a volume footprint
+         also sample elevation around that footprint's own perimeter.
+         `density`/`swell`/`shrink` are also volume-only attributes — a
+         `deadband` (m³) is available too, to zero out drag noise near h=0,
+         but left unset here since this footprint is large enough not to need it. -->
+    <om-widget type="measure" modes="distance area volume" profile units="metric"
+               density="1.6" swell="1.25" shrink="0.9" position="top-start"></om-widget>
+
+    <om-widget type="scale-bar" units="metric" position="bottom-start"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

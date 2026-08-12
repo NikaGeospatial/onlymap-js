@@ -69,6 +69,54 @@ For LOD experiments, common loaders.gl tileset options have first-class attribut
 
 Upstream converters exist for IFC/CityGML → 3D Tiles (e.g. Cesium ion, `py3dtiles`, FME). Same rule: convert upstream, ingest the standard.
 
+## Working inside a 3D scene: cutting, exporting, picking
+
+Three tools operate on whatever 3D content is already loaded — `Tile3DLayer` tilesets, `BIMLayer` models, extruded vector geometry alike. They compose: cut a box open, outline what's inside, export it.
+
+### Clip box — cut the scene open
+
+```html
+<om-map terrain="mapterhorn"
+        clip-box-min="[6.145, 46.201, 380]"
+        clip-box-max="[6.149, 46.204, 440]">
+  <om-widget type="clip-box"></om-widget>
+</om-map>
+```
+
+Geometry outside the box is discarded. Every layer is clipped **by default** — `clip="off"` on an `<om-layer>` opts one out (a basemap, usually). Two modifiers change what "outside" means rather than how much is cut:
+
+- `clip-box-invert` — show what's *outside* the box instead of inside.
+- `clip-box-highlight` — dim clipped-out geometry instead of discarding it, so nothing disappears (a non-destructive preview).
+
+The `clip-box` widget renders the box as a draggable cuboid; its "Show face gizmos" toggle adds a double-headed arrow on each of the 6 faces so you can resize by dragging, and keeps those handles off ordinary map panning when you're not using them. The box is attribute-backed like `terrain`/`lighting`, so changes are undoable and story-steppable, and the `set-clip-box` action (`{min, max, invert?, highlight?}`, or `{clear: true}`) drives it programmatically.
+
+v1 is **axis-aligned only** — rotated/oriented boxes are a documented follow-up.
+
+### Region export — download the 3D content inside a footprint
+
+```html
+<om-widget type="draw" export-3d></om-widget>          <!-- GLB (default) -->
+<om-widget type="draw" export-3d="b3dm"></om-widget>   <!-- b3dm, for Cesium/3D-Tiles pipelines -->
+```
+
+Outline a footprint with the draw widget, then hit **Export 3D**: every triangle of every loaded, *visible* 3D Tiles/BIM layer inside that ring is clipped exactly and downloaded. Positions are re-framed to a local coordinate frame at the footprint's own centroid, so the file opens correctly in Blender/three.js without ECEF-scale support. Each triangle carries its own source color as per-vertex `COLOR_0`; there are no textures (BIM/IFC materials are flat colors). `b3dm` adds a `_BATCHID` attribute and a feature table, namespaced per source tileset.
+
+A layer hidden via `visible="false"` (or the `toggle-layer` action) is skipped, with distinct console warnings for "nothing loaded yet" vs. "everything loaded but hidden."
+
+The clip and pack run **synchronously on the main thread** — fine at single-model/BIM scale, but a city-scale tileset under a large footprint will visibly block the tab. Keep footprints to the region you actually want.
+
+### `pickable="3d"` — a real elevation on hover and click
+
+An ordinary `pickable` layer resolves a click against the z=0 ground plane, so clicking a building face reports the point on the ground *behind* it. `pickable="3d"` opts the layer into deck's depth-pick pass instead:
+
+```html
+<om-layer id="city" type="Tile3DLayer" tileset="…/tileset.json" pickable="3d"></om-layer>
+```
+
+The resolved coordinate then carries a real third (elevation) component, which flows through `ctx.selection.coordinate` and `{{z}}` in `<om-overlay>` / `show-tooltip` templates. `terrain` sets this on itself automatically. `{{z}}` is **absent, not `0`**, when no layer in the scene ran the depth pass for that pick — so a missing elevation is distinguishable from sea level.
+
+Snapping (`<om-map snap="vertex edge midpoint">`, see the README) also reads a `BIMLayer`'s edge/crease overlay, converting real wall corners back to `[lng, lat]` — so a drawn footprint can land on an actual building corner rather than near it. `snap="off"` opts a layer out.
+
 ## Semantic city models: CityJSON
 
 3D Tiles is the right target for *visual* city models. It is the wrong one for **CityJSON**, because converting flattens the per-building semantics — and semantics are the whole reason municipal programmes publish it: the Netherlands' [3DBAG](https://3dbag.nl) (~10M buildings), Japan's [PLATEAU](https://www.mlit.go.jp/plateau/) (250+ cities), swisstopo, several German states. Rooftop-solar, shadow, zoning and noise studies all read those attributes.
