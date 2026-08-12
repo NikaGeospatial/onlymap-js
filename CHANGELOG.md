@@ -8,6 +8,17 @@ Note: npm collapsed a few closely-spaced releases — the GPX/FlatGeobuf (0.5.4)
 and GeoParquet (0.5.5) work shipped to npm together as **0.5.6**, so npm's
 version list jumps 0.5.3 → 0.5.6. Each logical version is listed here regardless.
 
+## 0.6.3 — 2026-08-12
+
+### Fixed
+- **Measure labels no longer render painted onto the terrain** (reported readability bug). The distance/area badges were `terrain="drape"`, and draping renders a layer INTO the terrain's own texture — so a badge came out flat on the ground, stretching and skewing with the slope and going edge-on to a pitched camera. They now use `terrain="offset"`, which keeps the badge a screen-facing billboard and only lifts its anchor to the surface, plus a 14px screen-space lift so a pill never reads as half-buried in a rise.
+- **`PopupLayer`'s default terrain mode is now `offset` rather than `drape`**, for the same reason and following the rule the library already applied to 3D models: billboarded content anchors ON the surface instead of being painted onto it. This affects any `PopupLayer` under an active `terrain` that did not set the attribute explicitly; `terrain="drape"` still does the old thing for anyone who genuinely wants text painted onto the ground like a road marking.
+
+### Added
+- **The elevation profile marks the footprint's own corners.** `profileSeries` samples that ARE a drawn vertex now carry `vertexIndex` (0-based, in draw order; the closing sample back at the start carries the last index), and interpolated samples omit the field entirely so a Vega-Lite spec separates them with `isValid(datum.vertexIndex)`. The measure widget's built-in profile chart uses this: a clean line, a distinct point on each real corner with a `Vertex / Distance / Elevation` tooltip, and vertex 0 labelled **"1 · Start"** (the exact badge text used on the map) — replacing the old `point: true`, which dotted all ~50 interpolated samples equally and so said nothing about which points were corners. New `ProfilePoint` type, exported.
+- **Direction badges on the map: `1 · Start` and `2`.** Two problems, one marker. The profile runs around a closed loop, so its chart has a leftmost point but the map had no cue for WHICH corner that was; and marking only the start is still ambiguous, because from that corner the ring could run either way and clockwise vs counter-clockwise produce mirror-image profiles. The first two vertices are badged in draw order — the minimum that fixes a direction, and a constant cost: one badge per vertex would grow the clutter precisely as a footprint got complicated enough to need the cue. Draw order IS the order the profile walks, so badge N and the chart's Vertex N are the same point by construction. The chart still marks every corner. Displayed 1-based; `ProfilePoint.vertexIndex` stays 0-based, being an array index. Shown only with `profile` on, and cleared with the footprint.
+- **`resamplePathWithVertices(points, count)`** in `geodesy.ts` — `resamplePath`'s evenly-spaced curve with the path's own vertices merged in by distance and tagged, coinciding samples replaced rather than duplicated. This is what makes a profile addressable back to the geometry that produced it.
+
 ## 0.6.2 — 2026-08-12
 
 ### Added
