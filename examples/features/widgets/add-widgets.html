@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<!--
+  Widgets example — built-in legend, zoom-controls, scale-bar, and a
+  vega-lite chart, all zero-script (spec: "Widget System"). Pan/zoom the
+  map and watch the scale-bar and chart update live.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Add widgets</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    /* One --om-widget-* block themes every built-in widget at once. */
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #14161c;
+      --om-widget-fg: #f8fafc;
+      --om-widget-muted: #8b93a7;
+      --om-widget-border: #2c3040;
+      --om-widget-hover-bg: #22262f;
+    }
+    /* The vega-lite built-in renders a bare chart, so give it a panel. */
+    om-widget[type="vega-lite"] {
+      background: #14161c; border: 1px solid #2c3040; border-radius: 6px;
+      padding: 10px 12px 6px; box-shadow: 0 4px 18px rgba(0,0,0,.45);
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-122.42, 37.77]" zoom="12">
+
+    <om-layer id="bikes" type="ScatterplotLayer"
+                data="../../data/bikes.json"
+                label="Bike racks (radius ~ size)" color="#c084fc"
+                get-position="[$lon, $lat]"
+                get-radius="scale($size, sqrt, [3, 30], domain=[0, 100])"
+                radius-units="pixels" pickable></om-layer>
+
+    <!-- Legend enumerates every layer automatically — no per-layer authoring. -->
+    <om-widget type="legend" title="Layers" interactive position="top-right"></om-widget>
+
+    <!-- Zoom in/out — drives RuntimeCore.zoomBy() through the same
+         action pipeline a click-to-zoom-to-feature behavior would use. -->
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <!-- Undo/redo over the manifest history — toggle a layer in the legend,
+         then step back. Cmd/Ctrl-Z and Shift-Cmd/Ctrl-Z work too. -->
+    <om-widget type="undo-redo" position="bottom-right"></om-widget>
+
+    <!-- Compact widgets sharing a slot auto-merge into one control group
+         (v0.4.2 clustering); the toggle hides all other chrome. -->
+    <om-widget type="widgets-toggle" position="bottom-right"></om-widget>
+
+    <!-- Recomputes its "nice" meter/km label on every pan/zoom. -->
+    <om-widget type="scale-bar" position="bottom-left"></om-widget>
+
+    <!-- A source/credit line. Unlike decorative chrome it survives the
+         widgets-toggle's hide-all — attribution is a compliance piece. -->
+    <om-widget type="attribution" text="OnlyMapJS widgets example" position="bottom-left"></om-widget>
+
+
+    <!-- ctx.dataInViewport("bikes") re-runs on every pan/zoom (Phase 4's
+         deliverable: "LLM can write a Vega-Lite histogram that updates on
+         pan/zoom") — try panning the racks in/out of view. -->
+    <om-widget type="vega-lite" layer="bikes" watch="viewport data:bikes" title="Bike rack size (in view)"
+                 position="top-left">
+      <script type="application/json">
+        {
+          "background": "transparent",
+          "mark": { "type": "bar", "color": "#c084fc" },
+          "encoding": {
+            "x": { "field": "size", "type": "quantitative", "bin": true, "title": "size" },
+            "y": { "aggregate": "count", "type": "quantitative" }
+          },
+          "config": {
+            "view": { "stroke": null },
+            "axis": { "labelColor": "#8b93a7", "titleColor": "#8b93a7",
+                      "gridColor": "#2c3040", "domainColor": "#2c3040", "tickColor": "#2c3040" }
+          }
+        }
+      </script>
+    </om-widget>
+
+    <!-- No-JS fallback — shown only where scripts never run (chat-app/email
+         file previews, iOS QuickLook); the stylesheet hides it the moment
+         the map boots. Good practice on any page shared as a file. -->
+    <om-fallback>
+      <p><strong>This interactive map requires JavaScript.</strong><br />
+         If you are seeing this in a file preview, open the file in a web
+         browser such as Chrome, Safari, or Firefox.</p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

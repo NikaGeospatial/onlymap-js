@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<!--
+  Two new layer types (spec: "Routing & Tracking", v0.6.7), both expanding
+  into ordinary PathLayer/IconLayer instances under the hood — no new
+  rendering path, just a curated composite layer, the same pattern BIMLayer
+  already uses for Tile3DLayer.
+
+  `type="Route"` needs EITHER an already-computed `geometry` (a GeoJSON
+  LineString — the path this page uses, since NIKA's own routing backend is
+  a documented unverified placeholder, not a real endpoint yet) OR
+  `origin`+`destination`+`provider` to resolve one asynchronously.
+  `follow="fit-route"` auto-fits the camera once the route resolves.
+
+  tail="none" + progress-from (spec: tail modes) is the CLIENT view: the
+  traveled portion of the route disappears behind the rider, so only
+  current position -> destination renders — what a customer waiting on a
+  delivery should see. Operators get tail="dim" instead (see the Delivery
+  Riders example). The split advances per frame with the marker's glide.
+
+  `type="Tracking"` renders ONE moving entity's current position with
+  bearing-derived rotation. Position data arrives through the ORDINARY
+  `data` mechanism — this page simulates a live GPS feed by replacing the
+  layer's inline JSON script child every tick (the same childList mutation
+  a real MutationObserver-driven undo/redo already relies on), standing in
+  for what a real deployment would drive over `wss://` via `registerSource`.
+  `interpolate-ms` controls how long the marker takes to glide between two
+  fixes (the per-frame channel, not a re-render); `follow="follow"` eases
+  the camera along with it.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Routing &amp; Tracking</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.6.11/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.6.11/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #11141b;
+      --om-widget-fg: #f4f7fc;
+      --om-widget-muted: #8a93a5;
+      --om-widget-border: #252c38;
+      --om-widget-hover-bg: #1c222b;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-122.4165, 37.7785]" zoom="14.5" basemap="dark-matter">
+
+    <!-- A real street path in San Francisco (Market St, a few blocks) — the
+         direct-geometry authoring path, resolved synchronously, no network
+         round trip. follow="fit-route" fires the camera fit once RouteLayer
+         reports onRouteResolved (runtime-core.ts, carriesRoute). -->
+    <om-layer id="trip" type="Route" follow="fit-route" tail="none" progress-from="rider"
+              geometry='{"type":"LineString","coordinates":[
+                [-122.4194,37.7749],[-122.4186,37.7756],[-122.4178,37.7763],
+                [-122.4170,37.7770],[-122.4162,37.7777],[-122.4154,37.7784],
+                [-122.4146,37.7791],[-122.4138,37.7798],[-122.4130,37.7805]
+              ]}'></om-layer>
+
+    <!-- The tracked rider — one row of inline data, replaced every tick by
+         the driver script below to simulate a live feed. get-position reads
+         it like any other curated layer's accessor; bearing comes from the
+         plain `bearing` field (bearing-field default) computed by the
+         driver, not a compiled expression. -->
+    <om-layer id="rider" type="Tracking" get-position="[$lng,$lat]"
+              follow="follow" interpolate-ms="1200" pickable>
+      <script type="application/json">[{"lng": -122.4194, "lat": 37.7749, "bearing": 45}]</script>
+    </om-layer>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { width: 260px; background: rgba(17,20,27,.92); color: #eef2f8;
+                 border: 1px solid #252c38; border-radius: 9px; padding: 12px 14px;
+                 font: 13px/1.5 system-ui, sans-serif; }
+        .panel h3 { margin: 0 0 6px; font: 650 14px system-ui, sans-serif; color: #22d3ee; }
+        .panel p { margin: 0; color: #8a93a5; }
+      </style>
+      <section class="panel">
+        <h3>Routing &amp; Tracking</h3>
+        <p>The blue line is a <code>Route</code> layer (direct geometry, camera auto-fit).
+           The glowing arrow is a <code>Tracking</code> layer gliding between simulated
+           GPS fixes — and the route is <code>tail="none"</code>: the line vanishes
+           behind the rider, leaving only the trip ahead.</p>
+      </section>
+    </om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <script type="module">
+    // Simulated live tracking feed — stands in for a real `wss://` source.
+    // Walks the SAME path the Route layer draws, one vertex every 1.4s.
+    // Replaces the layer's inline JSON <script> child wholesale (childList
+    // mutation, not characterData — om-map's MutationObserver watches
+    // `{ childList: true, subtree: true, attributes: true }`, not
+    // characterData, so editing the old node's textContent in place would
+    // silently never reconcile).
+    const path = [
+      [-122.4194, 37.7749], [-122.4186, 37.7756], [-122.4178, 37.7763],
+      [-122.4170, 37.7770], [-122.4162, 37.7777], [-122.4154, 37.7784],
+      [-122.4146, 37.7791], [-122.4138, 37.7798], [-122.4130, 37.7805],
+    ];
+    function bearingBetween([lng1, lat1], [lng2, lat2]) {
+      const y = Math.sin((lng2 - lng1) * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180);
+      const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180)
+              - Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lng2 - lng1) * Math.PI / 180);
+      return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    }
+    let i = 0;
+    const riderEl = document.getElementById("rider");
+    setInterval(() => {
+      i = (i + 1) % path.length;
+      const [lng, lat] = path[i];
+      const bearing = bearingBetween(path[(i - 1 + path.length) % path.length], path[i]);
+      const old = riderEl.querySelector('script[type="application/json"]');
+      old.remove();
+      const next = document.createElement("script");
+      next.type = "application/json";
+      next.textContent = JSON.stringify([{ lng, lat, bearing }]);
+      riderEl.appendChild(next);
+    }, 1400);
+  </script>
+
+</body>
+</html>

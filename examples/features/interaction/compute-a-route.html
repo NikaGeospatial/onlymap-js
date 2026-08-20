@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<!--
+  The Route layer's ASYNC path: author only origin + destination, and a
+  registered RoutingProvider computes the street-following geometry. The
+  provider here is OSRM's keyless public demo server, registered from plain
+  page script through OmMap.registerRoutingProvider — the same seam any
+  other backend (a self-hosted OSRM, Mapbox Directions, a future NIKA
+  endpoint) plugs into. OSRM speaks GeoJSON natively (geometries=geojson),
+  so the adapter is ~15 lines with no polyline decoding.
+
+  Click the map twice to re-route: the handler just WRITES the origin/
+  destination attributes, and everything downstream is the library's normal
+  machinery — the MutationObserver reconciles, RouteLayer sees its inputs
+  changed and calls the provider again (aborting any in-flight request),
+  and follow="fit-route" re-frames the camera when the new route lands.
+  The manifest stays the source of truth: there is no imperative "reroute"
+  API to call, only attributes to set.
+
+  The readout card reads the map's own om-route-resolved event — whenever
+  a Route layer resolves (any provider, or direct geometry), the map hands
+  back the normalized route (geometry, distanceMeters, durationSec, legs,
+  bounds). No page-side plumbing between the adapter and the UI.
+
+  The OSRM demo server is fine for light interactive use like this page,
+  not production traffic — swap the base URL for a self-hosted instance or
+  a keyed provider when shipping.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Compute a Route</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.6.11/dist/onlymapjs.css" />
+  <script type="module">
+    import { OmMap } from "https://unpkg.com/@nika-js/onlymap@0.6.11/dist/onlymap.standalone.js";
+
+    OmMap.registerRoutingProvider("osrm", {
+      async computeRoute({ waypoints, profile }, opts) {
+        const coords = waypoints.map((w) => `${w.lng},${w.lat}`).join(";");
+        const res = await fetch(
+          `https://router.project-osrm.org/route/v1/${profile ?? "driving"}/${coords}?geometries=geojson&overview=full`,
+          { signal: opts?.signal },
+        );
+        if (!res.ok) throw new Error(`OSRM: HTTP ${res.status}`);
+        const json = await res.json();
+        if (json.code !== "Ok" || !json.routes?.[0]) throw new Error(`OSRM: ${json.code ?? "no route"}`);
+        const r = json.routes[0];
+        return {
+          geometry: r.geometry,
+          distanceMeters: r.distance,
+          durationSec: r.duration,
+          legs: r.legs.map((l) => ({ distanceMeters: l.distance, durationSec: l.duration })),
+        };
+      },
+    });
+  </script>
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.6.11/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #11141b;
+      --om-widget-fg: #f4f7fc;
+      --om-widget-muted: #8a93a5;
+      --om-widget-border: #252c38;
+      --om-widget-hover-bg: #1c222b;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-122.416, 37.778]" zoom="13.5" basemap="dark-matter">
+
+    <!-- Only the endpoints are authored — the street-following geometry
+         comes from the provider. Ferry Building → Golden Gate Park. -->
+    <om-layer id="trip" type="Route" provider="osrm" follow="fit-route"
+              origin="[-122.3937,37.7955]" destination="[-122.4862,37.7694]"></om-layer>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { width: 250px; background: rgba(17,20,27,.92); color: #eef2f8;
+                 border: 1px solid #252c38; border-radius: 9px; padding: 12px 14px;
+                 font: 13px/1.5 system-ui, sans-serif; }
+        .panel h3 { margin: 0 0 6px; font: 650 14px system-ui, sans-serif; color: #22d3ee; }
+        .panel p { margin: 0 0 8px; color: #8a93a5; }
+        .row { display: flex; justify-content: space-between; gap: 12px; margin: 2px 0; color: #8a93a5; }
+        .row b { color: #f4f7fc; font-variant-numeric: tabular-nums; }
+      </style>
+      <section class="panel" aria-live="polite">
+        <h3>Compute a Route</h3>
+        <p id="hint">Click anywhere for a new start, then click again for the destination — OSRM computes the drive.</p>
+        <div class="row"><span>Distance</span><b id="dist">—</b></div>
+        <div class="row"><span>Drive time</span><b id="dur">—</b></div>
+      </section>
+      <script type="om/widget">
+        // om-route-resolved is the library's own surface for a resolved
+        // route's metadata — the map hands back geometry/distance/duration
+        // whenever a Route layer resolves, so the readout needs no
+        // page-side plumbing at all. (route-hint stays page-internal: the
+        // click state machine is this page's own UI, not route data.)
+        this.watch = [];
+        document.querySelector("om-map").addEventListener("om-route-resolved", (e) => {
+          const { distanceMeters, durationSec } = e.detail.route;
+          if (!Number.isFinite(distanceMeters)) return;
+          this.$("#dist").textContent = distanceMeters >= 1000 ? (distanceMeters / 1000).toFixed(1) + " km" : Math.round(distanceMeters) + " m";
+          this.$("#dur").textContent = Math.round(durationSec / 60) + " min";
+        });
+        document.addEventListener("route-hint", (e) => {
+          this.$("#hint").textContent = e.detail;
+        });
+      </script>
+    </om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <script type="module">
+    // Click-to-route: two clicks = a new origin and destination. The handler
+    // ONLY writes attributes — reconcile, the provider round-trip (with
+    // in-flight abort), and the camera re-fit are all the library's own
+    // machinery reacting to the manifest change.
+    const mapEl = document.querySelector("om-map");
+    const trip = document.getElementById("trip");
+    const hint = (text) => document.dispatchEvent(new CustomEvent("route-hint", { detail: text }));
+    let pendingOrigin = null;
+    mapEl.addEventListener("om-map-point", (e) => {
+      const { coordinate, kind } = e.detail;
+      if (kind !== "click" || !coordinate) return;
+      const rounded = [Number(coordinate[0].toFixed(5)), Number(coordinate[1].toFixed(5))];
+      if (pendingOrigin === null) {
+        pendingOrigin = rounded;
+        hint("Start set — now click the destination.");
+      } else {
+        trip.setAttribute("origin", JSON.stringify(pendingOrigin));
+        trip.setAttribute("destination", JSON.stringify(rounded));
+        pendingOrigin = null;
+        hint("Click anywhere for a new start, then click again for the destination.");
+      }
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<!--
+  A choropleth: GeoJSON polygons shaded by one of their own properties.
+  GeoJsonLayer reads $field from feature.properties, so the accessor looks the
+  same as it would on flat rows.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Create a choropleth</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <om-map center="[10, 25]" zoom="1.9" basemap="positron">
+
+    <!-- One scale() call is the whole choropleth. The domain is required —
+         deriving it from the data would let the colours go stale on reload.
+
+         `threshold` classes the values instead of blending them: the domain
+         lists the BREAKS, and one colour per class sits either side of them.
+         That is how choropleths are normally made — money data spans three
+         orders of magnitude here, so a linear ramp would leave almost every
+         country at the pale end. The legend turns the breaks into labelled
+         class ranges on its own. -->
+    <om-layer id="countries" type="GeoJsonLayer"
+              data="../../data/world-countries.geojson"
+              label="GDP per capita (US$)"
+              filled stroked pickable
+              get-fill-color="scale($gdp_per_capita, threshold,
+                                    ['#fff7ec', '#fdd49e', '#fc8d59', '#d7301f', '#7f0000'],
+                                    domain=[1000, 3000, 10000, 30000])"
+              get-line-color="[255, 255, 255, 160]"
+              line-width-min-pixels="0.5"
+              auto-highlight
+              highlight-color="[56, 189, 248, 120]"></om-layer>
+
+    <om-widget type="legend" title="GDP per capita" position="top-right"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <!-- {{field}} reads the picked feature's properties and is HTML-escaped. -->
+    <om-overlay id="detail" anchor-from="selection" visible="false">
+      <style>
+        .card { background: #fff; padding: 8px 12px; border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,.2); font-size: 13px; white-space: nowrap; }
+        .card em { color: #64748b; font-style: normal; }
+      </style>
+      <div class="card">
+        <strong>{{name}}</strong> <em>· {{continent}}</em><br />
+        US$ {{gdp_per_capita}} per person
+      </div>
+    </om-overlay>
+    <om-behavior on="click" layer="countries" action="show-overlay" target="detail"></om-behavior>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>
