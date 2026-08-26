@@ -4,6 +4,8 @@
 
 OnlyMapJS is NOT raw deck.gl and NOT generic HTML/JSX. The rules below are the delta from what you already assume — following them produces correct manifests on the first pass. Validate with `OmMap.validate(htmlString)` (structured errors AND warnings, each with a `fix` instruction — heed both; an "unknown attribute" warning means a prop is silently dropped) and inspect resolved output with `OmMap.snapshotIR(htmlString)` before finalizing.
 
+Programmatic/native bridge rule: `MapController.setLayers()` accepts normal function accessors and, only for schema-declared accessor props, restricted expression strings (`props: {getPosition: "[$lon, $lat]"}`) so a descriptor can cross JSON safely. Verify that lane with `OmMap.snapshotDescriptorIR(descriptors)`; URL data is represented as pending and is not fetched. Active descriptors own reference-counted data transports: removal/identity change/destroy releases them; `MapController.suspend()` releases live work and `resume()` reacquires it, repainting the last rows so a foregrounded map is never blank while the first response is in flight. Live sockets and poll loops no longer outlive their layer — code that relied on that must keep the layer mounted. For app-scoped packaged licenses, `configureLicense(key, {appId})` takes an exact platform identifier obtained by the native host — never copy an app id from page/bridge input, and prefer keys scoped by both `domains` and `apps`, since only the domain claim is pinned by the browser.
+
 ## Loading the library
 
 - npm projects: `import "@nika-js/onlymap"` + `import "@nika-js/onlymap/onlymapjs.css"`.

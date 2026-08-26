@@ -8,6 +8,52 @@ Note: npm collapsed a few closely-spaced releases — the GPX/FlatGeobuf (0.5.4)
 and GeoParquet (0.5.5) work shipped to npm together as **0.5.6**, so npm's
 version list jumps 0.5.3 → 0.5.6. Each logical version is listed here regardless.
 
+## 0.6.4 — 2026-08-12
+
+React Native core prerequisites. 0.6.3 was already tagged for release when this
+work landed, so it carries its own version rather than redefining that one.
+
+### Added
+- **Descriptor-owned data transports**: fetches, polling loops, and WebSockets
+  are shared by transport identity and reference-counted across active map
+  owners. Layer removal or option changes release stale handles; map disposal
+  releases all handles; `MapController.suspend()` and `resume()` provide an
+  app-background lifecycle without discarding canonical descriptors. A release
+  the owner means to reverse — `suspend()`, removing or re-pointing a layer —
+  leaves its last rows as a cold snapshot, so resuming or re-adding repaints
+  immediately instead of flashing empty; a permanent teardown (`destroy()`, an
+  `<om-map>` leaving the document) keeps nothing.
+- `releaseDataOwner(owner, {retain})` plus an optional `owner` argument on
+  `descriptorToIR` — descriptor-owned transport lifetime for hosts that drive
+  the IR directly instead of through `MapController`.
+- **JSON-safe programmatic descriptors**: schema-declared accessor props may
+  use restricted OnlyMap expression strings, and
+  `snapshotDescriptorIR(descriptors)` produces deterministic, fetch-free IR
+  snapshots for native/cross-process parity tests. The React layer adapter now
+  exposes a pure descriptor conversion path and mirrors dashed-line options.
+- **App-scoped packaged licenses**: signed license tokens may now declare exact
+  native application identifiers in an `apps` claim, independently or together
+  with web domains. Native hosts pass platform-derived identity to
+  `configureLicense(key, {appId})`; page or bridge input must never supply it.
+  Only the `domains` claim is pinned by the browser — `apps` is asserted by the
+  host, so scope a native key by both where you can.
+
+### Changed
+- **Live transports no longer live for the page.** A `ws(s)://` socket, a
+  `refresh` poll loop, and an in-flight `data` fetch previously outlived the
+  layer that opened them; they are now stopped when their last descriptor owner
+  releases them — layer removal, a change to `data`/`source`/`key`/`flush`/
+  `refresh`, `MapController.destroy()`/`suspend()`, or an `<om-map>` leaving the
+  document. Pages that relied on a connection surviving layer removal must keep
+  the layer mounted (`visible="false"` does not release) or re-add it, which now
+  repaints from the retained cold snapshot. Re-parenting a live `<om-map>` in
+  the DOM does **not** drop its transports: the release is deferred a microtask,
+  so a synchronous disconnect→reconnect keeps the socket open.
+- The data cache is keyed by **transport identity** (URL plus live-source
+  options) rather than URL alone. Two layers on the same URL still share one
+  transport when their stream/poll options match, and now correctly get separate
+  ones when they do not.
+
 ## 0.6.3 — 2026-08-12
 
 ### Fixed

@@ -60,7 +60,15 @@ Actions that mutate manifest attributes (`toggle-layer`, `show-overlay`, `fade`,
 | `onReady` | Renderer up + first commit + no data URL still loading. |
 | `onViewStateChange` | Every camera change, with the current `CameraState`. |
 | `onRuntimeError` | deck.gl-level failures in the structured validation shape. |
-| `ref` | The imperative handle — a `MapController`: `flyTo`, `setView`, `emit`, `getLayers`, `injectPick`, `ready`. |
+| `ref` | The imperative handle — a `MapController`: `flyTo`, `setView`, `emit`, `getLayers`, `injectPick`, `ready`, `suspend`/`resume`. |
+
+`suspend()` releases the map's live fetch/poll/socket handles without discarding
+its layers or camera — the app-background hook for a WebView or native shell.
+`resume()` reacquires them and repaints the last rows straight away, so a
+foregrounded map is never blank while the first response is in flight. Unmounting
+`<OmMap>` releases everything permanently; unmounting a single `<OmLayer>`
+releases just that layer's handle, and the transport stops once its last owner
+lets go. See [live-data.md](live-data.md).
 
 Give it a size (`style`/`className`) — it renders a `position: relative` div.
 

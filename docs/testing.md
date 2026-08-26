@@ -76,6 +76,8 @@ it("manifest meaning is locked", () => {
 
 `snapshotIR` resolves the manifest through the real pipeline (schema, attribute resolution, accessor compilation) into JSON-safe descriptors where **accessors appear as behavioral fingerprints**. Any edit that changes what the map *means* — an expression, a filter range, layer order — shows up as a snapshot diff in code review. Refactors that don't change meaning produce no diff.
 
+For programmatic or native JSON descriptors, use `snapshotDescriptorIR(descriptors)`. It runs the same schema/accessor/filter resolution as `MapController.setLayers()`, represents expression accessors by the same fingerprints, and never fetches URL-backed data.
+
 ## Tier 2b — behavioral: `mountForTest`
 
 This is where most of your tests should live. The harness mounts your real page **headlessly**: no deck.gl instance, no canvas — but everything else runs for real, including the projection math (deck.gl's `WebMercatorViewport` is pure math, no WebGL).

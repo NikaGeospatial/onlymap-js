@@ -23,7 +23,7 @@ Use OnlyMapJS as a declarative HTML map library. Write custom elements such as `
 </script>
 ```
 
-For no-build CDN pages, use the single-file standalone bundle from a raw-file CDN — `https://unpkg.com/@nika-js/onlymap@0.6.3` (the bare package URL serves `dist/onlymap.standalone.js`) — plus `<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.6.3/dist/onlymapjs.css">`. Never a rebundling CDN (esm.sh, skypack): re-bundling duplicates the deck.gl/luma.gl runtime and every layer fails shader compilation.
+For no-build CDN pages, use the single-file standalone bundle from a raw-file CDN — `https://unpkg.com/@nika-js/onlymap@0.6.4` (the bare package URL serves `dist/onlymap.standalone.js`) — plus `<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.6.4/dist/onlymapjs.css">`. Never a rebundling CDN (esm.sh, skypack): re-bundling duplicates the deck.gl/luma.gl runtime and every layer fails shader compilation.
 
 ## React Projects
 
@@ -34,6 +34,10 @@ import { OmMap, OmLayer, OmWidget, OmOverlay, useOmMap } from "@nika-js/onlymap/
 ```
 
 The adapter inverts several HTML-manifest rules: props are camelCase deck.gl props, accessors are plain JS functions (`getFillColor={d => ...}` — no `$field` expression language, no `js` opt-in), and interactions are `onClick`/`onHover` handlers plus React state, not `<om-behavior>` or state-mutating actions. Load `references/react.md` before writing React map code.
+
+## Native and JSON Bridges
+
+When a trusted native/cross-process host drives `MapController`, keep descriptors JSON-safe. A schema-declared accessor prop may use the same restricted expression grammar as HTML, for example `props: { getPosition: "[$lon, $lat]" }`; ordinary scalar string props remain strings. Use `snapshotDescriptorIR(descriptors)` for deterministic parity checks without fetching URL data. Call `controller.suspend()` on background and `resume()` on foreground; removing/changing a live descriptor or destroying the controller releases its reference-counted fetch/poll/socket handle. A release the owner means to reverse (`suspend()`, removing a layer) keeps its last rows, so `resume()` or re-adding repaints immediately rather than flashing empty; `destroy()` keeps nothing. React components should continue using function accessors. For app-scoped licenses, pass `configureLicense(key, { appId })` only with an identifier obtained from trusted platform build metadata, never from bridge/page input — and mint keys scoped by both `domains` and `apps` where possible, since the `apps` claim is asserted by the host rather than pinned by the browser.
 
 ## Required References
 

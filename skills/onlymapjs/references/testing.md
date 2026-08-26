@@ -61,6 +61,12 @@ expect(OmMap.snapshotIR(html)).toMatchSnapshot();
 
 The snapshot contains resolved layer descriptors. Accessors appear as behavioral fingerprints, so expression changes show up in diffs without serializing functions.
 
+For programmatic or native JSON descriptors (the `MapController.setLayers()` lane, not a manifest string), use `OmMap.snapshotDescriptorIR(descriptors)`. Same schema/accessor/filter resolution, same fingerprints, and it never fetches URL-backed data — so a native/cross-process parity check is deterministic and offline.
+
+```ts
+expect(OmMap.snapshotDescriptorIR(descriptors)).toMatchSnapshot();
+```
+
 ## Headless Behavior Harness
 
 Use `mountForTest` for most interaction tests.

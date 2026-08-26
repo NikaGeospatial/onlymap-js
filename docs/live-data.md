@@ -76,7 +76,32 @@ This applies to **every** Data Layer request: initial loads, polling refreshes, 
 
 Every flush/poll takes the same path a resolved fetch takes: a **new data reference** enters the layer IR → the reconciler hands it to deck.gl, which re-uploads geometry without recompiling any accessor → `data:<layerId>` watch tokens fire, so widgets (stats panels, charts) re-render once per update. `om-map-ready` resolves after the *first* load for polling; for streams it resolves immediately (a stream never "finishes" — don't wait for a first message to consider the map ready).
 
-Known limitation: sockets and poll loops are keyed by URL and live for the page — removing the layer stops the data being *read*, not the connection.
+Live transports follow the active descriptor document. Removing a layer,
+changing its URL or stream options, destroying its `MapController`, or
+disconnecting its `<om-map>` releases that owner's handle. Identical
+URL/options across maps share one transport, and the final release aborts the
+fetch/poller or closes the socket. `MapController.suspend()` releases its live
+handles while preserving descriptors and rendered state;
+`MapController.resume()` reacquires them from the current descriptor document.
+This is the intended app-background/app-foreground integration for native
+hosts.
+
+A transport released by an owner that means to come back leaves its **last rows
+behind as a cold snapshot**, keyed by the same transport identity. Re-acquiring
+it — `resume()`, or re-adding a layer you removed — repaints those rows
+immediately instead of flashing an empty layer while the first fetch or stream
+message arrives; on a 30-second feed that gap would otherwise be 30 seconds of
+blank map after every foreground. A keyed stream also restores its upsert set,
+so the next message merges rather than replacing.
+
+Only reversible releases retain. `suspend()` and layer removal/re-pointing keep
+their rows; `MapController.destroy()` and an `<om-map>` leaving the document
+keep nothing, since neither can re-acquire. (Re-parenting a live `<om-map>`
+isn't a teardown at all — the release is deferred a microtask, so the transport
+never stops.) The snapshot is cold, not live: the first real response supersedes
+it, and polling readiness (`om-map-ready`) still waits for that response.
+Nothing is retained for a transport still held by another owner — it was never
+stopped.
 
 ## Testing live layers
 
