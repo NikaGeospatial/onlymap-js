@@ -72,7 +72,7 @@ Or with no build step at all, straight from a CDN:
 
 The bare package URL serves `dist/onlymap.standalone.js`, a single-file bundle built for exactly this (jsDelivr too). Use a CDN that serves the package's raw files — **not** a rebundling CDN like esm.sh, which re-splits the bundle into duplicate copies of the deck.gl/luma.gl runtime and breaks every layer's shader compilation.
 
-Then `npx @nika-js/onlymap init` wires up VS Code IntelliSense and `!`-prefixed manifest snippets for your project. The library ships with 1,380 unit/behavioral tests and 70 Playwright GPU tests.
+Then `npx @nika-js/onlymap init` wires up VS Code IntelliSense and `!`-prefixed manifest snippets for your project. The library ships with 1,622 unit/behavioral tests and 70 Playwright GPU tests.
 
 The [examples](https://github.com/NikaGeospatial/onlymapjs/tree/main/examples) are the best tour: widgets, behaviors & overlays, basemaps, columnar/Arrow data, manual drawing, 3D models, scene lighting (with the native lighting widget), DEM terrain, a live WebSocket ship feed, and a polled driver fleet.
 
