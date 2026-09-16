@@ -8,6 +8,234 @@ Note: npm collapsed a few closely-spaced releases — the GPX/FlatGeobuf (0.5.4)
 and GeoParquet (0.5.5) work shipped to npm together as **0.5.6**, so npm's
 version list jumps 0.5.3 → 0.5.6. Each logical version is listed here regardless.
 
+## 0.8.0 — 2026-09-11
+
+### Added
+- **Cartograph: print-quality map layouts as HTML.** The new `@nika-js/onlymap/cartograph` entry renders standalone pages measured in millimetres — `<om-cartograph>` holding live or georeferenced-image `<om-frame>`s plus cartographic furniture: `<om-legend>` (derived from the live map's own symbology, including data-computed class breaks), `<om-graticule>`, `<om-scalebar>`, `<om-north>`, `<om-shape>`, `<om-text>`, `<om-image>`. Frames carry their own cameras, exports capture at true print resolution (300 dpi PNG or PDF at exact page size), and print-shop attributes (bleed, crop marks, safe zone, flatten) make the output press-ready. It is a separate lazy entry: the core bundle does not grow, and a static-only sheet never loads the map runtime. Guide: `docs/cartograph.md`. (#41)
+- **Atlas: one page per feature.** `<om-atlas>` steps a cartograph through a layer's features — one sheet each, rendered sequentially through a single live map (so a hundred-page atlas can't exhaust the browser's WebGL contexts) — and exports the run as one ZIP. (#41)
+- **Colour-vision checking.** `cvd="deuteranopia"` (and three more) simulates colour-vision deficiency across the whole page before it is printed, and the validator flags legend palettes that collapse under them. (#41)
+
+### Changed
+- **Free-plan cartographs carry a small foot credit** ("Built with OnlyMap by NIKA · free for non-commercial use") in print and export — the page counterpart of the map badge. Author your own OnlyMap credit in any text block and the injected one stays away; a paid key on a live frame's map removes it entirely. (#41)
+
+## 0.7.6 — 2026-09-11
+
+### Added
+- **Recolour a 3D model from your data.** `ScenegraphLayer` takes `color="#22c55e"` for a flat tint, and `get-color="$status_color"` to tint each instance from a field — so one GLB can serve a whole fleet in red/amber/green instead of a separate tinted model file per state. The tint multiplies over the model's own texture and material rather than replacing them, so shading and detail survive. (`get-color` already worked but was undocumented; the `color` shorthand is new.)
+
+### Changed
+- **`color` on a `ScenegraphLayer` now tints the model, not just the legend.** It used to set the legend swatch alone. Remove it if you want the model's own colours left untouched; when both are set, `get-color` still wins.
+
+## 0.7.5 — 2026-09-11
+
+### Added
+- **Share any map as one file: `npx @nika-js/onlymap export map.html`.** Writes a portable copy that opens on any computer — relative data is fetched and embedded with format detection preserved (GeoJSON, CSV, Arrow, FlatGeobuf, GeoParquet and friends), library references become pinned CDN tags, and a no-JS fallback is added if missing. Warns when embedded data is heavy, and says exactly which sources must stay network-hosted (tile streams, COGs, shapefiles) and why.
+
+## 0.7.4 — 2026-09-04
+
+### Changed
+- **A lone side widget no longer folds into the drawer so early.** Widgets fold based on what actually shares their row now: the 640px fold width applies when a row (top, middle, or bottom) has widgets on more than one side, and drops to 416px when every occupied row is one-sided — so a single legend or control panel survives narrower maps before tucking away. Adding an opposing widget re-applies the wider threshold immediately.
+
+### Fixed
+- **The "requires JavaScript" banner no longer flashes during a slow load.** On modern browsers the stylesheet now distinguishes "JavaScript is off" from "still loading": with scripting available the fallback never appears during a normal boot (and only surfaces, with load-failure wording, if the library genuinely cannot load), while genuinely script-free contexts — file previews, email attachments — see the fallback instantly instead of after a delay.
+
+## 0.7.3 — 2026-09-03
+
+### Added
+- **`pow` now means a power curve.** `scale(..., pow, ...)` requires a trailing `exponent=` (e.g. `exponent=2`); without one it silently produced a straight line — identical to the new `linear`, which is now the honest way to spell that. An exponent-less `pow` errors with both ways out named.
+- **`linear` joins the scale() kinds.** A plain linear numeric ramp — the most common way to size points by a value — previously had no name (`sqrt`, `log`, `pow` existed, `linear` did not), which pushed authors toward guessing. `get-point-radius="scale($mag, linear, [4, 18], domain=[4.5, 7.8])"` now does exactly what it reads as.
+
+### Fixed
+- **A scale() whose kind doesn't match its range is now an error instead of an invisible layer.** `sequential` and `diverging` interpolate colors; given a numeric range like `[4, 18]` they silently produced black for every feature — a map of 641 earthquake points rendered at zero pixels with no warning anywhere. The mismatch is caught at validation time in both directions, and the message names the kind to use instead.
+
+## 0.7.2 — 2026-09-03
+
+### Fixed
+- **A time or number filter whose data is still loading now works once it arrives.** The filter and time-slider widgets read their slider's range from the layer's data, but were only listening for structural changes — so if the data finished loading after the widget first drew, they never heard about it. The filter came up with an empty range and dragging it selected nothing; the time slider never appeared at all. Whether you hit this came down to which finished first, the data or the page, so the same map could work in one place and not another. Both widgets now follow their own layer's data.
+
+## 0.7.1 — 2026-09-03
+
+### Fixed
+- **A misspelled or invented `<om-behavior action="...">` is now flagged instead of silently doing nothing.** An action the library does not recognise never ran — the manifest validated clean and the interaction was simply dead until someone clicked it. Validation now warns, names the action, and points at the right one (for a click popup that is `show-tooltip` or `show-overlay`). It stays a warning, not an error, because `OmMap.registerAction` may add the action later.
+- **`identify="off"` now actually frees the memory it promised.** The docs said it drops the CPU-retained decode; it only skipped the pixel lookup while still holding every tile's full-band array. Off-mode now releases the array and reports its real GPU-side footprint, which is the difference that matters in a memory-tight WebView. The trade is honest: with the decode released, changing `bands` (or turning identify back on) refetches.
+
+### Changed
+- **The agent guide documents the `draw-*` actions.** `draw-mode`, `draw-commit`, `draw-cancel`, `draw-delete`, `draw-clear`, `draw-config` and `draw-save` drive the same sketch store a `data="draw:<target>"` layer reads, so a custom toolbar can replace the built-in draw widget entirely — they were implemented but missing from `llms.txt`. A test now keeps every built-in widget type and action named there, so the guide cannot fall behind the runtime again.
+
+## 0.7.0 — 2026-09-02
+
+### Added
+- **Choose which bands of a GeoTIFF to display — including false-color composites.** `bands="4"` shows a single band through a colormap; `bands="[8,4,3]"` builds an RGB composite (the classic false-color vegetation view from a multispectral scene). Switching bands never re-downloads anything: every band is decoded once and kept, so flipping between views is instant. (#13)
+- **DEMs and satellite scenes no longer render blank or black without hand-tuned min/max.** Non-8-bit rasters with no styling now stretch themselves automatically from the file's own statistics, so "my COG shows nothing" is gone — a console notice reports the window it derived. `rescale="auto"` requests the same treatment explicitly, and with a band triple each band gets its own window. Authored `min`/`max` always win, and both now accept per-band `[r,g,b]` triples. (#13)
+- **Click a raster to read the pixel under the cursor.** A click or hover on a COG with no vector feature in the way now carries the pixel's values through the ordinary selection — `{{value}}` in an overlay shows the elevation under a click with zero extra wiring, and `{{band_1}}`…`{{band_n}}` address composites. `identify="off"` opts a layer out. (#13)
+- **More control over how a raster looks:** `reverse` flips any colormap, `stretch="log"`/`"sqrt"` and `gamma` shape the display curve — all GPU-side, no re-downloads. Paletted GeoTIFFs (land-cover classifications) now render through their embedded color table and produce a proper classes legend. (#13)
+- **Raster problems now say what's wrong instead of rendering nothing.** A server that refuses cross-origin Range requests, a plain non-cloud-optimized GeoTIFF, or a `bands` pick beyond what the file has — each surfaces as a structured validation error with a concrete fix, while the rest of the map keeps working. (#13)
+
+### Fixed
+- **Double-click zoom works again on maps without a basemap.** A click-reliability improvement for the drawing tools had silently disabled double-click zoom in standalone mode; it's back — zooms in about the point you clicked, shift-double-click zooms out.
+- **The provider attribution no longer overlaps the license badge on narrow maps.** The bottom chrome now measures itself and stacks cleanly at any width, instead of colliding at phone sizes.
+
+## 0.6.26 — 2026-09-02
+
+### Added
+- **Hovering an interactive feature now shows a pointer cursor.** The cheapest "this map is clickable" signal there is — recipients of a shared map no longer have to click at random to discover popups. `pick-cursor` on `<om-map>` customizes the cursor; `pick-cursor="none"` turns it off. (#33)
+- **A runtime popup switch per layer.** The new `set-pickable` action (`{layer, pickable: true|false|"3d"}`) turns a layer's picking — and with it popups, tooltips, and hover behaviors — on or off from a button, behavior, or story step. It's undoable and rewinds on story scrub like every scene action. (#31)
+
+### Changed
+- **Hover no longer stalls the map on modest hardware.** Hovering over layers used to run a GPU hit-test on every mouse move — measured at over a second of freeze per move on integrated graphics with real data. Hover now tests once when the pointer comes to rest instead of continuously while it sweeps, which makes hover popups usable on the machines shared maps are actually opened on. Hover-follow UIs that want the old per-move behavior can opt back in with `hover-pick="continuous"` (or a throttle interval like `hover-pick="120"`); clicking is unaffected. (#31)
+
+## 0.6.25 — 2026-09-02
+
+### Fixed
+- **Basemap text labels no longer disappear after the first zoom or pan.** Since 0.6.19, place names and street labels on any interactive basemap painted once and then vanished permanently on the first camera move (or any style layout change) — recordings and static maps were unaffected, which is how it slipped through. One misplaced option handed to the basemap engine sent its label-fade math into NaN; labels now persist through every interaction. Thanks to the detailed report in #40. (#40)
+
+## 0.6.24 — 2026-09-01
+
+### Changed
+- **The attribution badge got a brand refresh and is easier to spot.** The lower-left badge on free-plan maps now uses NIKA's colors — a dark plum pill with cream text and a gold outline — instead of grey-on-white, and reads "Built with OnlyMap by NIKA. Free for non-commercial use." The "OnlyMap" and "NIKA" wordmarks are now clickable, leading to the npm package and nikaplanet.com respectively.
+
+## 0.6.23 — 2026-08-27
+
+### Fixed
+- **Recorded flyby takes keep their basemap labels.** `onlymapjs record` (and paced story runs generally) captured moving frames before the basemap's place names and road labels had settled — takes came out fully labelled on the first frame and label-less the moment the camera started moving. Every paced frame now also waits for the basemap to settle, and enabling the recording switch after the map has booted now genuinely applies the zero-fade label mode it always claimed (previously that only worked when `data-om-recording` was authored in the markup).
+- For exactly reproducible first frames, the stories guide now recommends authoring a start camera (`center`/`zoom` on `<om-map>`) — without one, the opening pose depends on when the camera is first captured.
+
+## 0.6.22 — 2026-08-26
+
+### Added
+- **Scale-dependent visibility on every layer type.** `visible-zoom-range="[8, 14]"` hides a layer outside that zoom span (min inclusive, max exclusive — the standard minzoom/maxzoom convention), the everyday GIS pattern for keeping dense layers from swamping a zoomed-out view. Works on vector layers, not just tile layers; the layer stays in the legend and layer switcher while zoom-hidden. (#38)
+- **A machine-readable attribute contract, `onlymapjs.attributes.json`.** Tools that generate OnlyMapJS markup can now validate attributes per layer type — the editor IntelliSense file is a flat union and could pass attributes the runtime rejects. The new file is generated from the same registry the runtime validates against, so the two can't drift; IntelliSense hovers now also say which layer types accept each attribute. (#38)
+- **A silent-empty-layer class of mistake now warns.** A layer whose required position accessor resolves to nothing for every row — a `TextLayer` fed GeoJSON with no `get-position` being the reported case — previously rendered an empty map with a clean console. It now warns once with the exact fix, on the console and through the `validate` panel. Layers where the default genuinely works are untouched. (#39)
+
+## 0.6.21 — 2026-08-26
+
+### Added
+- **Recordings now capture animations, not just end states.** Fade, pulse, trace, and populate steps animate frame-accurately in `onlymapjs record` output and paced story runs — a 2-second border trace draws itself on across 2 seconds of video instead of appearing fully drawn. Seeking a story under the recording switch lands mid-animation too (a half-drawn trace is just a scene), which external frame renderers rely on. One documented limit: the `trace follow` camera is skipped during recorded runs, since the paced route drives the camera.
+
+### Fixed
+- **On-map labels (`anchor="surface"`) now sit on the landmass they belong to.** Ring selection previously favored densely-digitized slivers and could even pick a hole; features without a usable anchor point no longer draw a stray label at null island.
+- **The `trace follow` camera stays glued to the drawing tip.** It previously sampled the path by distance while the ink advanced by timestamps, so routes with dwells or slow legs pulled the camera away from the head; layers with several separately-timed paths no longer make the camera jump between them.
+- **Blob-format snapshots are byte-stable again.** Stability comparison silently never matched for blob output, so exactly the format video renderers request lost its guarantee.
+- **Seeking a story no longer overwrites fit-bounds or zoom-to poses between camera legs.**
+- **Paid-license render exemption is scoped to real local browser pages** — it no longer applies in environments without a page location at all.
+
+## 0.6.20 — 2026-08-26
+
+### Fixed
+- **Paid licenses now apply when rendering video locally.** A key restricted to your domains couldn't take effect on the local host that `onlymapjs record` (and external frame renderers) serve from, so paid features didn't apply to rendered output. A verified paid key is now honored in local render contexts; unkeyed usage is unchanged.
+- **Rendered frames settle faster and more reliably over basemaps.** `whenSettled()` now keys off the basemap's own idle signal (camera done, tiles loaded, fades complete) instead of a polling approximation, and the recording switch takes effect before the first render (previously a startup race could leave label fade-in enabled during a take).
+
+## 0.6.19 — 2026-08-26
+
+### Fixed
+- **Webpack-based apps can now bundle OnlyMapJS.** Next.js, Create React App, and plain-webpack builds failed outright on the package (webpack misread a fallback `data:` import inside the bundled loaders as a directory to enumerate). The emitted bundles now carry the `webpackIgnore` hints webpack needs, and a standing build check keeps it that way. No consumer action needed.
+- **Rendered frames over a basemap are now deterministic.** `whenSettled()` waits for the basemap's own tiles as well as 3D tilesets, and under `data-om-recording` the basemap's label fade-in is disabled — so the same frame of a 2D basemap story renders byte-identically even on a warm page rendering frames out of order (previously the label layer could differ with playback history).
+
+## 0.6.18 — 2026-08-25
+
+### Fixed
+- **A warning when a categorical filter can't do what it looks like it does.** deck.gl's GPU category mask holds at most 128 distinct values per dimension — filtering on a higher-cardinality field (e.g. country names over a world dataset) silently made the overflow rows vanish from the map while widget statistics still counted them. The library now warns, once per layer, naming the field and the ceiling, with the fix to use.
+- **Trace animations no longer vanish on some machines.** Layer settings could leak between layers of the same type (a shared internal default was mutated in place), which could push a trace outline's GPU program over its attribute budget — the outline then silently never rendered. Defaults are now copied per layer.
+
+### Added
+- **Drive a story from an external video renderer (Remotion-class).** Three seams for frameworks that own the clock and ask for arbitrary frames: `mapEl.whenSettled()` (also on `MapController`) resolves once the map has genuinely finished drawing — the natural await for tests and screenshots too; `story.seek(t, { interpolateCamera: true })` lands mid-fly-to seeks on the real flight arc instead of snapping to the leg's end (this also fixes scrubbers); and the `data-om-recording` attribute is now a full determinism switch — camera moves land instantly, effect verbs jump to their end state, transitions and gesture interruption turn off, and `snapshot()` returns byte-stable captures. Acceptance-tested: the same frame renders byte-identically across separate page loads and out-of-order.
+- **On-map annotations without popups**: `anchor="surface"` on a `TextLayer` (or any layer) anchors each row inside its own polygon — labels sit on the shapes themselves, no per-row coordinates authored; concave shapes get an always-inside placement.
+- **Travel-map trace animations**: `<om-step action="trace" follow easing="ease-in-out">` — `follow` locks the camera to the line's drawing tip as it traces (the classic animated-travel-map move), and `easing` picks the clock curve (`linear`, `ease-in`, `ease-out`, `ease-in-out`).
+
+## 0.6.17 — 2026-08-25
+
+### Added
+- **Sharp story flybys over 3D tiles.** `<om-story warm-tiles>` pre-loads every 3D tileset's tiles along the story's camera route in the background before playback, so fly-bys no longer pop in or refine from blurry to clear mid-flight. Also available as the `warm-tiles` action for one-off takes; per-layer `load-options='{"tileset":{"maximumMemoryUsage":512}}'` keeps more tiles cached for long routes.
+- **Flawless flyby takes with `<om-story paced>`.** Where pre-loading isn't enough (very heavy scenes like Google Photorealistic 3D Tiles), a paced story holds each frame until the 3D tiles under the camera have fully sharpened before moving on — the flight takes longer to play, but no frame ever shows blurry tiles, which is exactly what a recorded take needs. Combine with `warm-tiles` to shorten the holds; each frame reports its wait through the new `om-paced-tick` event.
+- **Record a story straight to video: `npx onlymapjs record map.html --out flyby.mp4`.** Plays the story load-paced in headless Chromium and writes an H.264/VP9 video in which every frame's 3D tiles are fully sharp — widgets, overlays, and provider attribution included. Uses ffmpeg when installed (otherwise you get the PNG frames plus the exact command to run); `--fps`, `--width/--height/--scale` (retina takes), `--story`, `--keep-frames`, `--timeout`, `--max-hold`. Frames captured before a deadline hit are kept for salvage instead of discarded. Custom recorders can hook the same seam with `storyEl.setPacedCapture(...)` — the story waits for your capture before advancing, so screenshots can never tear between frames.
+- **`--gpu` makes recordings several times faster on heavy 3D scenes.** Headless Chromium renders on software GL by default, which slows every tile-refinement round; `--gpu` switches `onlymapjs record` to the machine's real GPU (measured ~3× shorter tile holds on a Google Photorealistic 3D Tiles take, identical output sharpness). Recommended whenever a recording holds long for tiles.
+- **`paced-max-hold` on `<om-story>`** tunes how long a paced frame may wait for tiles before moving on (default 10s — the safety valve that keeps a dead tile server from freezing playback). Very heavy scenes can genuinely need longer per frame; raise it (e.g. `paced-max-hold="30s"`, or `--max-hold 30` when recording), or set `"none"` to wait unconditionally — the truly-no-blurry-frame mode for recorded takes.
+
+### Fixed
+- **Story fly-to steps written as `longitude="…" latitude="…"` now actually pan the camera.** Previously only the documented `center="[lng, lat]"` form moved the map (bare longitude/latitude were silently ignored by playback, though route pre-loading read them); both forms now work everywhere, and zoom-only fly-to steps are included in route pre-loading too.
+- **Warm-up passes are sturdier.** Pre-loading now waits for tilesets that are still fetching their `tileset.json` instead of silently warming nothing; a partial warm on any tileset is reported as partial; overlapping warm passes no longer leave a tileset rendering coarser than authored; and `samples`/`budget` values written as attributes (strings) are honored.
+- **Paced playback is sturdier too.** Pausing then seeking in the same breath no longer loses the camera position; a failing recorder capture pauses the story instead of wedging it; and a dead tile server on the final frame can always be escaped with pause — even under `paced-max-hold="none"`.
+
+## 0.6.16 — 2026-08-24
+
+### Added
+- **Packaged mobile apps now identify themselves in usage telemetry.** `configureTelemetry({ platform, appId })` lets a native host (like `@nika-js/onlymap-native`) report the store app identity and platform instead of a meaningless embedded-WebView hostname. Web pages are unaffected; the same privacy rules apply.
+
+### Fixed
+- **A license key that cannot verify now says so on the page.** In a context without `crypto.subtle` (an insecure or misconfigured embed), key verification used to log only a console warning while the map silently ran in the free tier; it now also raises a structured validation error with a fix hint through the normal error channel.
+## 0.6.15 — 2026-08-21
+
+### Changed
+- **Smoother interactive dragging on complex maps.** Dragging the measure or clip-box gizmos (and any other live animation) now rebuilds the scene once per frame instead of up to ~10 times — the same visual result with a fraction of the work, which shows up as steadier frame rates and lower battery drain on layer-heavy maps, especially in mobile WebViews.
+
+## 0.6.14 — 2026-08-21
+
+### Fixed
+- **Dashed lines render again.** `dash="[4, 2]"` had been drawing solid lines since 0.6.2 — the terrain patch merge was unintentionally stripping every layer's extensions on flat maps (issue #36).
+- **Filters visibly apply again on maps without terrain** — same underlying cause as the dash fix. Filter widgets and statistics were always correct; the map itself just wasn't hiding filtered-out features.
+- **Maps built in code now match maps built in HTML.** Built-in defaults apply (e.g. BIM models are clickable by default), `{z}/{x}/{y}` tile URLs load as tiles instead of failing, legends generate automatically, and `classifyBy` now works in React.
+- **`snap="false"` and `clip="false"` now opt a layer out**, matching what validation already accepted; `snap="off"` / `clip="off"` unchanged.
+
+## 0.6.13 — 2026-08-20
+
+### Fixed
+- **Line/polygon completion now works on iOS WebViews** (issue #17) — iOS never synthesizes `dblclick` from a double-tap while touch handlers are active, so double-tap added two more vertices instead of committing (Android committed fine — platform-inconsistent). The draw controller now detects the tap pair itself (two touch/pen taps within 350ms and ~12px) and completes the shape; mouse input keeps the native `dblclick` path, and synthetic/programmatic picks (no `pointerType`) opt into nothing. Applies wherever the draw stack runs, including the measure widget's footprints.
+
+### Added
+- **Finish button on the draw toolbar** — an explicit, discoverable completion affordance (double-click/double-tap/Enter are conventions the user must already know); harmless no-op when nothing is pending.
+- **`mapPoint(coord, kind, pointerType?)`** on the test harness — simulate a specific input modality (`"touch"`/`"pen"`/`"mouse"`) through the real pick path.
+
+## 0.6.12 — 2026-08-19
+
+### Added
+- **Classified symbology** (issue #12) — `classify-by="magnitude" classify-scale="quantile|equal-interval|jenks" classify-classes="5" classify-ramp="viridis"` computes class breaks *from the data* at reconcile time, installs the fill-color accessor, and auto-generates the classes legend. Fourteen named ramps (matplotlib + ColorBrewer). An authored `get-fill-color`/`color` always wins (validation names the conflict); URL-backed layers classify when their data arrives; results are memoized per data reference so deck recomputes exactly when the classification genuinely changes. Mirrored on the programmatic front-end as `classifyBy`/`classifyScale`/`classifyClasses`/`classifyRamp`.
+- **`time-slider` widget** (issue #18) — play/pause/scrub playback over a layer's numeric/epoch-ms time field: `<om-widget type="time-slider" layer="quakes" field="time" duration="20s" window="86400000" loop format="date">`. Drives the ordinary `filter-layer` action (cumulative from the domain start, or a sliding `window` in field units), so widget statistics stay coherent and undo/stories/external filter edits re-sync the thumb; date labels reuse the filter widget's `format`/`date-style`/`time-zone` contract.
+
+## 0.6.11 — 2026-08-18
+
+### Fixed
+- **Tracking markers tween smoothly instead of jittering.** Two causes, both fixed: inline-JSON layer data is now reference-stable across reconciles (it was re-parsed into a fresh array every pass, so any unrelated manifest edit — another rider's fix, a story step — looked like a new position fix to every Tracking layer and snapped its glide to the endpoint; this also stops spurious `data:<id>` watch-token fires for every inline layer on every reconcile), and a glide interrupted by a genuinely new fix now resumes from the marker's **current animated position** rather than the previous fix's endpoint, keeping motion continuous under any fix cadence.
+
+## 0.6.10 — 2026-08-18
+
+### Added
+- **`om-route-resolved` consumer event** — whenever a `Route` layer resolves (direct `geometry` or a `RoutingProvider` round-trip), the map dispatches `om-route-resolved` with `detail = { layerId, route }`, where `route` carries the normalized `geometry`, `distanceMeters`, `durationSec`, `legs`, and fitted `bounds`; re-fired on every re-resolve. `MapController` mirrors it as `onRouteResolved(layerId, route)`. This closes the "route metadata has no consumer surface" gap natively: the Delivery Riders simulation and the Compute a Route readout now run entirely on this event, with no page-side fetching or adapter-to-UI plumbing.
+
+## 0.6.9 — 2026-08-18
+
+### Added
+- **Tracking marker shapes** — `icon="arrow|car|motorcycle"` on a `Tracking` layer picks the marker (default arrow, unchanged). All shapes are drawn nose-up and baked in the layer's `color`, so bearing rotation and per-rider tinting apply to every shape identically; unknown names fall back to the arrow with a validation warning. The Delivery Riders example now rides color-matched motorcycles.
+
+## 0.6.8 — 2026-08-18
+
+### Added
+- **Route tail modes** — link a `Route` layer to its `Tracking` layer with `progress-from="<tracking-layer-id>"` and choose how the traveled portion renders: `tail="none"` (client view — only current position → destination renders, and the origin pin drops with the traveled line) or `tail="dim"` (operator view — the traveled portion darkens, `tail-color` overrides the default derivation, while current position → destination keeps the live color). The split point is the tracking marker's interpolated position projected onto the nearest point of the route line, advancing smoothly per frame with the marker's glide — not stepping per GPS fix. Default (`tail="full"`) keeps 0.6.7 behavior exactly. Validation warns on partial wiring: `tail` without `progress-from`, `progress-from` without a tail mode, `tail-color` outside `dim`, and a `progress-from` naming no layer.
+- The **Delivery Riders** example shows the operator view (three dimmed trails growing behind the riders); the **Routing & Tracking** example shows the client view (the route line shrinks to what's ahead of the rider).
+
+## 0.6.7 — 2026-08-17
+
+### Added
+- **Routing & tracking layer types** — `<om-layer type="Route" geometry='{"type":"LineString","coordinates":[...]}'>` draws a styled route (casing, colored line, origin/destination markers) from geometry you already have, resolving synchronously with no network call; `origin`/`destination` (+ `provider`, default `"nika"`, + optional `waypoints`/`profile`) resolve one asynchronously instead via a registered `RoutingProvider` (`OmMap.registerRoutingProvider`). `follow="fit-route"` auto-fits the camera once the route resolves. `<om-layer type="Tracking" get-position="[$lng,$lat]">` renders one moving entity with bearing-derived icon rotation (`bearing-field`, default `"bearing"`) that glides smoothly between position updates (`interpolate-ms`, default `1000`) instead of jumping; `follow="follow"` eases the camera along with it. Live position data arrives through the ordinary `data`/`source` mechanism — no separate tracking-subscription API. `Route`/`Tracking` expand into ordinary `PathLayer`/`IconLayer` instances internally, the same pattern `BIMLayer` already uses for `Tile3DLayer`.
+- The bundled `nika` routing provider is registered by default so `type="Route"` works out of the box once NIKA's routing service exists — its endpoint is currently an **unverified placeholder** (no such backend is live yet); register a working provider with `OmMap.registerRoutingProvider(name, provider)` for anything that needs to resolve routes today, or author `geometry` directly.
+- Two gallery examples: **Routing & Tracking** (direct-geometry route + a simulated live GPS feed gliding a tracking marker) and **Compute a Route** (click two points anywhere and a ~15-line page-script `RoutingProvider` adapter over OSRM's keyless public demo server computes the street-following drive — the click handler only writes `origin`/`destination` attributes; reconcile, the provider round-trip, and the camera re-fit are all library machinery). The OSRM adapter recipe also ships in the skill's syntax reference.
+
+## 0.6.6 — 2026-08-14
+
+### Added
+- **Multi-dimension categorical GPU filtering** — `filter-category-fields='[{"field":"fuel","categories":["Coal","Gas"]},{"field":"region","categories":["West"]}]'` filters on up to 4 categorical fields at once, AND'd together and combinable with an active numeric filter (a row must pass every dimension of both kinds). `filter-category`/`filter-categories` (single dimension) keep working unchanged. The built-in `<om-widget type="filter">` now auto-renders a checkbox list (one per distinct value present in the data, with its row count) instead of a slider when its `field` is declared categorically — the mode is inferred from the layer's own filter, never a separate widget attribute. The React/programmatic front-ends get the equivalent `filterCategoryFields` prop.
+
+### Fixed
+- `ctx.stats`/`ctx.dataInViewport` now respect an active categorical filter (`filter-category`/`filter-categories`) — previously only numeric filters were coherence-rule-aware, so a chart could silently disagree with a categorically-filtered map.
+- Story scrubbing and undo/redo now correctly restore an active categorical filter — previously `filter-category`/`filter-categories` weren't captured at all, so rewinding past a categorical `filter-layer` step silently dropped it.
+
+## 0.6.5 — 2026-08-13
+
+### Added
+- **Multi-dimension GPU filtering** — `filter-fields='[{"field":"magnitude","range":[4,10]},{"field":"time","range":[…]}]'` filters on up to 4 fields at once (`DataFilterExtension`'s own ceiling), AND'd together (a row must pass every dimension). `filter-field`/`filter-range` (single dimension) keep working unchanged — `filter-fields` is additive, not a replacement. Place one `<om-widget type="filter" layer="…" field="…">` per dimension; the `filter-layer` action merges range updates onto the matching dimension instead of replacing the whole filter, so independent widgets never clobber each other. `ctx.stats`/`ctx.dataInViewport`'s filter-aware coherence rule applies the same AND-across-dimensions test CPU-side. The React/programmatic front-ends get the equivalent `filterFields` prop.
+
+### Fixed
+- `populate` on a layer with more than one authored filter dimension now sweeps the first and holds the rest at their authored range, instead of a type error.
+
 ## 0.6.4 — 2026-08-12
 
 React Native core prerequisites. 0.6.3 was already tagged for release when this

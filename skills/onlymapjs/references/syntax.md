@@ -16,8 +16,8 @@ Vite/npm project:
 Static CDN page (raw-file CDNs only — unpkg/jsDelivr; never esm.sh or another rebundling CDN, which duplicates the WebGL runtime and breaks layer shaders):
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.6.4/dist/onlymapjs.css">
-<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.6.4"></script>
+<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.8.0/dist/onlymapjs.css">
+<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.8.0"></script>
 ```
 
 Always include `onlymapjs.css` — it carries the MapLibre basemap styles and the no-JS fallback rules (`<om-fallback>` / default banner). For the fallback to work in script-disabled previews it must load without JavaScript: a real `<link rel="stylesheet">` or inlined `<style>` on no-build pages (a bundler-emitted stylesheet is fine in npm projects).
@@ -88,6 +88,8 @@ get-text="formatDate($time, 'datetime', 'UTC')"
 
 `$field` works on flat rows, GeoJSON properties, columnar JSON, CSV/TSV columns, and Arrow point columns.
 
+`scale()` kinds: `sequential`/`diverging` interpolate COLOR stops; `linear`/`sqrt`/`log`/`pow` interpolate NUMBERS (sizes, radii, widths); `threshold` maps either. A kind/range mismatch (e.g. `sequential` with `[4,18]`) is a compile error. `pow` requires a trailing `exponent=` (`scale($v, pow, [0,30], domain=[0,100], exponent=2)`); for a straight line use `linear`.
+
 Date formatting is a safe built-in rather than an opt-in to arbitrary JavaScript:
 
 ```html
@@ -109,11 +111,38 @@ Transitions:
 transition="get-fill-color 800ms, get-radius 400ms"
 ```
 
-Filtering:
+Filtering (single dimension):
 
 ```html
 filter-field="magnitude" filter-range="[4, 10]"
 ```
+
+Multi-dimension filtering (up to 4, AND'd together — a row must pass every dimension) — `filter-fields`, a JSON array of `{field, range, softRange?}`, additive to (not a replacement for) `filter-field`/`filter-range`; if both are authored, `filter-fields` wins:
+
+```html
+<om-layer ... filter-fields='[{"field":"magnitude","range":[4,10]},{"field":"time","range":[1782889284760,1785480717910]}]'>
+<om-widget type="filter" layer="quakes" field="magnitude"></om-widget>
+<om-widget type="filter" layer="quakes" field="time"></om-widget>
+```
+
+One `<om-widget type="filter">` per dimension — each moves its own field's range independently; `filter-layer` merges the update onto the matching dimension rather than replacing the whole filter. A dimension can't be added live through the widget/action — the full set of fields a layer filters on must be declared up front in `filter-fields`.
+
+## Zoom visibility (any layer type)
+
+`visible-zoom-range="[8, 14]"` — scale-dependent visibility, the QGIS/ArcGIS/Mapbox everyday pattern: the layer renders only at min ≤ zoom < max (min inclusive, max exclusive — the minzoom/maxzoom convention). Universal: valid on every layer type, unlike the tile-only `visible-min-zoom`/`visible-max-zoom` deck props. Composes with `visible` (both must allow); a zoom-hidden layer stays a full scene member — legend, layer-switcher, and `ctx` still list it. Malformed values are ignored with a warning (`validate` reports them structurally).
+
+Attribute-contract tooling: the package also ships `onlymapjs.attributes.json` — a machine-readable per-layer-type attribute list generated from the same registry the runtime validates against. CI checks that emit `<om-layer>` markup should validate attributes per `type=` against it, NOT against the editor IntelliSense file (`onlymapjs.html-data.json`), which is a flat per-tag union and cannot express "valid on TileLayer, not GeoJsonLayer". An attribute is accepted on a type iff it appears in the contract's `universal` list or `layers[<type>]`.
+
+Categorical filtering is a SEPARATE mechanism from numeric (deck.gl's own `categorySize`, a discrete keep-list test, not a range) — same shape, own attributes, and combines with an active numeric filter (a row must pass both):
+
+```html
+filter-category="fuel" filter-categories='["Coal","Gas"]'
+<!-- or, up to 4 categorical dimensions: -->
+<om-layer ... filter-category-fields='[{"field":"fuel","categories":["Coal","Gas"]},{"field":"region","categories":["West"]}]'>
+<om-widget type="filter" layer="stations" field="fuel"></om-widget>
+```
+
+The `filter` widget's mode is INFERRED from the layer's own declared filter, never a separate widget attribute: a field declared in `filter-category`/`filter-category-fields` renders checkboxes (one per distinct value in the data, with its row count); otherwise it renders the numeric sliders. A categorical widget needs its layer to declare an initial non-empty `categories` list — that seed IS the checkbox options. A dimension missing its `categories` is dropped from the active filter (a warning) rather than matching everything — unlike a numeric range, there's no "matches everything" category to fall back to.
 
 Dashed lines (on path-stroking layers — `PathLayer`, `GeoJsonLayer`, `PolygonLayer`, `TripsLayer`):
 
@@ -139,7 +168,7 @@ For an epoch-millisecond filter, format the built-in widget's numeric labels dec
 
 Use the `type` value exactly:
 
-`A5Layer`, `ArcLayer`, `BIMLayer`, `BitmapLayer`, `COGLayer`, `ColumnLayer`, `ContourLayer`, `GeoJsonLayer`, `GeohashLayer`, `GreatCircleLayer`, `GridCellLayer`, `GridLayer`, `H3ClusterLayer`, `H3HexagonLayer`, `HeatmapLayer`, `HexagonLayer`, `IconLayer`, `ImageOverlay`, `LineLayer`, `MVTLayer`, `PathLayer`, `PointCloudLayer`, `PolygonLayer`, `PopupLayer`, `QuadkeyLayer`, `S2Layer`, `ScatterplotLayer`, `ScenegraphLayer`, `ScreenGridLayer`, `SimpleMeshLayer`, `SolidPolygonLayer`, `TerrainLayer`, `TextLayer`, `Tile3DLayer`, `TileLayer`, `TripsLayer`, `ZarrLayer`.
+`A5Layer`, `ArcLayer`, `BIMLayer`, `BitmapLayer`, `COGLayer`, `ColumnLayer`, `ContourLayer`, `GeoJsonLayer`, `GeohashLayer`, `GreatCircleLayer`, `GridCellLayer`, `GridLayer`, `H3ClusterLayer`, `H3HexagonLayer`, `HeatmapLayer`, `HexagonLayer`, `IconLayer`, `ImageOverlay`, `LineLayer`, `MVTLayer`, `PathLayer`, `PointCloudLayer`, `PolygonLayer`, `PopupLayer`, `QuadkeyLayer`, `Route`, `S2Layer`, `ScatterplotLayer`, `ScenegraphLayer`, `ScreenGridLayer`, `SimpleMeshLayer`, `SolidPolygonLayer`, `TerrainLayer`, `TextLayer`, `Tile3DLayer`, `TileLayer`, `Tracking`, `TripsLayer`, `ZarrLayer`.
 
 Common choices:
 
@@ -153,6 +182,8 @@ Common choices:
 - GeoTIFF/COG rasters: `COGLayer`.
 - Zarr / GeoZarr rasters (chunked N-D arrays): `ZarrLayer`.
 - Geotagged drone JPEGs: `ImageOverlay`.
+- Styled A-to-B route (casing + line + waypoint markers): `Route`.
+- One moving, rotating entity (a vehicle/rider position feed): `Tracking`.
 
 
 
@@ -164,12 +195,17 @@ Common choices:
 ```
 
 - `src` (required) — the GeoTIFF URL. NOT `data`: rasters stream tiles by HTTP Range request through the layer's own reader; they are never parsed rows (`$field`, `ctx.data()`, `ctx.stats()`, filters do not apply).
-- Sources must be Cloud-Optimized GeoTIFFs (`gdal_translate -of COG` otherwise).
-- `min`/`max` — the rescale window mapped onto the colormap. Defaults to 0–255, so ALWAYS set them for float or 16-bit data (DEMs, NDVI, temperature).
-- `colormap` — single-band ramps from the bundled sprite: `gray` (default), `viridis`, `plasma`, `inferno`, `magma`, `cividis`, `rdylgn`, `rdbu`, `spectral`, `terrain`, `jet`, `turbo`, `ylorrd` (ColorBrewer yellow→orange→red — a gentler sequential ramp than turbo/jet). Sources with 3+ bands composite as RGB and ignore it.
+- Sources should be Cloud-Optimized GeoTIFFs (`gdal_translate -of COG`); a plain GeoTIFF renders with a structured warning (every view re-reads the full image).
+- `bands` — 1-based band selection (GDAL convention): one band (`bands="4"`, colormap-eligible) or an `[r,g,b]` triple (`bands="[8,4,3]"`, false-color composite). Band switches NEVER refetch tiles — every band is decoded once and retained; textures re-upload from memory.
+- `min`/`max` — the rescale window. A number broadcasts to every selected band; with a `bands` triple, each may be an `[r,g,b]` triple for per-band windows (`min="[0,0,0]" max="[3000,8000,3000]"`). Defaults to 0–255 — set them for float/16-bit data, or use `rescale="auto"`.
+- `rescale="auto"` — window(s) from the file's GDAL statistics tags (deterministic per file; per-band for composites); falls back to sampling the coarsest overview with a warning that the window is data-derived. Explicit `min`/`max` always win. Non-8-bit sources with NO styling attributes auto-stretch automatically (a dev notice reports the derived window).
+- `colormap` — single-band ramps from the bundled sprite: `gray` (default), `viridis`, `plasma`, `inferno`, `magma`, `cividis`, `rdylgn`, `rdbu`, `spectral`, `terrain`, `jet`, `turbo`, `ylorrd`. Composites ignore it (validation warns). `reverse` flips the ramp.
+- `stretch="linear|log|sqrt"` + `gamma` (> 0) — display-curve shaping between rescale and colormap; both are uniforms.
 - `nodata` — overrides the source's nodata sentinel; nodata pixels render transparent.
-- Plain 8-bit RGB COGs (satellite truecolor) need no styling attributes at all.
-- Restretch/recolor (min/max/colormap edits) are GPU uniform updates — tiles are not refetched. The legend widget renders the colormap ramp automatically when `colormap` + `min`/`max` are authored.
+- Plain 8-bit RGB COGs (satellite truecolor) need no styling attributes at all; paletted GeoTIFFs render via their embedded color table and emit a classes legend when few entries are used.
+- PIXEL IDENTIFY: a click/hover over the raster (no vector feature hit) produces a selection whose object carries `{ value, values, bands, nodata, band_1..n }` — overlays/tooltips interpolate `{{value}}` etc. with zero extra wiring. `identify="off"` disables it and releases the CPU-retained decode (recommended on memory-tight WebViews); the trade: band switches on that layer refetch tiles instead of re-uploading from memory.
+- Every styling change (bands/min/max/colormap/reverse/stretch/gamma/nodata) is a GPU-side update — tiles are never refetched. The legend renders automatically from the authored OR auto-resolved window.
+- Failure modes are structured (`validate` panel / `om-validation-error`): CORS-refused Range requests, non-COG sources, and out-of-range `bands` each carry an actionable fix string; the map stays alive.
 
 ### ZarrLayer (Zarr / GeoZarr rasters)
 
@@ -218,6 +254,63 @@ No server setup is needed: a static host serves Zarr's extensionless chunk keys 
 - `depth-test` defaults false. `opacity`, `visible`, and `pickable` behave like other layers.
 - The public `await OmMap.resolveImageOverlay(fileOrUrl, options?)` returns `{image, bounds, metadata}` for upload/persistence.
 - Visualization-grade only: no terrain, lens-distortion, calibration, or perspective-correct four-corner orthorectification. Use `COGLayer` for large orthomosaics.
+
+### Route & Tracking
+
+```html
+<!-- Direct geometry (synchronous, no network round trip) -->
+<om-layer id="trip" type="Route" follow="fit-route"
+          geometry='{"type":"LineString","coordinates":[[-122.42,37.77],[-122.41,37.79]]}'></om-layer>
+
+<!-- Or resolve one via a provider -->
+<om-layer id="trip" type="Route" follow="fit-route"
+          origin="[-122.42,37.77]" destination="[-122.41,37.79]" provider="nika" profile="driving"></om-layer>
+
+<om-layer id="rider" type="Tracking" get-position="[$lng,$lat]"
+          follow="follow" interpolate-ms="1200"></om-layer>
+```
+
+- `Route` renders a casing + colored line + origin/destination pin markers from a GeoJSON LineString — expands into ordinary `PathLayer`/`IconLayer` instances, same pattern `BIMLayer` uses for `Tile3DLayer`.
+  - `geometry` (a `{"type":"LineString","coordinates":[[lng,lat],...]}` object/JSON string) resolves SYNCHRONOUSLY — no provider call. If both `geometry` and `origin`/`destination` are authored, `geometry` wins outright (validation warns).
+  - `origin="[lng,lat]" destination="[lng,lat]"` (+ optional `waypoints`, `profile="driving|walking|cycling"`) resolve ASYNCHRONOUSLY via a `RoutingProvider` named by `provider` (default `"nika"` — registered by default, but its endpoint is an unverified placeholder until NIKA's real routing service ships; register your own with `OmMap.registerRoutingProvider(name, provider)` for anything that needs to work today).
+  - Keyless real-data testing/authoring recipe — OSRM's public demo server (fine for light use, not production traffic), verified working end-to-end:
+
+    ```html
+    <script type="module">
+      import { OmMap } from "@nika-js/onlymap";
+      OmMap.registerRoutingProvider("osrm", {
+        async computeRoute({ waypoints, profile }, opts) {
+          const coords = waypoints.map((w) => `${w.lng},${w.lat}`).join(";");
+          const res = await fetch(
+            `https://router.project-osrm.org/route/v1/${profile ?? "driving"}/${coords}?geometries=geojson&overview=full`,
+            { signal: opts?.signal },
+          );
+          if (!res.ok) throw new Error(`OSRM: HTTP ${res.status}`);
+          const json = await res.json();
+          if (json.code !== "Ok" || !json.routes?.[0]) throw new Error(`OSRM: ${json.code ?? "no route"}`);
+          const r = json.routes[0];
+          return {
+            geometry: r.geometry, distanceMeters: r.distance, durationSec: r.duration,
+            legs: r.legs.map((l) => ({ distanceMeters: l.distance, durationSec: l.duration })),
+          };
+        },
+      });
+    </script>
+    <om-layer id="trip" type="Route" provider="osrm" follow="fit-route"
+              origin="[-122.4194,37.7749]" destination="[-122.4130,37.7805]"></om-layer>
+    ```
+
+    The same ~15-line shape works for any OSRM-dialect endpoint (a self-hosted OSRM, Mapbox Directions with a token) by swapping the base URL. OSRM returns `geometries=geojson` natively, so no polyline decoding is needed.
+  - `color`/`casing-color` style the line (defaults `#2563eb`/`#0f172a`).
+  - `follow="fit-route"` auto-fits the camera once the route resolves — no manual `flyToBounds` needed.
+  - Reading the result back: the map dispatches `om-route-resolved` on every resolve (`detail = {layerId, route}` — normalized geometry/distanceMeters/durationSec/legs/bounds; `MapController` twin: `onRouteResolved`). Use it for readouts, ETAs, or driving anything off the computed geometry — never re-fetch what the provider already returned.
+  - Tail modes: `progress-from="<tracking-layer-id>"` links the route to a Tracking layer, and `tail` picks how the TRAVELED portion renders — `tail="none"` (client view: only current position → destination renders, origin pin dropped too), `tail="dim"` (operator view: traveled portion darkened — `tail-color` overrides the default ~35%-brightness derivation), default full (split ignored). The split is the marker's interpolated position projected onto the route line, advancing per frame with the glide. All three attributes are one mechanism — validation warns on partial wiring (tail without progress-from, progress-from without tail, tail-color outside dim, an unknown progress-from id).
+- `Tracking` renders ONE moving entity's current position with bearing-derived icon rotation — expands into an `IconLayer`.
+  - `get-position` (required, a normal compiled accessor like any curated layer) reads position off `data` — the LAST row is "the" tracked position (v1 = one entity per layer; a fleet is one `Tracking` layer per vehicle).
+  - Live updates ride the ORDINARY `data`/`source` mechanism (a `wss://` stream + `OmMap.registerSource`, or anything else that changes `data`) — there is no separate tracking-subscription API.
+  - `bearing-field` (default `"bearing"`) names the plain data field to rotate the icon by (checks `properties.<field>` on a GeoJSON row, `<field>` directly on a flat row).
+  - `interpolate-ms` (default `1000`) is how long the marker glides between two position fixes (the per-frame channel — no re-render, no accessor recompute) instead of jumping; `follow="follow"` eases the camera along with it, timed to the same duration.
+  - `color`/`size` style the marker (defaults `#2563eb`/`28`px); `icon="arrow|car|motorcycle"` picks its shape (default arrow) — all nose-up SVGs baked in `color`, so rotation and tinting work for every shape; unknown names fall back to the arrow (validation warns).
 
 External layer classes become manifest types via `OmMap.registerLayer({type, deckClass, props})`. Build them on `@nika-js/onlymap/deck` (the bundled `CompositeLayer`/`TileLayer`/… re-exports — a separately-installed deck.gl is a different class hierarchy and breaks in the renderer); function-valued props ride the subclass's `static defaultProps`; register at module top level before the manifest mounts. Full recipe: docs/custom-layers.md.
 
@@ -356,7 +449,7 @@ Built-ins:
 - `filter`
 - `draw` — sketch-capture toolbar: `modes="point line polygon"` (default all three), `target="<name>"` (default `sketch`, bound via `data="draw:<target>"`), `save="both|download|file-system"`, `autosave="<localStorage key>"`. `export-3d` (bare = GLB default, `="b3dm"` wraps it for Cesium/3D-Tiles pipelines) adds an "Export 3D" button (spec: issue #34 — region export) — deliberately separate from `save` (that's the drawn shape's own GeoJSON; `export-3d` exports the 3D `Tile3DLayer`/`BIMLayer` content found INSIDE the drawn footprint). Outline a polygon over loaded 3D content, close it, click "Export 3D": clips every loaded tile's triangles to the footprint (a plain 2D clip — no elevation-picking involved), re-frames them to a local coordinate frame at the footprint's own centroid (portable — opens correctly in Blender/three.js/etc. without ECEF-scale support), and downloads it, each triangle carrying its own source color (baked as vertex colors). No textures — BIM/IFC materials are flat colors, not textured meshes. The export only pulls in currently-VISIBLE 3D Tiles/BIM layers — one hidden via `visible="false"` (or the `toggle-layer` action) is excluded, with a distinct console warning distinguishing "nothing has loaded yet" from "everything loaded is hidden." Validation warns on an unrecognized `export-3d` value.
 - `clip-box` — native UI over the map's `clip-box-*` scene-state attributes (see the `<om-map>` section above): six number inputs (min/max × lng/lat/elevation), invert/highlight checkboxes, and a clear button, all wired through `set-clip-box`. Manifest is the source of truth — the panel re-syncs from the attributes on every render, so undo/redo and story-scrub move the inputs too.
-- `measure` — geodesic ruler: `modes="distance area volume"` (space-separated; default `distance area`), `units="metric|imperial|nautical"`. Click the map to place points; live per-segment + total labels render on the map, and a totals panel + a `units` toggle sit in the widget. Distance is haversine on the WGS84 mean sphere (≤0.56% vs. the true geodesic); area is the spherical-excess integral. Nautical shows nmi for length and falls back to metric for area. Reuses the draw capture stack (measure and draw are mutually exclusive); the geometry is ephemeral (never saved, never an undo step). Consume the reading programmatically via the `om-measure` event on `<om-map>` (`detail = {mode, units, totalMeters, segments, areaMeters2, perimeterMeters, poleWarning, cutMeters3, fillMeters3, netMeters3, totalMeters3, cutAdjustedMeters3, fillAdjustedMeters3, swell, shrink, cutMassKg, fillMassKg, cellSizeM, gsdM, cutErrorM3, fillErrorM3, nodataFraction, baseSurface, stale, profileSeries}` — `profileSeries` points are `{x: metres from the first vertex, y: elevation m}`, with `vertexIndex` present only on samples that ARE a drawn corner (filter a chart on `isValid(datum.vertexIndex)`; vertex 0 is the leftmost point, and with `profile` on the map badges the first two vertices `1 · Start` and `2` in draw order — 1-based display, field stays 0-based — so clockwise vs counter-clockwise is stated, not inferred; two is the minimum that fixes a direction and stays constant however many corners there are, while the chart marks them all) — everything from `cutMeters3` on is volume-mode-only, populating once a footprint closes). `volume` mode outlines a polygon footprint the same way `area` does — double-click (or Enter) closes it, and it turns solid teal to signal it's ready — then a double-headed arrow gizmo (fixed screen-pixel size, unbounded drag distance) appears at the centroid: drag it up to fill, down to cut, panel reads Cut/Fill/Net (signed, fill−cut)/Total (unsigned, cut+fill) volume + Area/Perimeter live — always RAW geometric figures, never altered by `swell`/`shrink`. REQUIRES `terrain` on `<om-map>` (validation warns a `volume` mode with none): the math is a REAL per-cell grid integration (issue #35) — closing a footprint bulk-loads its covering DEM tiles and integrates terrain-vs-base per cell on a metric tangent-plane grid (cell size = the DEM's GSD at the ring's latitude, scanline point-in-polygon, bilinear tile-seam-correct sampling, worker-offloaded with a synchronous fallback), reporting mixed cut AND fill within one footprint on undulating ground plus `cellSizeM`/`gsdM`/`cutErrorM3`/`fillErrorM3` (± = per-cell cellArea × 1.5 × GSD, summed per side) and `nodataFraction` on the readout. `base-surface` picks the reference surface: `custom` (default — the gizmo's draggable target plane, re-summed live from the cached grid during a drag) or boundary-derived stockpile strategies with NO gizmo (`triangulated` boundary TIN — the drone-survey default, `plane` least-squares, `lowest`/`highest`/`average`). No terrain (or a failed tile fetch) falls back to the flat single-elevation approximation with no error figures rather than erroring. Five more volume-only attributes, all no-ops without `volume` in `modes` (validation warns): `base-surface` (above); `profile` — closing a footprint also samples elevation around its own perimeter, dispatched on `profileSeries` for a paired `dynamic-chart` widget to plot, updating live from the first vertex (debounced on hover, immediate on each new vertex) while sketching, not just on close; `deadband` (m³, default 0) — zeroes a Cut/Fill figure below the threshold; `density` (t/m³ metric, lb/yd³ imperial) and `swell`/`shrink` (multipliers, default 1×) populate a SEPARATE Material section instead of touching Cut/Fill/Net/Total — standard Bank/Loose/Compacted convention: `cutAdjustedMeters3` = raw cut × swell (loose/haul volume, bigger — excavating adds air voids), `fillAdjustedMeters3` = raw fill ÷ shrink (loose/borrow volume needed, also bigger — raw fill is already a compacted target void), `cutMassKg`/`fillMassKg` from the RAW volume (mass-conserving — swell/shrink change volume via air voids, not the mass of material). The widget only renders the Material section once at least one of `density`/`swell`/`shrink` is configured — no separate toggle. `stale` flags the brief window between a footprint committing and its elevation sample resolving.
+- `measure` — geodesic ruler: `modes="distance area volume"` (space-separated; default `distance area`), `units="metric|imperial|nautical"`. Click the map to place points; live per-segment + total labels render on the map, and a totals panel + a `units` toggle sit in the widget. Distance is haversine on the WGS84 mean sphere (≤0.56% vs. the true geodesic); area is the spherical-excess integral. Nautical shows nmi for length and falls back to metric for area. Reuses the draw capture stack (measure and draw are mutually exclusive); the geometry is ephemeral (never saved, never an undo step). Consume the reading programmatically via the `om-measure` event on `<om-map>` (`detail = {mode, units, totalMeters, segments, areaMeters2, perimeterMeters, poleWarning, cutMeters3, fillMeters3, netMeters3, totalMeters3, cutAdjustedMeters3, fillAdjustedMeters3, swell, shrink, cutMassKg, fillMassKg, cellSizeM, gsdM, cutErrorM3, fillErrorM3, nodataFraction, baseSurface, stale, profileSeries}` — `profileSeries` points are `{x: metres from the first vertex, y: elevation m}`, with `vertexIndex` present only on samples that ARE a drawn corner (filter a chart on `isValid(datum.vertexIndex)`; vertex 0 is the leftmost point, and with `profile` on the map badges the first two vertices `1 · Start` and `2` in draw order — 1-based display, field stays 0-based — so clockwise vs counter-clockwise is stated, not inferred; two is the minimum that fixes a direction and stays constant however many corners there are, while the chart marks them all) — everything from `cutMeters3` on is volume-mode-only, populating once a footprint closes). `volume` mode outlines a polygon footprint the same way `area` does — double-click, touch double-tap, or Enter closes it, and it turns solid teal to signal it's ready — then a double-headed arrow gizmo (fixed screen-pixel size, unbounded drag distance) appears at the centroid: drag it up to fill, down to cut, panel reads Cut/Fill/Net (signed, fill−cut)/Total (unsigned, cut+fill) volume + Area/Perimeter live — always RAW geometric figures, never altered by `swell`/`shrink`. REQUIRES `terrain` on `<om-map>` (validation warns a `volume` mode with none): the math is a REAL per-cell grid integration (issue #35) — closing a footprint bulk-loads its covering DEM tiles and integrates terrain-vs-base per cell on a metric tangent-plane grid (cell size = the DEM's GSD at the ring's latitude, scanline point-in-polygon, bilinear tile-seam-correct sampling, worker-offloaded with a synchronous fallback), reporting mixed cut AND fill within one footprint on undulating ground plus `cellSizeM`/`gsdM`/`cutErrorM3`/`fillErrorM3` (± = per-cell cellArea × 1.5 × GSD, summed per side) and `nodataFraction` on the readout. `base-surface` picks the reference surface: `custom` (default — the gizmo's draggable target plane, re-summed live from the cached grid during a drag) or boundary-derived stockpile strategies with NO gizmo (`triangulated` boundary TIN — the drone-survey default, `plane` least-squares, `lowest`/`highest`/`average`). No terrain (or a failed tile fetch) falls back to the flat single-elevation approximation with no error figures rather than erroring. Five more volume-only attributes, all no-ops without `volume` in `modes` (validation warns): `base-surface` (above); `profile` — closing a footprint also samples elevation around its own perimeter, dispatched on `profileSeries` for a paired `dynamic-chart` widget to plot, updating live from the first vertex (debounced on hover, immediate on each new vertex) while sketching, not just on close; `deadband` (m³, default 0) — zeroes a Cut/Fill figure below the threshold; `density` (t/m³ metric, lb/yd³ imperial) and `swell`/`shrink` (multipliers, default 1×) populate a SEPARATE Material section instead of touching Cut/Fill/Net/Total — standard Bank/Loose/Compacted convention: `cutAdjustedMeters3` = raw cut × swell (loose/haul volume, bigger — excavating adds air voids), `fillAdjustedMeters3` = raw fill ÷ shrink (loose/borrow volume needed, also bigger — raw fill is already a compacted target void), `cutMassKg`/`fillMassKg` from the RAW volume (mass-conserving — swell/shrink change volume via air voids, not the mass of material). The widget only renders the Material section once at least one of `density`/`swell`/`shrink` is configured — no separate toggle. `stale` flags the brief window between a footprint committing and its elevation sample resolving.
 - `vega-lite`
 - `dynamic-chart` — same Vega-Lite rendering as `vega-lite`, but data-driven by a live DOM event instead of a layer/`ctx.data`: `on="<event-name>"` (required — the event to listen for on `<om-map>`), `series-field="<name>"` (default `series`) reads `event.detail[seriesField]` as the chart's `data.values` and re-embeds on every event where that field is a present array; `width` (fixed, default 280) and `title` work the same as `vega-lite`. The child `<script type="application/json">` spec is the same Vega-Lite mark/encoding shape, minus `data` (supplied live). A feature "freezes" the chart for free by simply not including the field on a later event (e.g. switching modes) — the widget has no separate pause API, it just does nothing when the field is absent. Built for a feature that computes its own series as the user interacts (a drawn line's elevation profile updating vertex-by-vertex) and has no layer of its own to bind to.
 - `player`
@@ -373,7 +466,7 @@ Built-ins:
 - `feature-inspector` (renamed from `ifc-inspector`, which still works as an alias — the widget's body is generic property-row rendering with no IFC dependency, so it works unchanged on any `pick-features` layer, IFC-derived or not) — properties of the currently picked element. `fields="ifcClass material container netVolume"` chooses the rows, `placeholder` is the nothing-selected text. Reads the same property table picking resolves, so it needs no data of its own.
 - `ifc-loader` — a drop zone that parses an `.ifc` in the browser and builds the layers for it (see **In-browser IFC** below). Add `federate` and ONE drop zone accepts several models into a co-registered scene — one layer per model, each with its own visibility toggle and remove button — instead of dedicating a widget per discipline. Under `federate`, the FIRST model loaded decides the shared model-space origin and placement, and every later model inherits both (discipline exports of one building routinely disagree by kilometres, so honouring each file's own would scatter it); add `independent` to opt out when the models are unrelated buildings rather than disciplines of one. That sharing never applies without `federate` — a plain loader always resolves each new file's own georeference — and it resets once every model in a federated scene is removed, so the next one dropped in starts fresh rather than inheriting a dead scene's position. `layer="ifc"` is the id it creates (plus `<id>-edges`), `zoom` the flyTo zoom, `field` the filter field, `outline-color`/`no-outlines`/`ghost-opacity` tune what it builds, and `site-origin`/`site-heading`/`site-scale` override what the file declares. If a loaded model turns out to be georeferenced it is AUTO-PLACED: the widget writes the file's own coordinates, heading and scale onto the layers it CREATED and flies the camera there — but it NEVER touches `<om-map>`'s own scene attributes (`basemap`, `terrain`): those are author-owned, and a georeferenced model landing on a map with neither raises a structured warning ("no spatial context") instead of switching one on.
 
-Positions — 8 managed slots (logical, RTL-aware): `top-start`, `top-center`, `top-end`, `center-start`, `center-end`, `bottom-start`, `bottom-center`, `bottom-end`. Legacy corner names (`top-left`, `top-right`, `bottom-left`, `bottom-right`) are aliases. Same-slot widgets stack in one library-owned flex container: flush edges, shared gap — never overlapping. `order="1"` sets deterministic in-slot ordering (default: DOM order). Adjacent COMPACT button widgets (zoom-controls, undo-redo, widgets-toggle) in one slot auto-merge into a single control group (shared radius/shadow, 1px dividers); `cluster="false"` keeps one out — validation warns if set on a non-compact widget. At map widths ≤640px, managed widgets auto-fold into top/end/bottom/start disclosure drawers; `fold="never"` keeps an essential control outside, `widgets-fold="off"` opts the map out, and `--om-widget-fold-breakpoint` changes the map-width threshold. `position="manual"` opts out of management: the widget renders as a plain block you place with your own CSS (even outside the map, e.g. in an app header, driving the map through actions). Layout tokens: `--om-widget-inset-x/-y` (slot inset, default 12px), `--om-widget-gap-x/-y` (stack gap, default 8px), `--om-widget-opacity`, `--om-widget-opacity-dimmed` (default 0.35 — the collision-dim level), `--om-widget-radius`, `--om-widget-fold-breakpoint` — or the no-CSS sugar attribute `<om-map widget-style="gap:10 opacity:0.9 inset:16">` (keys: inset, gap, inset-x/-y, gap-x/-y, opacity, radius, size; numbers are px except opacity).
+Positions — 8 managed slots (logical, RTL-aware): `top-start`, `top-center`, `top-end`, `center-start`, `center-end`, `bottom-start`, `bottom-center`, `bottom-end`. Legacy corner names (`top-left`, `top-right`, `bottom-left`, `bottom-right`) are aliases. Same-slot widgets stack in one library-owned flex container: flush edges, shared gap — never overlapping. `order="1"` sets deterministic in-slot ordering (default: DOM order). Adjacent COMPACT button widgets (zoom-controls, undo-redo, widgets-toggle) in one slot auto-merge into a single control group (shared radius/shadow, 1px dividers); `cluster="false"` keeps one out — validation warns if set on a non-compact widget. At narrow map widths, managed widgets auto-fold into top/end/bottom/start disclosure drawers — at ≤640px when some row (top/center/bottom) has widgets in 2+ of its slots, at ≤416px (0.65×) when every occupied row is one-sided, so a lone side widget survives narrower maps; `fold="never"` keeps an essential control outside, `widgets-fold="off"` opts the map out, and `--om-widget-fold-breakpoint` changes the map-width threshold. `position="manual"` opts out of management: the widget renders as a plain block you place with your own CSS (even outside the map, e.g. in an app header, driving the map through actions). Layout tokens: `--om-widget-inset-x/-y` (slot inset, default 12px), `--om-widget-gap-x/-y` (stack gap, default 8px), `--om-widget-opacity`, `--om-widget-opacity-dimmed` (default 0.35 — the collision-dim level), `--om-widget-radius`, `--om-widget-fold-breakpoint` — or the no-CSS sugar attribute `<om-map widget-style="gap:10 opacity:0.9 inset:16">` (keys: inset, gap, inset-x/-y, gap-x/-y, opacity, radius, size; numbers are px except opacity).
 
 Theming: built-in widgets read `--om-widget-*` CSS custom properties, which inherit through their shadow roots — so plain page CSS themes them, no JS:
 
@@ -493,6 +586,10 @@ duration?}`, `zoom-to-feature` `{layer, featureId, duration?}`, `set-basemap`
 
 Rich sparse HTML anchored to the map.
 
+**Styling — overlay content renders inside a shadow root (style isolation, same as widgets), so page stylesheets and their classes DO NOT reach it.** Style overlay content with inline `style="…"` attributes, or put a `<style>` element INSIDE the overlay (children are moved into the shadow root wholesale, so it applies there). Inheritable properties and CSS custom properties set on `om-overlay`/`om-map` do pierce the boundary. A `.card` class defined in the page's `<head>` will silently not apply — the content renders unstyled.
+
+Also note for story "cards": an overlay is geo-anchored, and by default it HIDES whenever its anchor leaves the viewport — on a moving story camera an anchored card can vanish mid-step. Pin narrative cards that must persist across camera motion in a widget slot (custom `<om-widget position="bottom-center">`) instead; use anchored overlays for cards that belong to a place (they track it and legitimately go away when it leaves frame).
+
 Anchors:
 
 - `anchor="[lng, lat]"`
@@ -525,6 +622,30 @@ Example:
 
 
 
+### Cartographs (`@nika-js/onlymap/cartograph` — print layouts)
+
+A separate lazy entry (`import "@nika-js/onlymap/cartograph"`; CDN: `https://unpkg.com/@nika-js/onlymap/dist/cartograph.standalone.js`). Pages are measured in millimetres and print at true size.
+
+```html
+<om-cartograph size="A3" orientation="landscape" title="Parcel survey" dpi="300">
+  <om-text kind="title" x="10" y="8" w="250" h="12">{{title}}</om-text>
+  <om-frame id="main" x="24" y="28" w="236" h="196" center="[103.81, 1.31]" zoom="14.4">
+    <om-map basemap="none">…layers…</om-map>
+  </om-frame>
+  <om-legend for="main" x="270" y="84" w="60" h="62" title="Legend"></om-legend>
+  <om-scalebar for="main" x="10" y="230" w="72" h="10" units="metric"></om-scalebar>
+  <om-north for="main" x="238" y="226" w="16" h="18" kind="rose"></om-north>
+  <om-graticule for="main" x="24" y="28" w="236" h="196" interval="0.005" labels="outside"></om-graticule>
+</om-cartograph>
+```
+
+- Frames: live (`<om-map>` child, the FRAME's camera attributes win) or `mode="static"` with `crs` + `corners` for a georeferenced raster. `overview-of="<frame-id>"` draws a locator footprint.
+- `<om-legend for>` derives rows from the live map's own symbology (classified breaks included); literal rows via `derived="false"` + `<om-legend-row>` children.
+- `<om-atlas for="<frame-id>" layer="<layer-id>">` renders one page per feature sequentially and exports a ZIP.
+- Output: `page.print()` / `?print=1` (PDF at page size), `renderCartograph(page, {dpi})` / `?export=png&dpi=300` (PNG). Press attributes: `bleed`, `crop-marks`, `safe-zone` (screen-only), `flatten`. `cvd="deuteranopia|…"` simulates colour-vision deficiency; `lintLegendColours()` flags collapsing palettes.
+- Free plan injects a small foot credit — suppressed by an authored `om-text` crediting OnlyMap or a paid key on a live frame's map.
+- Deep reference: `docs/cartograph.md`.
+
 ### `<om-fallback>`
 
 Static content shown only where scripts never run — chat-app/email file previews (iOS QuickLook), file managers, sandboxed webviews. Hidden automatically once the map boots. Good practice on every complete page, especially one that may be shared as a file.
@@ -535,6 +656,8 @@ Rules:
 - No attributes; plain HTML content — links work, so include a hosted-version URL when one exists.
 - Without an `<om-fallback>`, the stylesheet shows a generic text-only banner instead.
 - Requires `onlymapjs.css` to load without JavaScript (see Import Patterns above).
+- `npx @nika-js/onlymap export map.html` produces the shareable single file: relative data embedded as data: URLs (format detection intact), library refs pinned to the CDN, a generic fallback injected when missing, size warnings for heavy data. Shapefiles, COGs, Zarr, and tile templates stay network-backed.
+- Timing (2023+ browsers, via the CSS `scripting` media feature): with scripting disabled the fallback shows instantly; with scripting enabled it never flashes during a slow load — it appears only after a ~4s grace, with load-failure wording, when the bundle is blocked or unreachable. Older engines keep a 400ms reveal delay.
 
 Example:
 
@@ -558,6 +681,7 @@ Common built-in actions:
 - `show-overlay`, `hide-overlay`
 - `show-tooltip`, `hide-tooltip`
 - `toggle-layer`
+- `set-pickable` — payload `{ layer, pickable: true|false|"3d" }`; writes/removes the layer's `pickable` attribute at runtime (turns popups/tooltips/hover behaviors on or off per layer — the viewer-facing popup toggle), story-capturable and undoable
 - `highlight-feature` — sets the layer's `highlighted-id`; style the selection with `highlight-color="[220, 38, 38, 255]"` (or hex) on the `<om-layer>` — a constant color, not a `get-*` accessor
 - `zoom-to-feature`
 - `filter-layer`
@@ -574,6 +698,10 @@ Common built-in actions:
 
 Payload attributes are kebab-case and become camelCase payload keys.
 
+## Hover picking & the pointer cursor
+
+Hovering a pickable feature shows `cursor: pointer` automatically — the "is this map interactive?" affordance; `pick-cursor` on `<om-map>` overrides the cursor value and `pick-cursor="none"` disables it. Hover GPU picks are REST-DEBOUNCED by default: one pick when the pointer stops, none while it sweeps — this eliminates the per-mousemove GPU ReadPixels stall that froze hover-popup maps on integrated graphics. `hover-pick` on `<om-map>` tunes the cadence: `"rest"` (default), `"continuous"` (deck-native per-frame, for hover-follow UIs on capable hardware), `"off"` (click picking only), or a throttle interval in ms (leading + trailing picks). Click picking is never gated. `MapController` twins: `setHoverPicking(mode)` / `setPickCursor(value)`.
+
 Example:
 
 ```html
@@ -583,6 +711,14 @@ Example:
 
 
 ### Stories
+
+Trace steps take `follow` (camera rides the line's drawing tip — the travel-map move) and `easing="linear|ease-in|ease-out|ease-in-out"`. On-map annotations without popups: `anchor="surface"` on a `TextLayer` over polygon GeoJSON anchors each row's text inside its own shape (`get-text="$name"`); pair with `font-settings='{"sdf":true}' outline-width="4" outline-color="..."` for a legible halo.
+
+Add `warm-tiles` on `<om-story>` to pre-load 3D tilesets along the story's fly-to route in the background at load — flybys play sharp instead of refining from blurry. Manual form: the `warm-tiles` action (`{story?, samples?, budget?}`); completion fires `om-tiles-warmed` on `<om-map>`. Persistent knob: `load-options='{"tileset":{"maximumMemoryUsage":512}}'` on the tiles layer.
+
+Add `paced` on `<om-story>` for load-paced playback: the story steps its own clock frame by frame (optionally `paced="60"` story-fps, default 30), drives the camera itself along the fly-to route, and never advances a frame while any 3D tileset is still refining — no frame ever shows unrefined tiles, at the cost of wall-clock time (playback is not real-time; use it for recorded takes or heavy tilesets like Google Photorealistic 3D Tiles, where no amount of pre-warming fits the flight in cache). Emits `om-paced-tick` (`detail = {t, waitedMs}`) on the story per frame; `waitedMs > 0` means that frame paused for tiles. Composes with `warm-tiles` (warm first → far shorter waits). During a paced run only `fly-to` steps steer the camera (data-dependent camera steps like `zoom-to-feature` are skipped with a warning) and user gestures don't pause playback — pause via the player widget or `story-pause`.
+
+To output an actual video: `npx onlymapjs record map.html --out flyby.mp4` (playwright dev-installed; ffmpeg assembles, else you get PNG frames + the command) plays the story paced in isolated headless Chromium and screenshots every frame — widgets, overlays, and attribution included, every frame fully refined. Options: `--story <id>`, `--fps <n>`, `--width/--height/--scale`, `--gpu` (hardware rendering; ~3× shorter tile holds on heavy 3D scenes — recommended), `--keep-frames`, `--timeout <s>` (frames survive a deadline hit in `<out>.frames/`), `--max-hold <s|none>` (per-frame tile-wait cap, default 10s — also authorable as `paced-max-hold` on `<om-story>`; frames that keep hitting the cap may stay slightly blurry — raise it, or `none` makes the gate absolute for guaranteed-sharp takes). It executes the page's scripts — trusted, browser-runnable manifests only. Effect verbs (fade/pulse/trace/populate) animate on the story clock during paced/recorded runs, so frames capture traces half-drawn and fades mid-flight exactly as authored (`trace follow` is skipped — the paced route owns the camera). For custom recorders in-page, `storyEl.setPacedCapture(async (tick) => {...})` is awaited per frame before that frame's `om-paced-tick` (capture race-free; the ended-state tick = all frames captured).
 
 Use `<om-story>` with `<om-step>` children. Stories are siblings of layers/overlays, not containers.
 
@@ -632,7 +768,7 @@ Use a normal GeoJSON layer bound to a draw store plus a draw widget:
              autosave="my-sketch"></om-widget>
 ```
 
-The draw widget supports points, lines, polygons, delete-last, clear, save, and autosave. Lines/polygons close with double-click or Enter; Escape cancels the in-progress shape.
+The draw widget supports points, lines, polygons, delete-last, clear, save, and autosave. Lines/polygons close with double-click, touch double-tap (detected by the library — iOS WebViews never synthesize `dblclick`), Enter, or the toolbar's Finish button; Escape cancels the in-progress shape.
 
 ### 3D
 
@@ -649,6 +785,8 @@ ScenegraphLayer places GLB/glTF models at coordinates:
 ```
 
 Roll `90` stands Y-up glTF assets upright. Use `Tile3DLayer` for large 3D Tiles datasets.
+
+`color`/`get-color` tint the model — a shader multiply over the model's own baked texture/material (defaults to opaque white, i.e. no tint), not a texture replacement. `get-color` is `$field`-driven like every other `*Color` accessor, so a fleet can be recolored by data in one layer instead of swapping model files per state: `get-color="$status_color"` (a hex/RGB field on each row) or a constant `color="#22c55e"`.
 
 3D Tiles roots use `tileset`, not `data`, because OnlyMapJS reserves `data` for parsed datasets:
 

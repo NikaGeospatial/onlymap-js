@@ -124,6 +124,32 @@ The layer's rows appear one by one until it's fully populated — each frame onl
 
 Works from every dispatch surface, e.g. populate on load: `<om-behavior on="load" action="populate" layer="bikes" duration="3s">`. GeoJSON layers need an authored `filter-field` to populate (a live composite can't take a runtime filter accessor); without one it warns and falls back to `fade`.
 
+## Sharp flybys over 3D tiles
+
+A flyby over a `Tile3DLayer` (photogrammetry, Google Photorealistic 3D Tiles) normally refines from blurry to sharp as tiles stream in. Two attributes fix this, and they compose:
+
+- **`<om-story warm-tiles>`** pre-fetches and parses every tileset's tiles along the story's fly-to route in the background as soon as the page loads — a light route flies sharp with no other change. Completion fires `om-tiles-warmed` on `<om-map>`.
+- **`<om-story paced>`** makes playback *load-paced*: the story steps its own clock frame by frame (`paced="60"` sets the story-fps, default 30), drives the camera itself along the fly-to route, and never advances a frame while any tileset is still refining. **No frame ever shows unrefined tiles — wall-clock stretches instead.** Playback is not real-time, so use it where the output matters more than the wait: recorded takes (screen capture the paced run) or very heavy tilesets, where no amount of pre-warming fits the whole flight in cache. Warm first (`warm-tiles paced`) and each paced frame waits far less.
+
+Each paced frame emits `om-paced-tick` on the story (`detail = {t, waitedMs}`); `waitedMs > 0` means that frame paused for tiles — the hook for a "waiting for tiles" progress UI or a recorder. Two paced-run rules: only `fly-to` steps steer the camera (data-dependent camera steps like `zoom-to-feature` are skipped, with a console warning), and user gestures don't pause playback — pause via the player widget or the `story-pause` action.
+
+Effect verbs animate on the **story clock** during a paced run: `fade`, `pulse`, `trace`, and `populate` are evaluated as functions of story time, so a 2 s trace spans exactly 2 s of output frames — half-drawn outlines and mid-fade opacities land in the frames exactly as authored, however long each frame takes to capture. (One exception: `trace follow` is skipped while the story drives the camera — the paced route owns it.)
+
+Paced frames also wait for the **basemap** to settle — camera done, tiles loaded, label placement converged — so recorded basemap takes carry their labels on every frame, not just static ones. For exactly reproducible first frames, author a start camera (`center`/`zoom` on `<om-map>`): without one, the initial pose is "wherever the camera is at first capture", which can land differently between runs.
+
+### Recording a story to video
+
+```bash
+npm install --save-dev playwright && npx playwright install chromium
+npx onlymapjs record map.html --out flyby.mp4
+```
+
+`record` plays the story load-paced in an isolated headless Chromium and writes a video in which **every frame's 3D tiles are fully refined** — one screenshot per story frame (widgets, overlays, and provider attribution all included), assembled with ffmpeg when installed (H.264 `.mp4` or VP9 `.webm`; without ffmpeg you get the PNG frame directory plus the exact ffmpeg command to run). Options: `--story <id>`, `--fps <n>` (story-fps, default the story's `paced` value or 30), `--width`/`--height`/`--scale` (e.g. `--scale 2` for retina frames), `--gpu` (hardware rendering — headless Chromium defaults to software GL, and the real GPU measured ~3× shorter tile holds on Google Photorealistic 3D Tiles; recommended for heavy scenes), `--keep-frames`, `--timeout <s>`, `--max-hold <s>`. A `loop` story records a single pass; a `warm-tiles` story waits for the pre-load first so per-frame holds are short. Frames captured before a deadline hit are kept in `<out>.frames/` for salvage (the printed ffmpeg command assembles the partial take).
+
+On very heavy tilesets, watch the per-frame hold in the progress line: each paced frame waits at most `paced-max-hold` (an `<om-story>` attribute, default 10s; the CLI's `--max-hold <s>` sets it) before advancing anyway, so frames that keep hitting the cap may carry residual blur. Raise the cap — or pass `--max-hold none` (`paced-max-hold="none"`) to remove it entirely — for a guaranteed-sharp take; the recording just takes longer (with `none`, only the overall `--timeout` bounds the run). Like `check-layout`, it executes the page's scripts — only run it on manifests you trust, and point it at a browser-runnable manifest (one that imports `@nika-js/onlymap`, not raw `.ts`).
+
+Building your own recorder instead? `storyEl.setPacedCapture(async (tick) => { … })` is the seam the CLI uses: called once per paced frame after the frame is fully refined, and the story **does not advance until your promise resolves** — so `await mapEl.snapshot()` or an out-of-band screenshot is race-free by construction. The frame's `om-paced-tick` fires after your capture completes; the tick that arrives in the `"ended"` state means every frame was captured. (`snapshot()` is canvas-only — remember to render provider attribution into exported frames yourself.)
+
 ## Animation primitives (usable without stories)
 
 - **Camera:** `map.flyTo(coords, zoom, { duration, curve })`, or the `fly-to` action (`center`/`zoom`/`pitch`/`bearing`/`duration`/`curve`) from any behavior or button; `zoom-to-feature` accepts `duration` too. `prefers-reduced-motion` is honored in both renderer modes — moves become instant, final state identical.

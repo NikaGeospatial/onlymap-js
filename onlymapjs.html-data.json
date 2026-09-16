@@ -65,6 +65,33 @@
           "description": "Provider API key for keyed basemap presets (maptiler-*) — publishable origin-restricted key; or call OmMap.configureBasemap once."
         },
         {
+          "name": "hover-pick",
+          "description": "Hover-pick cadence: \"rest\" (default — one GPU pick when the pointer stops, none while it sweeps; kills the per-mousemove ReadPixels stall on integrated graphics), \"continuous\" (deck-native, per frame), \"off\" (click picking only), or a throttle interval in ms (leading + trailing).",
+          "values": [
+            {
+              "name": "rest"
+            },
+            {
+              "name": "continuous"
+            },
+            {
+              "name": "off"
+            }
+          ]
+        },
+        {
+          "name": "pick-cursor",
+          "description": "CSS cursor shown while the pointer is over a pickable feature (default \"pointer\" — the is-this-interactive affordance). \"none\" disables.",
+          "values": [
+            {
+              "name": "pointer"
+            },
+            {
+              "name": "none"
+            }
+          ]
+        },
+        {
           "name": "attribution",
           "description": "Set \"false\" to opt out of the compact attribution control shown with basemaps.",
           "values": [
@@ -350,6 +377,9 @@
               "name": "QuadkeyLayer"
             },
             {
+              "name": "Route"
+            },
+            {
               "name": "S2Layer"
             },
             {
@@ -378,6 +408,9 @@
             },
             {
               "name": "TileLayer"
+            },
+            {
+              "name": "Tracking"
             },
             {
               "name": "TripsLayer"
@@ -425,7 +458,7 @@
         },
         {
           "name": "filter-field",
-          "description": "GPU filter field (DataFilterExtension) — pair with filter-range."
+          "description": "GPU filter field (DataFilterExtension) — pair with filter-range. Single dimension; for more than one, use filter-fields instead."
         },
         {
           "name": "filter-range",
@@ -436,12 +469,36 @@
           "description": "Soft edges \"[min, max]\" for the filter."
         },
         {
+          "name": "filter-fields",
+          "description": "Multi-dimension GPU filter (up to 4) — JSON array of {field, range, softRange?} objects, e.g. '[{\"field\":\"mag\",\"range\":[3,9]}]'. Wins over filter-field/filter-range if both are set."
+        },
+        {
           "name": "filter-category",
-          "description": "Categorical GPU filter field — pair with filter-categories."
+          "description": "Categorical GPU filter field — pair with filter-categories. Single dimension; for more than one, use filter-category-fields instead."
         },
         {
           "name": "filter-categories",
-          "description": "JSON array of categories to keep."
+          "description": "JSON array of categories to keep, for filter-category."
+        },
+        {
+          "name": "filter-category-fields",
+          "description": "Multi-dimension categorical GPU filter (up to 4) — JSON array of {field, categories} objects, e.g. '[{\"field\":\"fuel\",\"categories\":[\"Coal\",\"Gas\"]}]'. Wins over filter-category/filter-categories if both are set."
+        },
+        {
+          "name": "classify-by",
+          "description": "Classified symbology: the numeric field to compute class breaks from (quantile/equal-interval/jenks). Installs a fill-color accessor + auto legend; an authored get-fill-color/color wins."
+        },
+        {
+          "name": "classify-scale",
+          "description": "Classification mode: quantile (default), equal-interval, or jenks."
+        },
+        {
+          "name": "classify-classes",
+          "description": "Number of classes, 2–12 (default 5)."
+        },
+        {
+          "name": "classify-ramp",
+          "description": "Named color ramp for classification: viridis (default), plasma, inferno, magma, cividis, turbo, blues, greens, oranges, purples, reds, ylorrd, rdbu, spectral."
         },
         {
           "name": "dash",
@@ -517,1056 +574,1153 @@
           "description": "Georeferencing: uniform scale multiplier (default 1)."
         },
         {
+          "name": "anchor",
+          "description": "anchor=\"surface\": anchor each row INSIDE its own polygon (point-on-surface) — on-map labels/annotations with no authored coordinates. An authored get-position wins.",
+          "values": [
+            {
+              "name": "surface"
+            }
+          ]
+        },
+        {
+          "name": "visible-zoom-range",
+          "description": "Per-layer zoom visibility \"[minZoom, maxZoom]\" — hidden outside min ≤ zoom < max (minzoom/maxzoom convention), any layer type. Composes with visible; the layer stays in the legend/switcher while zoom-hidden."
+        },
+        {
           "name": "get-position",
-          "description": "Accessor for deck.gl getPosition — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getPosition — expression language: $field, scale(), formatDate(), arithmetic. Valid on: ColumnLayer, ContourLayer, GridCellLayer, GridLayer, HeatmapLayer, HexagonLayer, IconLayer, PointCloudLayer, PopupLayer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, TextLayer, Tracking."
         },
         {
           "name": "get-fill-color",
-          "description": "Accessor for deck.gl getFillColor — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getFillColor — expression language: $field, scale(), formatDate(), arithmetic. Valid on: A5Layer, ColumnLayer, GeoJsonLayer, GeohashLayer, GridCellLayer, H3ClusterLayer, H3HexagonLayer, MVTLayer, PolygonLayer, QuadkeyLayer, S2Layer, ScatterplotLayer, SolidPolygonLayer."
         },
         {
           "name": "get-line-color",
-          "description": "Accessor for deck.gl getLineColor — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getLineColor — expression language: $field, scale(), formatDate(), arithmetic. Valid on: A5Layer, ColumnLayer, GeoJsonLayer, GeohashLayer, GridCellLayer, H3ClusterLayer, H3HexagonLayer, MVTLayer, PolygonLayer, QuadkeyLayer, S2Layer, ScatterplotLayer, SolidPolygonLayer."
         },
         {
           "name": "get-radius",
-          "description": "Accessor for deck.gl getRadius — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getRadius — expression language: $field, scale(), formatDate(), arithmetic. Valid on: ScatterplotLayer."
         },
         {
           "name": "radius",
-          "description": "deck.gl undefined."
+          "description": "deck.gl undefined. Valid on: ColumnLayer, GridCellLayer, HexagonLayer, ScatterplotLayer."
         },
         {
           "name": "radius-units",
-          "description": "deck.gl radiusUnits."
+          "description": "deck.gl radiusUnits. Valid on: ColumnLayer, GridCellLayer, ScatterplotLayer."
         },
         {
           "name": "radius-min-pixels",
-          "description": "deck.gl radiusMinPixels."
+          "description": "deck.gl radiusMinPixels. Valid on: ScatterplotLayer."
         },
         {
           "name": "line-width-min-pixels",
-          "description": "deck.gl lineWidthMinPixels."
+          "description": "deck.gl lineWidthMinPixels. Valid on: A5Layer, ColumnLayer, GeoJsonLayer, GeohashLayer, GridCellLayer, H3ClusterLayer, H3HexagonLayer, MVTLayer, PolygonLayer, QuadkeyLayer, S2Layer, ScatterplotLayer."
         },
         {
           "name": "stroked",
-          "description": "deck.gl stroked."
+          "description": "deck.gl stroked. Valid on: A5Layer, ColumnLayer, GeoJsonLayer, GeohashLayer, GridCellLayer, H3ClusterLayer, H3HexagonLayer, MVTLayer, PolygonLayer, QuadkeyLayer, S2Layer, ScatterplotLayer."
         },
         {
           "name": "filled",
-          "description": "deck.gl filled."
+          "description": "deck.gl filled. Valid on: A5Layer, ColumnLayer, GeoJsonLayer, GeohashLayer, GridCellLayer, H3ClusterLayer, H3HexagonLayer, MVTLayer, PolygonLayer, QuadkeyLayer, S2Layer, ScatterplotLayer, SolidPolygonLayer."
         },
         {
           "name": "operation",
-          "description": "deck.gl operation."
+          "description": "deck.gl operation. Valid on: A5Layer, ArcLayer, BIMLayer, BitmapLayer, ColumnLayer, ContourLayer, GeoJsonLayer, GeohashLayer, GreatCircleLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, IconLayer, ImageOverlay, LineLayer, MVTLayer, PathLayer, PointCloudLayer, PolygonLayer, PopupLayer, QuadkeyLayer, Route, S2Layer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer, TextLayer, Tile3DLayer, TileLayer, Tracking, TripsLayer."
         },
         {
           "name": "coordinate-system",
-          "description": "deck.gl coordinateSystem."
+          "description": "deck.gl coordinateSystem. Valid on: A5Layer, ArcLayer, BIMLayer, BitmapLayer, ColumnLayer, ContourLayer, GeoJsonLayer, GeohashLayer, GreatCircleLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, IconLayer, ImageOverlay, LineLayer, MVTLayer, PathLayer, PointCloudLayer, PolygonLayer, PopupLayer, QuadkeyLayer, Route, S2Layer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer, TextLayer, Tile3DLayer, TileLayer, Tracking, TripsLayer."
         },
         {
           "name": "coordinate-origin",
-          "description": "deck.gl coordinateOrigin."
+          "description": "deck.gl coordinateOrigin. Valid on: A5Layer, ArcLayer, BIMLayer, BitmapLayer, ColumnLayer, ContourLayer, GeoJsonLayer, GeohashLayer, GreatCircleLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, IconLayer, ImageOverlay, LineLayer, MVTLayer, PathLayer, PointCloudLayer, PolygonLayer, PopupLayer, QuadkeyLayer, Route, S2Layer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer, TextLayer, Tile3DLayer, TileLayer, Tracking, TripsLayer."
         },
         {
           "name": "model-matrix",
-          "description": "deck.gl modelMatrix."
+          "description": "deck.gl modelMatrix. Valid on: A5Layer, ArcLayer, BIMLayer, BitmapLayer, ColumnLayer, ContourLayer, GeoJsonLayer, GeohashLayer, GreatCircleLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, IconLayer, ImageOverlay, LineLayer, MVTLayer, PathLayer, PointCloudLayer, PolygonLayer, PopupLayer, QuadkeyLayer, Route, S2Layer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer, TextLayer, Tile3DLayer, TileLayer, Tracking, TripsLayer."
         },
         {
           "name": "wrap-longitude",
-          "description": "deck.gl wrapLongitude."
+          "description": "deck.gl wrapLongitude. Valid on: A5Layer, ArcLayer, BIMLayer, BitmapLayer, ColumnLayer, ContourLayer, GeoJsonLayer, GeohashLayer, GreatCircleLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, IconLayer, ImageOverlay, LineLayer, MVTLayer, PathLayer, PointCloudLayer, PolygonLayer, PopupLayer, QuadkeyLayer, Route, S2Layer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer, TextLayer, Tile3DLayer, TileLayer, Tracking, TripsLayer."
         },
         {
           "name": "position-format",
-          "description": "deck.gl positionFormat."
+          "description": "deck.gl positionFormat. Valid on: A5Layer, ArcLayer, BIMLayer, BitmapLayer, ColumnLayer, ContourLayer, GeoJsonLayer, GeohashLayer, GreatCircleLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, IconLayer, ImageOverlay, LineLayer, MVTLayer, PathLayer, PointCloudLayer, PolygonLayer, PopupLayer, QuadkeyLayer, Route, S2Layer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer, TextLayer, Tile3DLayer, TileLayer, Tracking, TripsLayer."
         },
         {
           "name": "color-format",
-          "description": "deck.gl colorFormat."
+          "description": "deck.gl colorFormat. Valid on: A5Layer, ArcLayer, BIMLayer, BitmapLayer, ColumnLayer, ContourLayer, GeoJsonLayer, GeohashLayer, GreatCircleLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, IconLayer, ImageOverlay, LineLayer, MVTLayer, PathLayer, PointCloudLayer, PolygonLayer, PopupLayer, QuadkeyLayer, Route, S2Layer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer, TextLayer, Tile3DLayer, TileLayer, Tracking, TripsLayer."
         },
         {
           "name": "parameters",
-          "description": "deck.gl parameters."
+          "description": "deck.gl parameters. Valid on: A5Layer, ArcLayer, BIMLayer, BitmapLayer, ColumnLayer, ContourLayer, GeoJsonLayer, GeohashLayer, GreatCircleLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, IconLayer, LineLayer, MVTLayer, PathLayer, PointCloudLayer, PolygonLayer, PopupLayer, QuadkeyLayer, Route, S2Layer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer, TextLayer, Tile3DLayer, TileLayer, Tracking, TripsLayer."
         },
         {
           "name": "load-options",
-          "description": "deck.gl loadOptions."
+          "description": "deck.gl loadOptions. Valid on: A5Layer, ArcLayer, BIMLayer, BitmapLayer, ColumnLayer, ContourLayer, GeoJsonLayer, GeohashLayer, GreatCircleLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, IconLayer, ImageOverlay, LineLayer, MVTLayer, PathLayer, PointCloudLayer, PolygonLayer, PopupLayer, QuadkeyLayer, Route, S2Layer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer, TextLayer, Tile3DLayer, TileLayer, Tracking, TripsLayer."
         },
         {
           "name": "transitions",
-          "description": "deck.gl transitions."
+          "description": "deck.gl transitions. Valid on: A5Layer, ArcLayer, BIMLayer, BitmapLayer, ColumnLayer, ContourLayer, GeoJsonLayer, GeohashLayer, GreatCircleLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, IconLayer, ImageOverlay, LineLayer, MVTLayer, PathLayer, PointCloudLayer, PolygonLayer, PopupLayer, QuadkeyLayer, Route, S2Layer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer, TextLayer, Tile3DLayer, TileLayer, Tracking, TripsLayer."
         },
         {
           "name": "extensions",
-          "description": "deck.gl extensions."
+          "description": "deck.gl extensions. Valid on: A5Layer, ArcLayer, BIMLayer, BitmapLayer, ColumnLayer, ContourLayer, GeoJsonLayer, GeohashLayer, GreatCircleLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, IconLayer, ImageOverlay, LineLayer, MVTLayer, PathLayer, PointCloudLayer, PolygonLayer, PopupLayer, QuadkeyLayer, Route, S2Layer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer, TextLayer, Tile3DLayer, TileLayer, Tracking, TripsLayer."
         },
         {
           "name": "loaders",
-          "description": "deck.gl loaders."
+          "description": "deck.gl loaders. Valid on: A5Layer, ArcLayer, BIMLayer, BitmapLayer, ColumnLayer, ContourLayer, GeoJsonLayer, GeohashLayer, GreatCircleLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, IconLayer, ImageOverlay, LineLayer, MVTLayer, PathLayer, PointCloudLayer, PolygonLayer, PopupLayer, QuadkeyLayer, Route, S2Layer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer, TextLayer, Tile3DLayer, TileLayer, Tracking, TripsLayer."
         },
         {
           "name": "highlighted-object-index",
-          "description": "deck.gl highlightedObjectIndex."
+          "description": "deck.gl highlightedObjectIndex. Valid on: A5Layer, ArcLayer, BIMLayer, BitmapLayer, ColumnLayer, ContourLayer, GeoJsonLayer, GeohashLayer, GreatCircleLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, IconLayer, ImageOverlay, LineLayer, MVTLayer, PathLayer, PointCloudLayer, PolygonLayer, PopupLayer, QuadkeyLayer, Route, S2Layer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer, TextLayer, Tile3DLayer, TileLayer, Tracking, TripsLayer."
         },
         {
           "name": "auto-highlight",
-          "description": "deck.gl autoHighlight."
+          "description": "deck.gl autoHighlight. Valid on: A5Layer, ArcLayer, BIMLayer, BitmapLayer, ColumnLayer, ContourLayer, GeoJsonLayer, GeohashLayer, GreatCircleLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, IconLayer, ImageOverlay, LineLayer, MVTLayer, PathLayer, PointCloudLayer, PolygonLayer, PopupLayer, QuadkeyLayer, Route, S2Layer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer, TextLayer, Tile3DLayer, TileLayer, Tracking, TripsLayer."
         },
         {
           "name": "highlight-color",
-          "description": "deck.gl highlightColor."
+          "description": "deck.gl highlightColor. Valid on: A5Layer, ArcLayer, BIMLayer, BitmapLayer, ColumnLayer, ContourLayer, GeoJsonLayer, GeohashLayer, GreatCircleLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HeatmapLayer, HexagonLayer, IconLayer, ImageOverlay, LineLayer, MVTLayer, PathLayer, PointCloudLayer, PolygonLayer, PopupLayer, QuadkeyLayer, Route, S2Layer, ScatterplotLayer, ScenegraphLayer, ScreenGridLayer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer, TextLayer, Tile3DLayer, TileLayer, Tracking, TripsLayer."
         },
         {
           "name": "radius-scale",
-          "description": "deck.gl radiusScale."
+          "description": "deck.gl radiusScale. Valid on: ScatterplotLayer."
         },
         {
           "name": "radius-max-pixels",
-          "description": "deck.gl radiusMaxPixels."
+          "description": "deck.gl radiusMaxPixels. Valid on: ScatterplotLayer."
         },
         {
           "name": "line-width-units",
-          "description": "deck.gl lineWidthUnits."
+          "description": "deck.gl lineWidthUnits. Valid on: A5Layer, ColumnLayer, GeoJsonLayer, GeohashLayer, GridCellLayer, H3ClusterLayer, H3HexagonLayer, MVTLayer, PolygonLayer, QuadkeyLayer, S2Layer, ScatterplotLayer."
         },
         {
           "name": "line-width-scale",
-          "description": "deck.gl lineWidthScale."
+          "description": "deck.gl lineWidthScale. Valid on: A5Layer, ColumnLayer, GeoJsonLayer, GeohashLayer, GridCellLayer, H3ClusterLayer, H3HexagonLayer, MVTLayer, PolygonLayer, QuadkeyLayer, S2Layer, ScatterplotLayer."
         },
         {
           "name": "line-width-max-pixels",
-          "description": "deck.gl lineWidthMaxPixels."
+          "description": "deck.gl lineWidthMaxPixels. Valid on: A5Layer, ColumnLayer, GeoJsonLayer, GeohashLayer, GridCellLayer, H3ClusterLayer, H3HexagonLayer, MVTLayer, PolygonLayer, QuadkeyLayer, S2Layer, ScatterplotLayer."
         },
         {
           "name": "billboard",
-          "description": "deck.gl billboard."
+          "description": "deck.gl billboard. Valid on: IconLayer, PathLayer, ScatterplotLayer, TextLayer, TripsLayer."
         },
         {
           "name": "antialiasing",
-          "description": "deck.gl antialiasing."
+          "description": "deck.gl antialiasing. Valid on: ScatterplotLayer."
         },
         {
           "name": "get-line-width",
-          "description": "Accessor for deck.gl getLineWidth — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getLineWidth — expression language: $field, scale(), formatDate(), arithmetic. Valid on: A5Layer, ColumnLayer, GeoJsonLayer, GeohashLayer, GridCellLayer, H3ClusterLayer, H3HexagonLayer, MVTLayer, PolygonLayer, QuadkeyLayer, S2Layer, ScatterplotLayer."
         },
         {
           "name": "get-pixel-offset",
-          "description": "Accessor for deck.gl getPixelOffset — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getPixelOffset — expression language: $field, scale(), formatDate(), arithmetic. Valid on: IconLayer, ScatterplotLayer, TextLayer."
         },
         {
           "name": "get-point-radius",
-          "description": "Accessor for deck.gl getPointRadius — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getPointRadius — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "point-radius-units",
-          "description": "deck.gl pointRadiusUnits."
+          "description": "deck.gl pointRadiusUnits. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "point-radius-min-pixels",
-          "description": "deck.gl pointRadiusMinPixels."
+          "description": "deck.gl pointRadiusMinPixels. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "get-elevation",
-          "description": "Accessor for deck.gl getElevation — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getElevation — expression language: $field, scale(), formatDate(), arithmetic. Valid on: A5Layer, ColumnLayer, GeoJsonLayer, GeohashLayer, GridCellLayer, H3ClusterLayer, H3HexagonLayer, MVTLayer, PolygonLayer, QuadkeyLayer, S2Layer, SolidPolygonLayer."
         },
         {
           "name": "extruded",
-          "description": "deck.gl extruded."
+          "description": "deck.gl extruded. Valid on: A5Layer, ColumnLayer, GeoJsonLayer, GeohashLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HexagonLayer, MVTLayer, PolygonLayer, QuadkeyLayer, S2Layer, SolidPolygonLayer."
         },
         {
           "name": "wireframe",
-          "description": "deck.gl wireframe."
+          "description": "deck.gl wireframe. Valid on: A5Layer, ColumnLayer, GeoJsonLayer, GeohashLayer, GridCellLayer, H3ClusterLayer, H3HexagonLayer, MVTLayer, PolygonLayer, QuadkeyLayer, S2Layer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer."
         },
         {
           "name": "point-radius-max-pixels",
-          "description": "deck.gl pointRadiusMaxPixels."
+          "description": "deck.gl pointRadiusMaxPixels. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "point-radius-scale",
-          "description": "deck.gl pointRadiusScale."
+          "description": "deck.gl pointRadiusScale. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "point-antialiasing",
-          "description": "deck.gl pointAntialiasing."
+          "description": "deck.gl pointAntialiasing. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "point-billboard",
-          "description": "deck.gl pointBillboard."
+          "description": "deck.gl pointBillboard. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "icon-atlas",
-          "description": "deck.gl iconAtlas."
+          "description": "deck.gl iconAtlas. Valid on: GeoJsonLayer, IconLayer, MVTLayer."
         },
         {
           "name": "icon-mapping",
-          "description": "deck.gl iconMapping."
+          "description": "deck.gl iconMapping. Valid on: GeoJsonLayer, IconLayer, MVTLayer."
         },
         {
           "name": "icon-size-max-pixels",
-          "description": "deck.gl iconSizeMaxPixels."
+          "description": "deck.gl iconSizeMaxPixels. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "icon-size-min-pixels",
-          "description": "deck.gl iconSizeMinPixels."
+          "description": "deck.gl iconSizeMinPixels. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "icon-size-scale",
-          "description": "deck.gl iconSizeScale."
+          "description": "deck.gl iconSizeScale. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "icon-size-units",
-          "description": "deck.gl iconSizeUnits."
+          "description": "deck.gl iconSizeUnits. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "icon-alpha-cutoff",
-          "description": "deck.gl iconAlphaCutoff."
+          "description": "deck.gl iconAlphaCutoff. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "icon-billboard",
-          "description": "deck.gl iconBillboard."
+          "description": "deck.gl iconBillboard. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "get-icon",
-          "description": "Accessor for deck.gl getIcon — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getIcon — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, IconLayer, MVTLayer, PopupLayer."
         },
         {
           "name": "get-icon-angle",
-          "description": "Accessor for deck.gl getIconAngle — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getIconAngle — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "get-icon-color",
-          "description": "Accessor for deck.gl getIconColor — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getIconColor — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "get-icon-pixel-offset",
-          "description": "Accessor for deck.gl getIconPixelOffset — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getIconPixelOffset — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "get-icon-size",
-          "description": "Accessor for deck.gl getIconSize — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getIconSize — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-size-max-pixels",
-          "description": "deck.gl textSizeMaxPixels."
+          "description": "deck.gl textSizeMaxPixels. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-size-min-pixels",
-          "description": "deck.gl textSizeMinPixels."
+          "description": "deck.gl textSizeMinPixels. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-size-scale",
-          "description": "deck.gl textSizeScale."
+          "description": "deck.gl textSizeScale. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-size-units",
-          "description": "deck.gl textSizeUnits."
+          "description": "deck.gl textSizeUnits. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-background",
-          "description": "deck.gl textBackground."
+          "description": "deck.gl textBackground. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-background-padding",
-          "description": "deck.gl textBackgroundPadding."
+          "description": "deck.gl textBackgroundPadding. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-font-family",
-          "description": "deck.gl textFontFamily."
+          "description": "deck.gl textFontFamily. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-font-weight",
-          "description": "deck.gl textFontWeight."
+          "description": "deck.gl textFontWeight. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-line-height",
-          "description": "deck.gl textLineHeight."
+          "description": "deck.gl textLineHeight. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-max-width",
-          "description": "deck.gl textMaxWidth."
+          "description": "deck.gl textMaxWidth. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-outline-color",
-          "description": "deck.gl textOutlineColor."
+          "description": "deck.gl textOutlineColor. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-outline-width",
-          "description": "deck.gl textOutlineWidth."
+          "description": "deck.gl textOutlineWidth. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-word-break",
-          "description": "deck.gl textWordBreak."
+          "description": "deck.gl textWordBreak. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-character-set",
-          "description": "deck.gl textCharacterSet."
+          "description": "deck.gl textCharacterSet. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-billboard",
-          "description": "deck.gl textBillboard."
+          "description": "deck.gl textBillboard. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "text-font-settings",
-          "description": "deck.gl textFontSettings."
+          "description": "deck.gl textFontSettings. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "get-text",
-          "description": "Accessor for deck.gl getText — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getText — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer, PopupLayer, TextLayer."
         },
         {
           "name": "get-text-angle",
-          "description": "Accessor for deck.gl getTextAngle — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getTextAngle — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "get-text-color",
-          "description": "Accessor for deck.gl getTextColor — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getTextColor — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "get-text-pixel-offset",
-          "description": "Accessor for deck.gl getTextPixelOffset — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getTextPixelOffset — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "get-text-size",
-          "description": "Accessor for deck.gl getTextSize — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getTextSize — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "get-text-anchor",
-          "description": "Accessor for deck.gl getTextAnchor — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getTextAnchor — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer, TextLayer."
         },
         {
           "name": "get-text-alignment-baseline",
-          "description": "Accessor for deck.gl getTextAlignmentBaseline — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getTextAlignmentBaseline — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "get-text-background-color",
-          "description": "Accessor for deck.gl getTextBackgroundColor — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getTextBackgroundColor — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "get-text-border-color",
-          "description": "Accessor for deck.gl getTextBorderColor — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getTextBorderColor — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "get-text-border-width",
-          "description": "Accessor for deck.gl getTextBorderWidth — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getTextBorderWidth — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "line-joint-rounded",
-          "description": "deck.gl lineJointRounded."
+          "description": "deck.gl lineJointRounded. Valid on: A5Layer, GeoJsonLayer, GeohashLayer, H3ClusterLayer, H3HexagonLayer, MVTLayer, PolygonLayer, QuadkeyLayer, S2Layer."
         },
         {
           "name": "line-cap-rounded",
-          "description": "deck.gl lineCapRounded."
+          "description": "deck.gl lineCapRounded. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "line-miter-limit",
-          "description": "deck.gl lineMiterLimit."
+          "description": "deck.gl lineMiterLimit. Valid on: A5Layer, GeoJsonLayer, GeohashLayer, H3ClusterLayer, H3HexagonLayer, MVTLayer, PolygonLayer, QuadkeyLayer, S2Layer."
         },
         {
           "name": "line-billboard",
-          "description": "deck.gl lineBillboard."
+          "description": "deck.gl lineBillboard. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "elevation-scale",
-          "description": "deck.gl elevationScale."
+          "description": "deck.gl elevationScale. Valid on: A5Layer, ColumnLayer, GeoJsonLayer, GeohashLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HexagonLayer, MVTLayer, PolygonLayer, QuadkeyLayer, S2Layer, SolidPolygonLayer."
         },
         {
           "name": "material",
-          "description": "deck.gl material."
+          "description": "deck.gl material. Valid on: A5Layer, ColumnLayer, GeoJsonLayer, GeohashLayer, GridCellLayer, GridLayer, H3ClusterLayer, H3HexagonLayer, HexagonLayer, MVTLayer, PointCloudLayer, PolygonLayer, QuadkeyLayer, S2Layer, SimpleMeshLayer, SolidPolygonLayer, TerrainLayer."
         },
         {
           "name": "point-type",
-          "description": "deck.gl pointType."
+          "description": "deck.gl pointType. Valid on: GeoJsonLayer, MVTLayer."
         },
         {
           "name": "get-polygon",
-          "description": "Accessor for deck.gl getPolygon — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getPolygon — expression language: $field, scale(), formatDate(), arithmetic. Valid on: A5Layer, GeohashLayer, H3ClusterLayer, H3HexagonLayer, PolygonLayer, QuadkeyLayer, S2Layer, SolidPolygonLayer."
         },
         {
           "name": "full3d",
-          "description": "deck.gl _full3d."
+          "description": "deck.gl _full3d. Valid on: SolidPolygonLayer."
         },
         {
           "name": "get-subtext",
-          "description": "Accessor for deck.gl getSubtext — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getSubtext — expression language: $field, scale(), formatDate(), arithmetic. Valid on: PopupLayer."
         },
         {
           "name": "get-color",
-          "description": "Accessor for deck.gl getColor — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getColor — expression language: $field, scale(), formatDate(), arithmetic. Valid on: IconLayer, LineLayer, PathLayer, PointCloudLayer, PopupLayer, ScenegraphLayer, SimpleMeshLayer, TextLayer, TripsLayer."
         },
         {
           "name": "get-size",
-          "description": "Accessor for deck.gl getSize — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getSize — expression language: $field, scale(), formatDate(), arithmetic. Valid on: IconLayer, PopupLayer, TextLayer."
         },
         {
           "name": "layout",
-          "description": "deck.gl layout."
+          "description": "deck.gl layout. Valid on: PopupLayer."
         },
         {
           "name": "min-zoom",
-          "description": "deck.gl minZoom."
+          "description": "deck.gl minZoom. Valid on: MVTLayer, PopupLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "max-zoom",
-          "description": "deck.gl maxZoom."
+          "description": "deck.gl maxZoom. Valid on: MVTLayer, PopupLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "scenegraph",
-          "description": "deck.gl scenegraph."
+          "description": "deck.gl scenegraph. Valid on: ScenegraphLayer."
         },
         {
           "name": "get-orientation",
-          "description": "Accessor for deck.gl getOrientation — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getOrientation — expression language: $field, scale(), formatDate(), arithmetic. Valid on: ScenegraphLayer, SimpleMeshLayer."
         },
         {
           "name": "get-scale",
-          "description": "Accessor for deck.gl getScale — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getScale — expression language: $field, scale(), formatDate(), arithmetic. Valid on: ScenegraphLayer, SimpleMeshLayer."
         },
         {
           "name": "get-translation",
-          "description": "Accessor for deck.gl getTranslation — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getTranslation — expression language: $field, scale(), formatDate(), arithmetic. Valid on: ScenegraphLayer, SimpleMeshLayer."
         },
         {
           "name": "size-scale",
-          "description": "deck.gl sizeScale."
+          "description": "deck.gl sizeScale. Valid on: IconLayer, ScenegraphLayer, SimpleMeshLayer, TextLayer."
         },
         {
           "name": "size-min-pixels",
-          "description": "deck.gl sizeMinPixels."
+          "description": "deck.gl sizeMinPixels. Valid on: IconLayer, ScenegraphLayer, TextLayer."
         },
         {
           "name": "size-max-pixels",
-          "description": "deck.gl sizeMaxPixels."
+          "description": "deck.gl sizeMaxPixels. Valid on: IconLayer, ScenegraphLayer, TextLayer."
         },
         {
           "name": "lighting",
-          "description": "deck.gl _lighting."
+          "description": "deck.gl _lighting. Valid on: ScenegraphLayer."
         },
         {
           "name": "get-transform-matrix",
-          "description": "Accessor for deck.gl getTransformMatrix — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getTransformMatrix — expression language: $field, scale(), formatDate(), arithmetic. Valid on: ScenegraphLayer, SimpleMeshLayer."
         },
         {
           "name": "tileset",
-          "description": "deck.gl data."
+          "description": "deck.gl data. Valid on: Tile3DLayer."
         },
         {
           "name": "maximum-screen-space-error",
-          "description": "deck.gl loadOptions.tileset.maximumScreenSpaceError."
+          "description": "deck.gl loadOptions.tileset.maximumScreenSpaceError. Valid on: Tile3DLayer."
         },
         {
           "name": "maximum-memory-usage",
-          "description": "deck.gl loadOptions.tileset.maximumMemoryUsage."
+          "description": "deck.gl loadOptions.tileset.maximumMemoryUsage. Valid on: Tile3DLayer."
         },
         {
           "name": "view-distance-scale",
-          "description": "deck.gl loadOptions.tileset.viewDistanceScale."
+          "description": "deck.gl loadOptions.tileset.viewDistanceScale. Valid on: Tile3DLayer."
         },
         {
           "name": "point-size",
-          "description": "deck.gl pointSize."
+          "description": "deck.gl pointSize. Valid on: PointCloudLayer, Tile3DLayer."
         },
         {
           "name": "pick-features",
-          "description": "deck.gl pickFeatures."
+          "description": "deck.gl pickFeatures. Valid on: BIMLayer, Tile3DLayer."
         },
         {
           "name": "feature-id-property",
-          "description": "deck.gl featureIdProperty."
+          "description": "deck.gl featureIdProperty. Valid on: BIMLayer, Tile3DLayer."
         },
         {
           "name": "feature-styles",
-          "description": "deck.gl featureStyles."
+          "description": "deck.gl featureStyles. Valid on: BIMLayer, Tile3DLayer."
         },
         {
           "name": "feature-color-by",
-          "description": "deck.gl featureColorBy."
+          "description": "deck.gl featureColorBy. Valid on: BIMLayer, Tile3DLayer."
         },
         {
           "name": "feature-color-scale",
-          "description": "deck.gl featureColorScale."
+          "description": "deck.gl featureColorScale. Valid on: BIMLayer, Tile3DLayer."
         },
         {
           "name": "feature-palette",
-          "description": "deck.gl featurePalette."
+          "description": "deck.gl featurePalette. Valid on: BIMLayer, Tile3DLayer."
         },
         {
           "name": "feature-color-strength",
-          "description": "deck.gl featureColorStrength."
+          "description": "deck.gl featureColorStrength. Valid on: BIMLayer, Tile3DLayer."
         },
         {
           "name": "feature-filter-field",
-          "description": "deck.gl featureFilterField."
+          "description": "deck.gl featureFilterField. Valid on: BIMLayer, Tile3DLayer."
         },
         {
           "name": "isolate-features",
-          "description": "deck.gl isolateFeatures."
+          "description": "deck.gl isolateFeatures. Valid on: BIMLayer, Tile3DLayer."
         },
         {
           "name": "hide-features",
-          "description": "deck.gl hideFeatures."
+          "description": "deck.gl hideFeatures. Valid on: BIMLayer, Tile3DLayer."
         },
         {
           "name": "ghost-features",
-          "description": "deck.gl ghostFeatures."
+          "description": "deck.gl ghostFeatures. Valid on: BIMLayer, Tile3DLayer."
         },
         {
           "name": "ghost-opacity",
-          "description": "deck.gl ghostOpacity."
+          "description": "deck.gl ghostOpacity. Valid on: BIMLayer, Tile3DLayer."
         },
         {
           "name": "get-point-color",
-          "description": "Accessor for deck.gl getPointColor — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getPointColor — expression language: $field, scale(), formatDate(), arithmetic. Valid on: Tile3DLayer."
         },
         {
           "name": "loader",
-          "description": "deck.gl loader."
+          "description": "deck.gl loader. Valid on: Tile3DLayer."
         },
         {
           "name": "src",
-          "description": "deck.gl src."
+          "description": "deck.gl src. Valid on: BIMLayer, COGLayer, ImageOverlay, ZarrLayer."
+        },
+        {
+          "name": "geometry",
+          "description": "deck.gl geometry. Valid on: Route."
+        },
+        {
+          "name": "origin",
+          "description": "deck.gl origin. Valid on: Route."
+        },
+        {
+          "name": "destination",
+          "description": "deck.gl destination. Valid on: Route."
+        },
+        {
+          "name": "waypoints",
+          "description": "deck.gl waypoints. Valid on: Route."
+        },
+        {
+          "name": "provider",
+          "description": "deck.gl provider. Valid on: Route."
+        },
+        {
+          "name": "profile",
+          "description": "deck.gl profile. Valid on: Route."
+        },
+        {
+          "name": "casing-color",
+          "description": "deck.gl casingColor. Valid on: Route."
+        },
+        {
+          "name": "tail",
+          "description": "deck.gl tail. Valid on: Route."
+        },
+        {
+          "name": "tail-color",
+          "description": "deck.gl tailColor. Valid on: Route."
+        },
+        {
+          "name": "progress-from",
+          "description": "deck.gl progressFrom. Valid on: Route."
+        },
+        {
+          "name": "follow",
+          "description": "deck.gl follow. Valid on: Route, Tracking."
+        },
+        {
+          "name": "bearing-field",
+          "description": "deck.gl bearingField. Valid on: Tracking."
+        },
+        {
+          "name": "size",
+          "description": "deck.gl size. Valid on: Tracking."
+        },
+        {
+          "name": "icon",
+          "description": "deck.gl icon. Valid on: Tracking."
+        },
+        {
+          "name": "interpolate-ms",
+          "description": "deck.gl interpolateMs. Valid on: Tracking."
         },
         {
           "name": "georeference",
-          "description": "deck.gl georeference."
+          "description": "deck.gl georeference. Valid on: ImageOverlay."
         },
         {
           "name": "sensor-width-mm",
-          "description": "deck.gl sensorWidthMm."
+          "description": "deck.gl sensorWidthMm. Valid on: ImageOverlay."
         },
         {
           "name": "sensor-height-mm",
-          "description": "deck.gl sensorHeightMm."
+          "description": "deck.gl sensorHeightMm. Valid on: ImageOverlay."
         },
         {
           "name": "focal-length-mm",
-          "description": "deck.gl focalLengthMm."
+          "description": "deck.gl focalLengthMm. Valid on: ImageOverlay."
         },
         {
           "name": "bounds",
-          "description": "deck.gl bounds."
+          "description": "deck.gl bounds. Valid on: BitmapLayer, ImageOverlay, TerrainLayer, ZarrLayer."
         },
         {
           "name": "metadata",
-          "description": "deck.gl metadata."
+          "description": "deck.gl metadata. Valid on: ImageOverlay."
         },
         {
           "name": "depth-test",
-          "description": "deck.gl parameters.depthTest."
+          "description": "deck.gl parameters.depthTest. Valid on: ImageOverlay."
         },
         {
           "name": "image",
-          "description": "deck.gl image."
+          "description": "deck.gl image. Valid on: BitmapLayer, ImageOverlay."
         },
         {
           "name": "desaturate",
-          "description": "deck.gl desaturate."
+          "description": "deck.gl desaturate. Valid on: BitmapLayer, ImageOverlay."
         },
         {
           "name": "transparent-color",
-          "description": "deck.gl transparentColor."
+          "description": "deck.gl transparentColor. Valid on: BitmapLayer, ImageOverlay."
         },
         {
           "name": "tint-color",
-          "description": "deck.gl tintColor."
+          "description": "deck.gl tintColor. Valid on: BitmapLayer, ImageOverlay."
         },
         {
           "name": "texture-parameters",
-          "description": "deck.gl textureParameters."
+          "description": "deck.gl textureParameters. Valid on: BitmapLayer, IconLayer, ImageOverlay, SimpleMeshLayer."
+        },
+        {
+          "name": "bands",
+          "description": "deck.gl bands. Valid on: COGLayer."
+        },
+        {
+          "name": "rescale",
+          "description": "deck.gl rescale. Valid on: COGLayer."
+        },
+        {
+          "name": "identify",
+          "description": "deck.gl identify. Valid on: COGLayer."
         },
         {
           "name": "min",
-          "description": "deck.gl rescaleMin."
+          "description": "deck.gl rescaleMin. Valid on: COGLayer, ZarrLayer."
         },
         {
           "name": "max",
-          "description": "deck.gl rescaleMax."
+          "description": "deck.gl rescaleMax. Valid on: COGLayer, ZarrLayer."
         },
         {
           "name": "colormap",
-          "description": "deck.gl colormap."
+          "description": "deck.gl colormap. Valid on: COGLayer, ZarrLayer."
+        },
+        {
+          "name": "reverse",
+          "description": "deck.gl reverse. Valid on: COGLayer, ZarrLayer."
+        },
+        {
+          "name": "stretch",
+          "description": "deck.gl stretch. Valid on: COGLayer, ZarrLayer."
+        },
+        {
+          "name": "gamma",
+          "description": "deck.gl gamma. Valid on: COGLayer, ZarrLayer."
         },
         {
           "name": "nodata",
-          "description": "deck.gl nodataOverride."
+          "description": "deck.gl nodataOverride. Valid on: COGLayer, ZarrLayer."
         },
         {
           "name": "variable",
-          "description": "deck.gl variable."
+          "description": "deck.gl variable. Valid on: ZarrLayer."
         },
         {
           "name": "select",
-          "description": "deck.gl select."
+          "description": "deck.gl select. Valid on: ZarrLayer."
         },
         {
           "name": "crs",
-          "description": "deck.gl crs."
+          "description": "deck.gl crs. Valid on: ZarrLayer."
         },
         {
           "name": "spatial-dims",
-          "description": "deck.gl spatialDims."
+          "description": "deck.gl spatialDims. Valid on: ZarrLayer."
         },
         {
           "name": "get-source-position",
-          "description": "Accessor for deck.gl getSourcePosition — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getSourcePosition — expression language: $field, scale(), formatDate(), arithmetic. Valid on: ArcLayer, GreatCircleLayer, LineLayer."
         },
         {
           "name": "get-target-position",
-          "description": "Accessor for deck.gl getTargetPosition — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getTargetPosition — expression language: $field, scale(), formatDate(), arithmetic. Valid on: ArcLayer, GreatCircleLayer, LineLayer."
         },
         {
           "name": "get-source-color",
-          "description": "Accessor for deck.gl getSourceColor — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getSourceColor — expression language: $field, scale(), formatDate(), arithmetic. Valid on: ArcLayer, GreatCircleLayer."
         },
         {
           "name": "get-target-color",
-          "description": "Accessor for deck.gl getTargetColor — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getTargetColor — expression language: $field, scale(), formatDate(), arithmetic. Valid on: ArcLayer, GreatCircleLayer."
         },
         {
           "name": "get-width",
-          "description": "Accessor for deck.gl getWidth — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getWidth — expression language: $field, scale(), formatDate(), arithmetic. Valid on: ArcLayer, GreatCircleLayer, LineLayer, PathLayer, TripsLayer."
         },
         {
           "name": "get-height",
-          "description": "Accessor for deck.gl getHeight — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getHeight — expression language: $field, scale(), formatDate(), arithmetic. Valid on: ArcLayer, GreatCircleLayer."
         },
         {
           "name": "get-tilt",
-          "description": "Accessor for deck.gl getTilt — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getTilt — expression language: $field, scale(), formatDate(), arithmetic. Valid on: ArcLayer, GreatCircleLayer."
         },
         {
           "name": "great-circle",
-          "description": "deck.gl greatCircle."
+          "description": "deck.gl greatCircle. Valid on: ArcLayer, GreatCircleLayer."
         },
         {
           "name": "num-segments",
-          "description": "deck.gl numSegments."
+          "description": "deck.gl numSegments. Valid on: ArcLayer, GreatCircleLayer."
         },
         {
           "name": "width-units",
-          "description": "deck.gl widthUnits."
+          "description": "deck.gl widthUnits. Valid on: ArcLayer, GreatCircleLayer, LineLayer, PathLayer, TripsLayer."
         },
         {
           "name": "width-scale",
-          "description": "deck.gl widthScale."
+          "description": "deck.gl widthScale. Valid on: ArcLayer, GreatCircleLayer, LineLayer, PathLayer, TripsLayer."
         },
         {
           "name": "width-min-pixels",
-          "description": "deck.gl widthMinPixels."
+          "description": "deck.gl widthMinPixels. Valid on: ArcLayer, GreatCircleLayer, LineLayer, PathLayer, TripsLayer."
         },
         {
           "name": "width-max-pixels",
-          "description": "deck.gl widthMaxPixels."
+          "description": "deck.gl widthMaxPixels. Valid on: ArcLayer, GreatCircleLayer, LineLayer, PathLayer, TripsLayer."
         },
         {
           "name": "_image-coordinate-system",
-          "description": "deck.gl _imageCoordinateSystem."
+          "description": "deck.gl _imageCoordinateSystem. Valid on: BitmapLayer."
         },
         {
           "name": "disk-resolution",
-          "description": "deck.gl diskResolution."
+          "description": "deck.gl diskResolution. Valid on: ColumnLayer, GridCellLayer."
         },
         {
           "name": "vertices",
-          "description": "deck.gl vertices."
+          "description": "deck.gl vertices. Valid on: ColumnLayer, GridCellLayer."
         },
         {
           "name": "angle",
-          "description": "deck.gl angle."
+          "description": "deck.gl angle. Valid on: ColumnLayer, GridCellLayer."
         },
         {
           "name": "offset",
-          "description": "deck.gl offset."
+          "description": "deck.gl offset. Valid on: ColumnLayer, GridCellLayer."
         },
         {
           "name": "coverage",
-          "description": "deck.gl coverage."
+          "description": "deck.gl coverage. Valid on: ColumnLayer, GridCellLayer, GridLayer, H3HexagonLayer, HexagonLayer."
         },
         {
           "name": "flat-shading",
-          "description": "deck.gl flatShading."
+          "description": "deck.gl flatShading. Valid on: ColumnLayer, GridCellLayer."
         },
         {
           "name": "cell-size",
-          "description": "deck.gl cellSize."
+          "description": "deck.gl cellSize. Valid on: ContourLayer, GridCellLayer, GridLayer."
         },
         {
           "name": "size-units",
-          "description": "deck.gl sizeUnits."
+          "description": "deck.gl sizeUnits. Valid on: IconLayer, PointCloudLayer, TextLayer."
         },
         {
           "name": "size-basis",
-          "description": "deck.gl sizeBasis."
+          "description": "deck.gl sizeBasis. Valid on: IconLayer."
         },
         {
           "name": "alpha-cutoff",
-          "description": "deck.gl alphaCutoff."
+          "description": "deck.gl alphaCutoff. Valid on: IconLayer."
         },
         {
           "name": "get-angle",
-          "description": "Accessor for deck.gl getAngle — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getAngle — expression language: $field, scale(), formatDate(), arithmetic. Valid on: IconLayer, TextLayer."
         },
         {
           "name": "joint-rounded",
-          "description": "deck.gl jointRounded."
+          "description": "deck.gl jointRounded. Valid on: PathLayer, TripsLayer."
         },
         {
           "name": "cap-rounded",
-          "description": "deck.gl capRounded."
+          "description": "deck.gl capRounded. Valid on: PathLayer, TripsLayer."
         },
         {
           "name": "miter-limit",
-          "description": "deck.gl miterLimit."
+          "description": "deck.gl miterLimit. Valid on: PathLayer, TripsLayer."
         },
         {
           "name": "_path-type",
-          "description": "deck.gl _pathType."
+          "description": "deck.gl _pathType. Valid on: PathLayer, TripsLayer."
         },
         {
           "name": "get-path",
-          "description": "Accessor for deck.gl getPath — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getPath — expression language: $field, scale(), formatDate(), arithmetic. Valid on: PathLayer, TripsLayer."
         },
         {
           "name": "get-normal",
-          "description": "Accessor for deck.gl getNormal — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getNormal — expression language: $field, scale(), formatDate(), arithmetic. Valid on: PointCloudLayer."
         },
         {
           "name": "_normalize",
-          "description": "deck.gl _normalize."
+          "description": "deck.gl _normalize. Valid on: A5Layer, GeohashLayer, H3ClusterLayer, H3HexagonLayer, PolygonLayer, QuadkeyLayer, S2Layer."
         },
         {
           "name": "_winding-order",
-          "description": "deck.gl _windingOrder."
+          "description": "deck.gl _windingOrder. Valid on: A5Layer, GeohashLayer, H3ClusterLayer, H3HexagonLayer, PolygonLayer, QuadkeyLayer, S2Layer."
         },
         {
           "name": "background",
-          "description": "deck.gl background."
+          "description": "deck.gl background. Valid on: TextLayer."
         },
         {
           "name": "get-background-color",
-          "description": "Accessor for deck.gl getBackgroundColor — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getBackgroundColor — expression language: $field, scale(), formatDate(), arithmetic. Valid on: TextLayer."
         },
         {
           "name": "get-border-color",
-          "description": "Accessor for deck.gl getBorderColor — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getBorderColor — expression language: $field, scale(), formatDate(), arithmetic. Valid on: TextLayer."
         },
         {
           "name": "get-border-width",
-          "description": "Accessor for deck.gl getBorderWidth — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getBorderWidth — expression language: $field, scale(), formatDate(), arithmetic. Valid on: TextLayer."
         },
         {
           "name": "background-border-radius",
-          "description": "deck.gl backgroundBorderRadius."
+          "description": "deck.gl backgroundBorderRadius. Valid on: TextLayer."
         },
         {
           "name": "background-padding",
-          "description": "deck.gl backgroundPadding."
+          "description": "deck.gl backgroundPadding. Valid on: TextLayer."
         },
         {
           "name": "character-set",
-          "description": "deck.gl characterSet."
+          "description": "deck.gl characterSet. Valid on: TextLayer."
         },
         {
           "name": "font-family",
-          "description": "deck.gl fontFamily."
+          "description": "deck.gl fontFamily. Valid on: TextLayer."
         },
         {
           "name": "font-weight",
-          "description": "deck.gl fontWeight."
+          "description": "deck.gl fontWeight. Valid on: TextLayer."
         },
         {
           "name": "line-height",
-          "description": "deck.gl lineHeight."
+          "description": "deck.gl lineHeight. Valid on: TextLayer."
         },
         {
           "name": "outline-width",
-          "description": "deck.gl outlineWidth."
+          "description": "deck.gl outlineWidth. Valid on: TextLayer."
         },
         {
           "name": "outline-color",
-          "description": "deck.gl outlineColor."
+          "description": "deck.gl outlineColor. Valid on: TextLayer."
         },
         {
           "name": "font-settings",
-          "description": "deck.gl fontSettings."
+          "description": "deck.gl fontSettings. Valid on: TextLayer."
         },
         {
           "name": "word-break",
-          "description": "deck.gl wordBreak."
+          "description": "deck.gl wordBreak. Valid on: TextLayer."
         },
         {
           "name": "max-width",
-          "description": "deck.gl maxWidth."
+          "description": "deck.gl maxWidth. Valid on: TextLayer."
         },
         {
           "name": "content-cutoff-pixels",
-          "description": "deck.gl contentCutoffPixels."
+          "description": "deck.gl contentCutoffPixels. Valid on: TextLayer."
         },
         {
           "name": "content-align-horizontal",
-          "description": "deck.gl contentAlignHorizontal."
+          "description": "deck.gl contentAlignHorizontal. Valid on: TextLayer."
         },
         {
           "name": "content-align-vertical",
-          "description": "deck.gl contentAlignVertical."
+          "description": "deck.gl contentAlignVertical. Valid on: TextLayer."
         },
         {
           "name": "get-alignment-baseline",
-          "description": "Accessor for deck.gl getAlignmentBaseline — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getAlignmentBaseline — expression language: $field, scale(), formatDate(), arithmetic. Valid on: TextLayer."
         },
         {
           "name": "get-content-box",
-          "description": "Accessor for deck.gl getContentBox — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getContentBox — expression language: $field, scale(), formatDate(), arithmetic. Valid on: TextLayer."
         },
         {
           "name": "get-pentagon",
-          "description": "Accessor for deck.gl getPentagon — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getPentagon — expression language: $field, scale(), formatDate(), arithmetic. Valid on: A5Layer."
         },
         {
           "name": "get-geohash",
-          "description": "Accessor for deck.gl getGeohash — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getGeohash — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeohashLayer."
         },
         {
           "name": "get-hexagons",
-          "description": "Accessor for deck.gl getHexagons — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getHexagons — expression language: $field, scale(), formatDate(), arithmetic. Valid on: H3ClusterLayer."
         },
         {
           "name": "high-precision",
-          "description": "deck.gl highPrecision."
+          "description": "deck.gl highPrecision. Valid on: H3HexagonLayer."
         },
         {
           "name": "center-hexagon",
-          "description": "deck.gl centerHexagon."
+          "description": "deck.gl centerHexagon. Valid on: H3HexagonLayer."
         },
         {
           "name": "get-hexagon",
-          "description": "Accessor for deck.gl getHexagon — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getHexagon — expression language: $field, scale(), formatDate(), arithmetic. Valid on: H3HexagonLayer."
         },
         {
           "name": "extent",
-          "description": "deck.gl extent."
+          "description": "deck.gl extent. Valid on: MVTLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "tile-size",
-          "description": "deck.gl tileSize."
+          "description": "deck.gl tileSize. Valid on: MVTLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "max-cache-size",
-          "description": "deck.gl maxCacheSize."
+          "description": "deck.gl maxCacheSize. Valid on: MVTLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "max-cache-byte-size",
-          "description": "deck.gl maxCacheByteSize."
+          "description": "deck.gl maxCacheByteSize. Valid on: MVTLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "refinement-strategy",
-          "description": "deck.gl refinementStrategy."
+          "description": "deck.gl refinementStrategy. Valid on: MVTLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "z-range",
-          "description": "deck.gl zRange."
+          "description": "deck.gl zRange. Valid on: MVTLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "max-requests",
-          "description": "deck.gl maxRequests."
+          "description": "deck.gl maxRequests. Valid on: MVTLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "debounce-time",
-          "description": "deck.gl debounceTime."
+          "description": "deck.gl debounceTime. Valid on: MVTLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "zoom-offset",
-          "description": "deck.gl zoomOffset."
+          "description": "deck.gl zoomOffset. Valid on: MVTLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "visible-min-zoom",
-          "description": "deck.gl visibleMinZoom."
+          "description": "deck.gl visibleMinZoom. Valid on: MVTLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "visible-max-zoom",
-          "description": "deck.gl visibleMaxZoom."
+          "description": "deck.gl visibleMaxZoom. Valid on: MVTLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "_full3d",
-          "description": "deck.gl _full3d."
+          "description": "deck.gl _full3d. Valid on: MVTLayer."
         },
         {
           "name": "unique-id-property",
-          "description": "deck.gl uniqueIdProperty."
+          "description": "deck.gl uniqueIdProperty. Valid on: MVTLayer."
         },
         {
           "name": "highlighted-feature-id",
-          "description": "deck.gl highlightedFeatureId."
+          "description": "deck.gl highlightedFeatureId. Valid on: MVTLayer."
         },
         {
           "name": "binary",
-          "description": "deck.gl binary."
+          "description": "deck.gl binary. Valid on: MVTLayer."
         },
         {
           "name": "get-quadkey",
-          "description": "Accessor for deck.gl getQuadkey — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getQuadkey — expression language: $field, scale(), formatDate(), arithmetic. Valid on: QuadkeyLayer."
         },
         {
           "name": "get-s2-token",
-          "description": "Accessor for deck.gl getS2Token — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getS2Token — expression language: $field, scale(), formatDate(), arithmetic. Valid on: S2Layer."
         },
         {
           "name": "elevation-data",
-          "description": "deck.gl elevationData."
+          "description": "deck.gl elevationData. Valid on: TerrainLayer."
         },
         {
           "name": "texture",
-          "description": "deck.gl texture."
+          "description": "deck.gl texture. Valid on: SimpleMeshLayer, TerrainLayer."
         },
         {
           "name": "mesh-max-error",
-          "description": "deck.gl meshMaxError."
+          "description": "deck.gl meshMaxError. Valid on: TerrainLayer."
         },
         {
           "name": "elevation-decoder",
-          "description": "deck.gl elevationDecoder."
+          "description": "deck.gl elevationDecoder. Valid on: TerrainLayer."
         },
         {
           "name": "worker-url",
-          "description": "deck.gl workerUrl."
+          "description": "deck.gl workerUrl. Valid on: TerrainLayer."
         },
         {
           "name": "fade-trail",
-          "description": "deck.gl fadeTrail."
+          "description": "deck.gl fadeTrail. Valid on: TripsLayer."
         },
         {
           "name": "trail-length",
-          "description": "deck.gl trailLength."
+          "description": "deck.gl trailLength. Valid on: TripsLayer."
         },
         {
           "name": "current-time",
-          "description": "deck.gl currentTime."
+          "description": "deck.gl currentTime. Valid on: TripsLayer."
         },
         {
           "name": "get-timestamps",
-          "description": "Accessor for deck.gl getTimestamps — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getTimestamps — expression language: $field, scale(), formatDate(), arithmetic. Valid on: TripsLayer."
         },
         {
           "name": "grid-origin",
-          "description": "deck.gl gridOrigin."
+          "description": "deck.gl gridOrigin. Valid on: ContourLayer."
         },
         {
           "name": "get-weight",
-          "description": "Accessor for deck.gl getWeight — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getWeight — expression language: $field, scale(), formatDate(), arithmetic. Valid on: ContourLayer, HeatmapLayer, ScreenGridLayer."
         },
         {
           "name": "gpu-aggregation",
-          "description": "deck.gl gpuAggregation."
+          "description": "deck.gl gpuAggregation. Valid on: ContourLayer, GridLayer, HexagonLayer, ScreenGridLayer."
         },
         {
           "name": "aggregation",
-          "description": "deck.gl aggregation."
+          "description": "deck.gl aggregation. Valid on: ContourLayer, HeatmapLayer, ScreenGridLayer."
         },
         {
           "name": "contours",
-          "description": "deck.gl contours."
+          "description": "deck.gl contours. Valid on: ContourLayer."
         },
         {
           "name": "z-offset",
-          "description": "deck.gl zOffset."
+          "description": "deck.gl zOffset. Valid on: ContourLayer."
         },
         {
           "name": "color-domain",
-          "description": "deck.gl colorDomain."
+          "description": "deck.gl colorDomain. Valid on: GridLayer, HeatmapLayer, HexagonLayer."
         },
         {
           "name": "color-range",
-          "description": "deck.gl colorRange."
+          "description": "deck.gl colorRange. Valid on: GridLayer, HeatmapLayer, HexagonLayer, ScreenGridLayer."
         },
         {
           "name": "get-color-value",
-          "description": "Accessor for deck.gl getColorValue — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getColorValue — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GridLayer, HexagonLayer."
         },
         {
           "name": "get-color-weight",
-          "description": "Accessor for deck.gl getColorWeight — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getColorWeight — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GridLayer, HexagonLayer."
         },
         {
           "name": "color-aggregation",
-          "description": "deck.gl colorAggregation."
+          "description": "deck.gl colorAggregation. Valid on: GridLayer, HexagonLayer."
         },
         {
           "name": "lower-percentile",
-          "description": "deck.gl lowerPercentile."
+          "description": "deck.gl lowerPercentile. Valid on: GridLayer, HexagonLayer."
         },
         {
           "name": "upper-percentile",
-          "description": "deck.gl upperPercentile."
+          "description": "deck.gl upperPercentile. Valid on: GridLayer, HexagonLayer."
         },
         {
           "name": "color-scale-type",
-          "description": "deck.gl colorScaleType."
+          "description": "deck.gl colorScaleType. Valid on: GridLayer, HexagonLayer, ScreenGridLayer."
         },
         {
           "name": "elevation-domain",
-          "description": "deck.gl elevationDomain."
+          "description": "deck.gl elevationDomain. Valid on: GridLayer, HexagonLayer."
         },
         {
           "name": "elevation-range",
-          "description": "deck.gl elevationRange."
+          "description": "deck.gl elevationRange. Valid on: GridLayer, HexagonLayer."
         },
         {
           "name": "get-elevation-value",
-          "description": "Accessor for deck.gl getElevationValue — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getElevationValue — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GridLayer, HexagonLayer."
         },
         {
           "name": "get-elevation-weight",
-          "description": "Accessor for deck.gl getElevationWeight — expression language: $field, scale(), formatDate(), arithmetic."
+          "description": "Accessor for deck.gl getElevationWeight — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GridLayer, HexagonLayer."
         },
         {
           "name": "elevation-aggregation",
-          "description": "deck.gl elevationAggregation."
+          "description": "deck.gl elevationAggregation. Valid on: GridLayer, HexagonLayer."
         },
         {
           "name": "elevation-lower-percentile",
-          "description": "deck.gl elevationLowerPercentile."
+          "description": "deck.gl elevationLowerPercentile. Valid on: GridLayer, HexagonLayer."
         },
         {
           "name": "elevation-upper-percentile",
-          "description": "deck.gl elevationUpperPercentile."
+          "description": "deck.gl elevationUpperPercentile. Valid on: GridLayer, HexagonLayer."
         },
         {
           "name": "elevation-scale-type",
-          "description": "deck.gl elevationScaleType."
+          "description": "deck.gl elevationScaleType. Valid on: GridLayer, HexagonLayer."
         },
         {
           "name": "intensity",
-          "description": "deck.gl intensity."
+          "description": "deck.gl intensity. Valid on: HeatmapLayer."
         },
         {
           "name": "radius-pixels",
-          "description": "deck.gl radiusPixels."
+          "description": "deck.gl radiusPixels. Valid on: HeatmapLayer."
         },
         {
           "name": "threshold",
-          "description": "deck.gl threshold."
+          "description": "deck.gl threshold. Valid on: HeatmapLayer."
         },
         {
           "name": "weights-texture-size",
-          "description": "deck.gl weightsTextureSize."
+          "description": "deck.gl weightsTextureSize. Valid on: HeatmapLayer."
         },
         {
           "name": "debounce-timeout",
-          "description": "deck.gl debounceTimeout."
+          "description": "deck.gl debounceTimeout. Valid on: HeatmapLayer."
         },
         {
           "name": "cell-size-pixels",
-          "description": "deck.gl cellSizePixels."
+          "description": "deck.gl cellSizePixels. Valid on: ScreenGridLayer."
         },
         {
           "name": "cell-margin-pixels",
-          "description": "deck.gl cellMarginPixels."
+          "description": "deck.gl cellMarginPixels. Valid on: ScreenGridLayer."
         },
         {
           "name": "mesh",
-          "description": "deck.gl mesh."
+          "description": "deck.gl mesh. Valid on: SimpleMeshLayer."
         },
         {
           "name": "_instanced",
-          "description": "deck.gl _instanced."
+          "description": "deck.gl _instanced. Valid on: SimpleMeshLayer."
         }
       ]
     },
@@ -1720,6 +1874,9 @@
               "name": "toggle-layer"
             },
             {
+              "name": "set-pickable"
+            },
+            {
               "name": "zoom-in"
             },
             {
@@ -1826,6 +1983,9 @@
             },
             {
               "name": "redo"
+            },
+            {
+              "name": "warm-tiles"
             }
           ]
         },
@@ -1894,6 +2054,9 @@
             },
             {
               "name": "widgets-toggle"
+            },
+            {
+              "name": "time-slider"
             },
             {
               "name": "ifc-browser"
@@ -1992,7 +2155,19 @@
         },
         {
           "name": "field",
-          "description": "Data field (filter / vega-lite widgets)."
+          "description": "Data field (filter / vega-lite / time-slider widgets)."
+        },
+        {
+          "name": "window",
+          "description": "time-slider widget: sliding-window span in the field's own units (ms for epoch fields). Absent = cumulative reveal from the domain start."
+        },
+        {
+          "name": "duration",
+          "description": "time-slider widget: wall time of one full sweep, e.g. \"20s\" (default). Player-widget-free playback over a layer's time field."
+        },
+        {
+          "name": "loop",
+          "description": "time-slider widget: restart the sweep from the domain start when it completes."
         },
         {
           "name": "on",
@@ -2253,6 +2428,18 @@
           "description": "Story id — referenced by the player widget and story-* actions."
         },
         {
+          "name": "warm-tiles",
+          "description": "Pre-load every 3D tileset along this story's camera route in the background as soon as the story connects — flyby pop-in / LOD refinement blur becomes a sub-frame re-upload. Completion announced via the om-tiles-warmed event on <om-map>."
+        },
+        {
+          "name": "paced",
+          "description": "Load-paced playback: the story steps its own clock frame by frame (optionally paced=\"60\" story-fps, default 30), owns the camera along the fly-to route, and never advances while a 3D tileset is still refining — no frame ever shows unrefined tiles. Wall-clock stretches; emits om-paced-tick {t, waitedMs} per frame. Composes with warm-tiles (warm first → far shorter waits)."
+        },
+        {
+          "name": "paced-max-hold",
+          "description": "Per-frame tile-wait cap for paced playback (duration grammar, default 10s): a frame still waiting past the cap advances anyway, so a dead tile server degrades to ordinary pop-in instead of freezing the story. Heavy tilesets (Google Photorealistic 3D Tiles) can be tile-bound longer than 10s per frame — raise it (e.g. \"30s\"), or set \"none\" to wait unconditionally for full refinement (guaranteed-sharp recorded takes; only pause can then unstick a dead server)."
+        },
+        {
           "name": "autoplay",
           "description": "Start after om-map-ready."
         },
@@ -2290,6 +2477,9 @@
           "values": [
             {
               "name": "toggle-layer"
+            },
+            {
+              "name": "set-pickable"
             },
             {
               "name": "zoom-in"
@@ -2398,6 +2588,9 @@
             },
             {
               "name": "redo"
+            },
+            {
+              "name": "warm-tiles"
             }
           ]
         },
@@ -2408,6 +2601,28 @@
         {
           "name": "delay",
           "description": "Stagger before the step starts."
+        },
+        {
+          "name": "follow",
+          "description": "trace steps: lock the camera to the line's drawing tip for the step's duration (the travel-map move)."
+        },
+        {
+          "name": "easing",
+          "description": "trace steps: clock curve for the draw.",
+          "values": [
+            {
+              "name": "linear"
+            },
+            {
+              "name": "ease-in"
+            },
+            {
+              "name": "ease-out"
+            },
+            {
+              "name": "ease-in-out"
+            }
+          ]
         },
         {
           "name": "parallel",
@@ -2466,6 +2681,980 @@
         {
           "name": "Map stories",
           "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/stories.md"
+        }
+      ]
+    },
+    {
+      "name": "om-cartograph",
+      "description": "A cartograph: a print-composition page in millimetres carrying map frames and cartographic furniture. Standalone HTML document root element — loads from @nika-js/onlymap/cartograph, prints to PDF at true page size, exports PNG at print DPI.",
+      "attributes": [
+        {
+          "name": "cartograph-id",
+          "description": "Authored id for this cartograph document — hosts typically require it to match the filename stem (like map-id)."
+        },
+        {
+          "name": "format",
+          "description": "Document format identifier — \"cartograph/2\". Lets future runtimes migrate older documents deterministically.",
+          "values": [
+            {
+              "name": "cartograph/2"
+            }
+          ]
+        },
+        {
+          "name": "size",
+          "description": "Page preset (portrait dimensions; orientation flips them).",
+          "values": [
+            {
+              "name": "A0"
+            },
+            {
+              "name": "A1"
+            },
+            {
+              "name": "A2"
+            },
+            {
+              "name": "A3"
+            },
+            {
+              "name": "A4"
+            },
+            {
+              "name": "A5"
+            },
+            {
+              "name": "Letter"
+            },
+            {
+              "name": "Legal"
+            }
+          ]
+        },
+        {
+          "name": "width",
+          "description": "Custom page width in mm — with height, overrides size."
+        },
+        {
+          "name": "height",
+          "description": "Custom page height in mm — with width, overrides size."
+        },
+        {
+          "name": "orientation",
+          "description": "Page orientation — swaps the preset's width/height.",
+          "values": [
+            {
+              "name": "portrait"
+            },
+            {
+              "name": "landscape"
+            }
+          ]
+        },
+        {
+          "name": "theme",
+          "description": "Built-in visual theme — CSS custom properties (--om-carto-*) every element reads; override with a <style> block.",
+          "values": [
+            {
+              "name": "default"
+            },
+            {
+              "name": "dark"
+            },
+            {
+              "name": "sepia"
+            },
+            {
+              "name": "blueprint"
+            },
+            {
+              "name": "minimal"
+            }
+          ]
+        },
+        {
+          "name": "title",
+          "description": "Document title — the {{title}} token resolves to it."
+        },
+        {
+          "name": "attribution",
+          "description": "Data/imagery credit text — the {{attribution}} token resolves to it."
+        },
+        {
+          "name": "notes",
+          "description": "Free-text sheet note — the {{notes}} token resolves to it."
+        },
+        {
+          "name": "cvd",
+          "description": "Colour-vision-deficiency simulation applied to the whole page (review aid; also boot-only via ?cvd=).",
+          "values": [
+            {
+              "name": "none"
+            },
+            {
+              "name": "protanopia"
+            },
+            {
+              "name": "deuteranopia"
+            },
+            {
+              "name": "tritanopia"
+            },
+            {
+              "name": "achromatopsia"
+            },
+            {
+              "name": "protan"
+            },
+            {
+              "name": "deutan"
+            },
+            {
+              "name": "tritan"
+            },
+            {
+              "name": "achroma"
+            }
+          ]
+        },
+        {
+          "name": "bleed",
+          "description": "Print bleed in mm — extends the printed page box past the trim on every side."
+        },
+        {
+          "name": "crop-marks",
+          "description": "Draw trim crop marks in the bleed area when printing/exporting."
+        },
+        {
+          "name": "safe-zone",
+          "description": "Screen-only guide inset in mm — never printed or exported."
+        },
+        {
+          "name": "dpi",
+          "description": "Default export resolution (renderCartograph and ?export=png), default 300."
+        },
+        {
+          "name": "flatten",
+          "description": "Export as one flattened raster (no vector furniture pass)."
+        },
+        {
+          "name": "color-profile",
+          "description": "Informational colour-profile tag (e.g. sRGB) — the runtime never converts colour."
+        },
+        {
+          "name": "allow-url-actions",
+          "description": "Opt in to the ?print=1 / ?export=png / ?cvd= URL triggers. Without it a hosted cartograph ignores them (no drive-by print/export)."
+        }
+      ],
+      "references": [
+        {
+          "name": "Cartograph reference",
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/cartograph.md"
+        }
+      ]
+    },
+    {
+      "name": "om-frame",
+      "description": "A placed map. live (default): mounts the real <om-map> from src= or an inline child with the FRAME's own camera. static: a georeferenced raster <img> child with crs + corners — what a QGIS export or a retouched capture produces.",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "Element id — addressable by the editor inspector, agents, and for=/overview-of= references."
+        },
+        {
+          "name": "x",
+          "description": "Left edge in mm from the page’s left edge."
+        },
+        {
+          "name": "y",
+          "description": "Top edge in mm from the page’s top edge."
+        },
+        {
+          "name": "w",
+          "description": "Width in mm."
+        },
+        {
+          "name": "h",
+          "description": "Height in mm."
+        },
+        {
+          "name": "rotation",
+          "description": "Rotation in degrees clockwise about the element’s center."
+        },
+        {
+          "name": "z",
+          "description": "Stacking override — document order is z-order by default; higher renders on top."
+        },
+        {
+          "name": "locked",
+          "description": "Editor concern: the inspector refuses drag/resize. Inert to the runtime."
+        },
+        {
+          "name": "hidden",
+          "description": "Skipped in rendering, print, and export (standard HTML hidden attribute)."
+        },
+        {
+          "name": "src",
+          "description": "URL of a map HTML document to mount (live mode). The frame's camera attributes override the file's."
+        },
+        {
+          "name": "mode",
+          "description": "live mounts the map runtime; static places a georeferenced raster child.",
+          "values": [
+            {
+              "name": "live"
+            },
+            {
+              "name": "static"
+            }
+          ]
+        },
+        {
+          "name": "center",
+          "description": "Frame camera center \"[lng, lat]\" (live) — authoritative over the referenced map's."
+        },
+        {
+          "name": "zoom",
+          "description": "Frame camera zoom (live)."
+        },
+        {
+          "name": "bearing",
+          "description": "Frame camera bearing in degrees (live)."
+        },
+        {
+          "name": "pitch",
+          "description": "Frame camera pitch in degrees (live)."
+        },
+        {
+          "name": "dpi",
+          "description": "Target print resolution hint — a live frame mounts at this pixel ratio so print-destined sprites/glyphs rasterize sharp."
+        },
+        {
+          "name": "crs",
+          "description": "Static frames: the raster's CRS (e.g. EPSG:32648). Warned-ignored on live frames (always EPSG:3857)."
+        },
+        {
+          "name": "corners",
+          "description": "Static frames: the raster's four corner coordinates as lon/lat pairs, order tl/tr/br/bl — computed by the producer, so placement never needs proj4."
+        },
+        {
+          "name": "crs-def",
+          "description": "Proj string (\"+proj=…\") for a CRS the library doesn't bundle — used by projected graticules."
+        },
+        {
+          "name": "overview-of",
+          "description": "Draw the referenced frame's footprint in this frame (locator inset) — a densified outline through this frame's georeference."
+        },
+        {
+          "name": "overview-stroke",
+          "description": "Footprint outline colour for overview-of."
+        },
+        {
+          "name": "atlas-fit",
+          "description": "Under an <om-atlas>: refit the camera to each feature, or hold it fixed.",
+          "values": [
+            {
+              "name": "feature"
+            },
+            {
+              "name": "fixed"
+            }
+          ]
+        },
+        {
+          "name": "atlas-margin",
+          "description": "Refit margin as a fraction of the feature's extent (e.g. 0.3)."
+        },
+        {
+          "name": "frame-stroke",
+          "description": "Frame border colour (theme default when absent)."
+        },
+        {
+          "name": "frame-bg",
+          "description": "Frame background colour shown before/behind the map (theme default when absent)."
+        }
+      ],
+      "references": [
+        {
+          "name": "Cartograph reference",
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/cartograph.md"
+        }
+      ]
+    },
+    {
+      "name": "om-legend",
+      "description": "A derived legend: rows are computed from the referenced frame's layers at render time and never stored — the legend cannot disagree with the map. <om-legend-row> children are overrides only. Static frames use literal rows with derived=\"false\".",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "Element id — addressable by the editor inspector, agents, and for=/overview-of= references."
+        },
+        {
+          "name": "x",
+          "description": "Left edge in mm from the page’s left edge."
+        },
+        {
+          "name": "y",
+          "description": "Top edge in mm from the page’s top edge."
+        },
+        {
+          "name": "w",
+          "description": "Width in mm."
+        },
+        {
+          "name": "h",
+          "description": "Height in mm."
+        },
+        {
+          "name": "rotation",
+          "description": "Rotation in degrees clockwise about the element’s center."
+        },
+        {
+          "name": "z",
+          "description": "Stacking override — document order is z-order by default; higher renders on top."
+        },
+        {
+          "name": "locked",
+          "description": "Editor concern: the inspector refuses drag/resize. Inert to the runtime."
+        },
+        {
+          "name": "hidden",
+          "description": "Skipped in rendering, print, and export (standard HTML hidden attribute)."
+        },
+        {
+          "name": "for",
+          "description": "Frame id the legend derives from."
+        },
+        {
+          "name": "title",
+          "description": "Legend heading."
+        },
+        {
+          "name": "columns",
+          "description": "Row columns (default 1)."
+        },
+        {
+          "name": "derived",
+          "description": "Set \"false\" for literal (producer-authored) rows — the static-frame form.",
+          "values": [
+            {
+              "name": "true"
+            },
+            {
+              "name": "false"
+            }
+          ]
+        }
+      ],
+      "references": [
+        {
+          "name": "Cartograph reference",
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/cartograph.md"
+        }
+      ]
+    },
+    {
+      "name": "om-legend-row",
+      "description": "A legend row override (derived legends: relabel/hide/reorder a computed row) or a literal row (derived=\"false\" legends).",
+      "attributes": [
+        {
+          "name": "layer",
+          "description": "Layer id the override targets (derived legends)."
+        },
+        {
+          "name": "match",
+          "description": "Which of the layer's derived rows to target: the category value or class label. Omit to target the layer's single row."
+        },
+        {
+          "name": "label",
+          "description": "Replacement row label — or the literal row's label."
+        },
+        {
+          "name": "hide",
+          "description": "Hide the targeted row."
+        },
+        {
+          "name": "order",
+          "description": "Row ordering override (lower first)."
+        },
+        {
+          "name": "color",
+          "description": "Literal rows: the swatch colour."
+        },
+        {
+          "name": "shape",
+          "description": "Literal rows: the swatch geometry.",
+          "values": [
+            {
+              "name": "polygon"
+            },
+            {
+              "name": "line"
+            },
+            {
+              "name": "point"
+            }
+          ]
+        }
+      ],
+      "references": [
+        {
+          "name": "Cartograph reference",
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/cartograph.md"
+        }
+      ]
+    },
+    {
+      "name": "om-scalebar",
+      "description": "A scale bar for a frame — segment lengths snap to a 1-2-5 series; true at the frame's centre latitude.",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "Element id — addressable by the editor inspector, agents, and for=/overview-of= references."
+        },
+        {
+          "name": "x",
+          "description": "Left edge in mm from the page’s left edge."
+        },
+        {
+          "name": "y",
+          "description": "Top edge in mm from the page’s top edge."
+        },
+        {
+          "name": "w",
+          "description": "Width in mm."
+        },
+        {
+          "name": "h",
+          "description": "Height in mm."
+        },
+        {
+          "name": "rotation",
+          "description": "Rotation in degrees clockwise about the element’s center."
+        },
+        {
+          "name": "z",
+          "description": "Stacking override — document order is z-order by default; higher renders on top."
+        },
+        {
+          "name": "locked",
+          "description": "Editor concern: the inspector refuses drag/resize. Inert to the runtime."
+        },
+        {
+          "name": "hidden",
+          "description": "Skipped in rendering, print, and export (standard HTML hidden attribute)."
+        },
+        {
+          "name": "for",
+          "description": "Frame id the bar measures."
+        },
+        {
+          "name": "units",
+          "description": "Unit system.",
+          "values": [
+            {
+              "name": "metric"
+            },
+            {
+              "name": "imperial"
+            },
+            {
+              "name": "nautical"
+            }
+          ]
+        },
+        {
+          "name": "segments",
+          "description": "Number of bar segments (default 4)."
+        },
+        {
+          "name": "segment-length",
+          "description": "Segment length in ground metres — overrides the automatic 1-2-5 choice."
+        },
+        {
+          "name": "kind",
+          "description": "Bar style. (Named kind, not style: style is the global HTML attribute the runtime writes for placement.)",
+          "values": [
+            {
+              "name": "single"
+            },
+            {
+              "name": "double"
+            },
+            {
+              "name": "line"
+            },
+            {
+              "name": "ticks"
+            }
+          ]
+        }
+      ],
+      "references": [
+        {
+          "name": "Cartograph reference",
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/cartograph.md"
+        }
+      ]
+    },
+    {
+      "name": "om-north",
+      "description": "A north indicator for a frame. Direction always derives from the frame's georeference, so it stays correct on rotated and static frames.",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "Element id — addressable by the editor inspector, agents, and for=/overview-of= references."
+        },
+        {
+          "name": "x",
+          "description": "Left edge in mm from the page’s left edge."
+        },
+        {
+          "name": "y",
+          "description": "Top edge in mm from the page’s top edge."
+        },
+        {
+          "name": "w",
+          "description": "Width in mm."
+        },
+        {
+          "name": "h",
+          "description": "Height in mm."
+        },
+        {
+          "name": "rotation",
+          "description": "Rotation in degrees clockwise about the element’s center."
+        },
+        {
+          "name": "z",
+          "description": "Stacking override — document order is z-order by default; higher renders on top."
+        },
+        {
+          "name": "locked",
+          "description": "Editor concern: the inspector refuses drag/resize. Inert to the runtime."
+        },
+        {
+          "name": "hidden",
+          "description": "Skipped in rendering, print, and export (standard HTML hidden attribute)."
+        },
+        {
+          "name": "for",
+          "description": "Frame id the indicator follows."
+        },
+        {
+          "name": "kind",
+          "description": "Indicator style.",
+          "values": [
+            {
+              "name": "arrow"
+            },
+            {
+              "name": "rose"
+            }
+          ]
+        }
+      ],
+      "references": [
+        {
+          "name": "Cartograph reference",
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/cartograph.md"
+        }
+      ]
+    },
+    {
+      "name": "om-graticule",
+      "description": "A coordinate grid drawn over a frame — geographic (lat/lon) or projected (e.g. a UTM grid), clipped to the frame, with labelled lines.",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "Element id — addressable by the editor inspector, agents, and for=/overview-of= references."
+        },
+        {
+          "name": "x",
+          "description": "Left edge in mm from the page’s left edge."
+        },
+        {
+          "name": "y",
+          "description": "Top edge in mm from the page’s top edge."
+        },
+        {
+          "name": "w",
+          "description": "Width in mm."
+        },
+        {
+          "name": "h",
+          "description": "Height in mm."
+        },
+        {
+          "name": "rotation",
+          "description": "Rotation in degrees clockwise about the element’s center."
+        },
+        {
+          "name": "z",
+          "description": "Stacking override — document order is z-order by default; higher renders on top."
+        },
+        {
+          "name": "locked",
+          "description": "Editor concern: the inspector refuses drag/resize. Inert to the runtime."
+        },
+        {
+          "name": "hidden",
+          "description": "Skipped in rendering, print, and export (standard HTML hidden attribute)."
+        },
+        {
+          "name": "for",
+          "description": "Frame id the grid covers."
+        },
+        {
+          "name": "crs",
+          "description": "Grid CRS — EPSG:4326 for lat/lon lines, a projected code for grid lines in projected units."
+        },
+        {
+          "name": "crs-def",
+          "description": "Proj string (\"+proj=…\") for a grid CRS the library doesn't bundle."
+        },
+        {
+          "name": "interval",
+          "description": "Line interval in the grid CRS's units (degrees or metres)."
+        },
+        {
+          "name": "interval-x",
+          "description": "Horizontal interval override."
+        },
+        {
+          "name": "interval-y",
+          "description": "Vertical interval override."
+        },
+        {
+          "name": "kind",
+          "description": "Line style.",
+          "values": [
+            {
+              "name": "solid"
+            },
+            {
+              "name": "cross"
+            },
+            {
+              "name": "markers"
+            }
+          ]
+        },
+        {
+          "name": "labels",
+          "description": "Label placement.",
+          "values": [
+            {
+              "name": "none"
+            },
+            {
+              "name": "inside"
+            },
+            {
+              "name": "outside"
+            }
+          ]
+        },
+        {
+          "name": "format",
+          "description": "Coordinate label format (e.g. dms, decimal)."
+        }
+      ],
+      "references": [
+        {
+          "name": "Cartograph reference",
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/cartograph.md"
+        }
+      ]
+    },
+    {
+      "name": "om-text",
+      "description": "A text block: title, body text, or attribution line. The body may use {{tokens}} ({{title}}, {{scale}}, {{atlas.<field>}}, …).",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "Element id — addressable by the editor inspector, agents, and for=/overview-of= references."
+        },
+        {
+          "name": "x",
+          "description": "Left edge in mm from the page’s left edge."
+        },
+        {
+          "name": "y",
+          "description": "Top edge in mm from the page’s top edge."
+        },
+        {
+          "name": "w",
+          "description": "Width in mm."
+        },
+        {
+          "name": "h",
+          "description": "Height in mm."
+        },
+        {
+          "name": "rotation",
+          "description": "Rotation in degrees clockwise about the element’s center."
+        },
+        {
+          "name": "z",
+          "description": "Stacking override — document order is z-order by default; higher renders on top."
+        },
+        {
+          "name": "locked",
+          "description": "Editor concern: the inspector refuses drag/resize. Inert to the runtime."
+        },
+        {
+          "name": "hidden",
+          "description": "Skipped in rendering, print, and export (standard HTML hidden attribute)."
+        },
+        {
+          "name": "kind",
+          "description": "Text role — themes style each differently; attribution participates in the free-plan credit rule.",
+          "values": [
+            {
+              "name": "title"
+            },
+            {
+              "name": "text"
+            },
+            {
+              "name": "attribution"
+            }
+          ]
+        },
+        {
+          "name": "font-size",
+          "description": "Font size in points (print points, 1pt = 1/72in)."
+        },
+        {
+          "name": "weight",
+          "description": "Font weight (e.g. 400, 600, bold)."
+        },
+        {
+          "name": "align",
+          "description": "Horizontal text alignment.",
+          "values": [
+            {
+              "name": "start"
+            },
+            {
+              "name": "center"
+            },
+            {
+              "name": "end"
+            }
+          ]
+        },
+        {
+          "name": "font",
+          "description": "Font family override (theme default when absent)."
+        },
+        {
+          "name": "color",
+          "description": "Text colour override (theme default when absent)."
+        },
+        {
+          "name": "bg",
+          "description": "Background colour (transparent when absent)."
+        }
+      ],
+      "references": [
+        {
+          "name": "Cartograph reference",
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/cartograph.md"
+        }
+      ]
+    },
+    {
+      "name": "om-shape",
+      "description": "A drawn shape: rectangle, ellipse, line, or arrow.",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "Element id — addressable by the editor inspector, agents, and for=/overview-of= references."
+        },
+        {
+          "name": "x",
+          "description": "Left edge in mm from the page’s left edge."
+        },
+        {
+          "name": "y",
+          "description": "Top edge in mm from the page’s top edge."
+        },
+        {
+          "name": "w",
+          "description": "Width in mm."
+        },
+        {
+          "name": "h",
+          "description": "Height in mm."
+        },
+        {
+          "name": "rotation",
+          "description": "Rotation in degrees clockwise about the element’s center."
+        },
+        {
+          "name": "z",
+          "description": "Stacking override — document order is z-order by default; higher renders on top."
+        },
+        {
+          "name": "locked",
+          "description": "Editor concern: the inspector refuses drag/resize. Inert to the runtime."
+        },
+        {
+          "name": "hidden",
+          "description": "Skipped in rendering, print, and export (standard HTML hidden attribute)."
+        },
+        {
+          "name": "kind",
+          "description": "Shape kind.",
+          "values": [
+            {
+              "name": "rect"
+            },
+            {
+              "name": "ellipse"
+            },
+            {
+              "name": "line"
+            },
+            {
+              "name": "arrow"
+            }
+          ]
+        },
+        {
+          "name": "fill",
+          "description": "Fill colour."
+        },
+        {
+          "name": "fill-opacity",
+          "description": "Fill opacity 0–1."
+        },
+        {
+          "name": "stroke",
+          "description": "Stroke colour."
+        },
+        {
+          "name": "stroke-width",
+          "description": "Stroke width in mm."
+        },
+        {
+          "name": "radius",
+          "description": "Corner radius in mm (rect)."
+        }
+      ],
+      "references": [
+        {
+          "name": "Cartograph reference",
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/cartograph.md"
+        }
+      ]
+    },
+    {
+      "name": "om-image",
+      "description": "A placed image — logo, photo, or inset graphic.",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "Element id — addressable by the editor inspector, agents, and for=/overview-of= references."
+        },
+        {
+          "name": "x",
+          "description": "Left edge in mm from the page’s left edge."
+        },
+        {
+          "name": "y",
+          "description": "Top edge in mm from the page’s top edge."
+        },
+        {
+          "name": "w",
+          "description": "Width in mm."
+        },
+        {
+          "name": "h",
+          "description": "Height in mm."
+        },
+        {
+          "name": "rotation",
+          "description": "Rotation in degrees clockwise about the element’s center."
+        },
+        {
+          "name": "z",
+          "description": "Stacking override — document order is z-order by default; higher renders on top."
+        },
+        {
+          "name": "locked",
+          "description": "Editor concern: the inspector refuses drag/resize. Inert to the runtime."
+        },
+        {
+          "name": "hidden",
+          "description": "Skipped in rendering, print, and export (standard HTML hidden attribute)."
+        },
+        {
+          "name": "src",
+          "description": "Image URL, relative path, or data: URL."
+        },
+        {
+          "name": "fit",
+          "description": "How the image fills its box.",
+          "values": [
+            {
+              "name": "contain"
+            },
+            {
+              "name": "cover"
+            },
+            {
+              "name": "fill"
+            }
+          ]
+        }
+      ],
+      "references": [
+        {
+          "name": "Cartograph reference",
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/cartograph.md"
+        }
+      ]
+    },
+    {
+      "name": "om-atlas",
+      "description": "Page-series generator: iterates the features of a layer in a frame — one page per feature, per-page camera refit (om-frame atlas-fit), {{atlas.<field>}} tokens, N-page print and N-file export.",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "Atlas id."
+        },
+        {
+          "name": "for",
+          "description": "Frame id whose layer drives the iteration."
+        },
+        {
+          "name": "layer",
+          "description": "Layer id (within that frame) whose features become pages."
+        },
+        {
+          "name": "filter",
+          "description": "Feature filter — the core expression language (same syntax as om-layer filters)."
+        },
+        {
+          "name": "sort",
+          "description": "Sort field; prefix - for descending. Comma-separated for multiple keys."
+        },
+        {
+          "name": "filename",
+          "description": "Export filename pattern with {{atlas.<field>}} tokens; sanitized, collisions suffixed."
+        },
+        {
+          "name": "page-name",
+          "description": "Page label pattern shown in editors and PDF bookmarks."
+        }
+      ],
+      "references": [
+        {
+          "name": "Cartograph reference",
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/cartograph.md"
         }
       ]
     }

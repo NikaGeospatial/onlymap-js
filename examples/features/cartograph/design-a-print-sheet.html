@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Design a print sheet — OnlyMapJS cartograph</title>
+<meta name="description" content="A press-ready A3 survey sheet as HTML: live map frame, locator inset, derived legend, graticule, scale bar, and PNG/PDF export at true print size.">
+<script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/cartograph.standalone.js"></script>
+<style>
+  body { margin: 0; background: #e9e6ea; padding: 16px; font: 13px/1.5 system-ui, sans-serif; }
+  .toolbar { display: flex; gap: 8px; align-items: center; margin: 0 0 12px; flex-wrap: wrap; }
+  .toolbar button, .toolbar select { font: inherit; padding: 6px 12px; border: 1px solid #c9c4bc; border-radius: 6px; background: #fff; cursor: pointer; }
+  .toolbar button:hover { background: #f4f2ee; }
+  .hint { color: #5b5560; }
+  om-cartograph { box-shadow: 0 6px 28px rgba(23, 13, 25, 0.18); }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button id="export-png">Export PNG (300 dpi)</button>
+  <button id="print-pdf">Print / PDF</button>
+  <label>Colour-vision check
+    <select id="cvd">
+      <option value="">off</option>
+      <option value="deuteranopia">deuteranopia</option>
+      <option value="protanopia">protanopia</option>
+      <option value="tritanopia">tritanopia</option>
+      <option value="achromatopsia">achromatopsia</option>
+    </select>
+  </label>
+  <span class="hint">The sheet below is laid out in millimetres — print produces a true-size A3 page.</span>
+</div>
+
+<om-cartograph id="sheet" cartograph-id="cg-demo" format="cartograph/2" size="A3" orientation="landscape"
+          theme="minimal" title="Parcel survey — Jurong East" attribution="© Survey Department 2026"
+          dpi="300" color-profile="sRGB" allow-url-actions>
+
+  <om-text id="title" kind="title" x="10" y="8" w="250" h="12">{{title}}</om-text>
+  <om-text id="sub" x="10" y="20" w="250" h="6" font-size="9">Sheet 1 of 1 · surveyed {{date}} · {{frame.main.crs}}</om-text>
+
+  <!-- LIVE frame: the map runtime, with the FRAME's own camera. -->
+  <om-frame id="main" x="24" y="28" w="236" h="196"
+            center="[103.8106, 1.3110]" zoom="14.4" bearing="0" pitch="0"
+            style="left:24mm;top:28mm;width:236mm;height:196mm">
+    <om-map center="[0,0]" zoom="2" basemap="none" data-om-recording style="background:#f4f2ee">
+      <om-layer id="parcels" type="GeoJsonLayer" label="Parcels" filled stroked
+                get-fill-color="$zone == 'Residential' ? '#7a9a3f' : $zone == 'Commercial' ? '#d9a441' : $zone == 'Industrial' ? '#6a8caf' : '#bbbbbb'"
+                get-line-color="[40,40,40]" line-width-min-pixels="1" opacity="0.85">
+        <script type="application/json">{"type":"FeatureCollection","features":[
+  {"type":"Feature","properties":{"name":"Lot 12","zone":"Residential","area_m2":4820},"geometry":{"type":"Polygon","coordinates":[[[103.8040,1.3120],[103.8092,1.3120],[103.8092,1.3168],[103.8040,1.3168],[103.8040,1.3120]]]}},
+  {"type":"Feature","properties":{"name":"Lot 13","zone":"Commercial","area_m2":7310},"geometry":{"type":"Polygon","coordinates":[[[103.8100,1.3122],[103.8168,1.3122],[103.8168,1.3175],[103.8100,1.3175],[103.8100,1.3122]]]}},
+  {"type":"Feature","properties":{"name":"Lot 14","zone":"Industrial","area_m2":11240},"geometry":{"type":"Polygon","coordinates":[[[103.8046,1.3050],[103.8135,1.3050],[103.8135,1.3108],[103.8046,1.3108],[103.8046,1.3050]]]}},
+  {"type":"Feature","properties":{"name":"Lot 15","zone":"Residential","area_m2":3960},"geometry":{"type":"Polygon","coordinates":[[[103.8146,1.3048],[103.8192,1.3048],[103.8192,1.3094],[103.8146,1.3094],[103.8146,1.3048]]]}}
+]}</script>
+      </om-layer>
+      <om-layer id="roads" type="GeoJsonLayer" label="Roads"
+                get-line-color="[141,132,120]" line-width-min-pixels="3">
+        <script type="application/json">{"type":"FeatureCollection","features":[
+  {"type":"Feature","properties":{"ref":"A1"},"geometry":{"type":"LineString","coordinates":[[103.8020,1.3115],[103.8210,1.3118]]}},
+  {"type":"Feature","properties":{"ref":"B2"},"geometry":{"type":"LineString","coordinates":[[103.8096,1.3030],[103.8099,1.3190]]}}
+]}</script>
+      </om-layer>
+    </om-map>
+  </om-frame>
+
+  <om-graticule id="grid" for="main" x="24" y="28" w="236" h="196"
+                interval="0.005" kind="solid" labels="outside" format="dms"
+                style="left:24mm;top:28mm;width:236mm;height:196mm"></om-graticule>
+
+  <!-- LOCATOR INSET: same map, wider extent, drawing the main frame's footprint. -->
+  <om-frame id="locator" x="270" y="28" w="60" h="48"
+            center="[103.8106, 1.3110]" zoom="10.6" overview-of="main" overview-stroke="#c1121f"
+            style="left:270mm;top:28mm;width:60mm;height:48mm">
+    <om-map center="[0,0]" zoom="2" basemap="none" data-om-recording style="background:#eceae6">
+      <om-layer id="ctx" type="GeoJsonLayer" color="#c9c4bc" filled>
+        <script type="application/json">{"type":"FeatureCollection","features":[
+  {"type":"Feature","properties":{"name":"Lot 12","zone":"Residential","area_m2":4820},"geometry":{"type":"Polygon","coordinates":[[[103.8040,1.3120],[103.8092,1.3120],[103.8092,1.3168],[103.8040,1.3168],[103.8040,1.3120]]]}},
+  {"type":"Feature","properties":{"name":"Lot 13","zone":"Commercial","area_m2":7310},"geometry":{"type":"Polygon","coordinates":[[[103.8100,1.3122],[103.8168,1.3122],[103.8168,1.3175],[103.8100,1.3175],[103.8100,1.3122]]]}},
+  {"type":"Feature","properties":{"name":"Lot 14","zone":"Industrial","area_m2":11240},"geometry":{"type":"Polygon","coordinates":[[[103.8046,1.3050],[103.8135,1.3050],[103.8135,1.3108],[103.8046,1.3108],[103.8046,1.3050]]]}},
+  {"type":"Feature","properties":{"name":"Lot 15","zone":"Residential","area_m2":3960},"geometry":{"type":"Polygon","coordinates":[[[103.8146,1.3048],[103.8192,1.3048],[103.8192,1.3094],[103.8146,1.3094],[103.8146,1.3048]]]}}
+]}</script>
+      </om-layer>
+    </om-map>
+  </om-frame>
+  <om-text id="locator-cap" x="270" y="77" w="60" h="5" font-size="6.5">Locator — footprint in red</om-text>
+
+  <!-- DERIVED legend: rows computed from the map's own layers. -->
+  <om-legend id="legend" for="main" x="270" y="84" w="60" h="62" title="Legend"></om-legend>
+
+  <!-- STATIC frame: a georeferenced raster, placed by its corners. No map runtime. -->
+  <om-frame id="aerial" mode="static" x="270" y="150" w="60" h="46"
+            crs="EPSG:3857" corners="[[103.8040,1.3180],[103.8192,1.3180],[103.8192,1.3040],[103.8040,1.3040]]"
+            style="left:270mm;top:150mm;width:60mm;height:46mm">
+    <img alt="Aerial imagery" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAIAAABt+uBvAAAFiklEQVR4nO3cPXLbQAwFYJ3TTW7g2o2b1GrS5Diq1ehOKZRh6F3g4eEBpChHM1tkYmp/Pi33j4ROt+vllUA63a6Xj/MPOf3+9XFPt+tl+Xclmfl8fv40LwYVY9q1zt9LJaC5YUPuXUBeqgANX0A/0Nwwr4ztgIARbhfWeXs/v72fS0DzLQCAUkwDUJiDAAR07jTrpACZBYRAJNMaiPx4CsjTmWlEIK+A2/Uy5y4YmWNZmAMJlNX5C4RHO7IAE0hgknsiBprHhJDmCxBjhAsAQDwTf6uGt9sC5NEwOl+AgBHDHwJ5RkPigcKeOP9nVmcEMo3IzskAMUZZIM9oBhJ0DKCFySwVFPBAIJMJzIa8jguU1TkC0GC0tKuikwAKyzgCEJPP5kBeRk8BlNVhgZgytFnMHFxfQK4OuZL+nkAhDR5cW4COO0iTOng33wK01TRfAQI686IUL/DIFI5lIpC3emaMPCCSZr2HwkWHNHNP1Izul6HdfB3I1MFb4vsmUzDCt2qKaX1BcB7EGw1AXtXDM4N1fXimcCyT71YdCOzmZZ0QiH8uAMbW1N16eviDp4On+MiV5J9njWzfYU4C19XA064wO5tdMg3kGQ1Amg4JFN5fjQ8ynw+oPgY9HkjW4Q/bQ6MWoI/zj+DQHvfwrYGYclPTfAmITMwg3QLE65hGnbfYwYHIZYt35LofEK5c7yANCjWXo3PRnUDhlMl8jY1AXqHMacFSej+Q2Ty+e7csFL0DM3LnPdRHHjdiID4t9cNA/KPt+ciVPLjRgMJBTQead/OgJ2Kj9TXrfFJHf4NR9ijZS6dlF17RWXbzoZF5imgCZXWGVtzzKep8AeKZzJp50KkRcWmYpjMDeRXgu8IIxBilgHijdcP+LyDGaN0wWecoQPhMWgBaX9kLJAxAQ24i0JyXN0g/EEibwoYMlUHaTHi5sA/QkI82zSMgWQcDpSoqAw0lVtZBNhDTMAGIn78qQHOJLSvpf2NQsVUeEJPPkJsAZJbIvEjOGI1bDb5Jc8NknTmfog4Ayp7GvZ6LEc/Fsjtvswu0nL8MPVHoOObZdqUfxe9Jk7k3BtR5E4o5mXiVJ2NQckCpo7+hAAaI7InhzBLqaECmUSJWgznoSgGZRlqsxpxzM5CsUwTybtWizvcHSj0m3ByoopMCmttj3mIpIK9WnYN0XWeLsPBK9xGmebRQfAGB3rpt3Lywd9kNiNEpDdJD/+wNC09lJQB5OvO6VASa797GsHAhkxSQqePtadJA3sA2PM/SmGRoHiilk4t6xsN+NizcS5WoZwzkVR4fpyT2YrgALSy8AoSNyDfVwvMmFigs4CnCwlM/KWAApcLChbj5x4aF98TNr5lSBfBnye1AzEucw/VkVcWw8ErcvAbEfBYAyTpPAySsHvaOm+/6YYGNbrHZyFuRbwUUlnGcuPknBgoHjnrc/CY96JWC52LmOqh3kA47Djk9k90HH5uIt5i8RAyBSBoTiGTC+VSMgt08bxSGhfPnOOEgyPTHMOqZnFJy8WJZIK8ZoDgv2sesQ70nhr2+FLOKgcyWhCcqYdQzmbI90ZtnqTNppqOCN9V4HT6oVwbKxlelgTyj8E17Ric86GoBIo3uVzYA3RN+w4zU2Q0oZFqu2RBo/ZFjAvXEzdeBeJ39gcJ09Lj5owOROrv9sAAeL7YCMpvhfWBPILJok+kxYeGgfu1jEE9jGh09LLw4iwk6Q7lyuxQgryrDVqMLCBRNnsMVg3pHIO/P+IsyN6t1I+2wXQAie6IS9WxW0QyKGerErCfksPA5HMqsg7IXq+vwQb3heiJ8kZw08n5LJNsbcmHhoGbMj7yZRsNfK3Hz69K7fjQ3EXGIq8UcdzBDZjFufnMgYLQnkKyzB5BnJAOlIvSOBvQHQTbS9p1NEYYAAAAASUVORK5CYII=">
+  </om-frame>
+  <om-text id="aerial-cap" x="270" y="197" w="60" h="5" font-size="6.5">Static frame — georeferenced raster</om-text>
+
+  <om-legend id="aerial-legend" for="aerial" derived="false" x="270" y="203" w="60" h="21" title="Land cover">
+    <om-legend-row label="Vegetation" color="#788c5f" shape="polygon"></om-legend-row>
+    <om-legend-row label="Built-up" color="#7d7d82" shape="polygon"></om-legend-row>
+    <om-legend-row label="Water" color="#5a6e8c" shape="polygon"></om-legend-row>
+  </om-legend>
+
+  <om-shape id="highlight" kind="rect" x="24" y="28" w="236" h="196" fill="none" stroke="#170d19" stroke-width="0.5"
+            style="left:24mm;top:28mm;width:236mm;height:196mm"></om-shape>
+
+  <om-scalebar id="bar" for="main" x="10" y="230" w="72" h="10" kind="double" units="metric" segments="4"
+               style="left:10mm;top:230mm;width:72mm;height:10mm"></om-scalebar>
+  <om-north id="north" for="main" x="238" y="226" w="16" h="18" kind="rose"
+            style="left:238mm;top:226mm;width:16mm;height:18mm"></om-north>
+
+  <om-image id="logo" x="270" y="228" w="40" h="16" fit="contain" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40'><rect width='100' height='40' rx='4' fill='%23170d19'/><text x='50' y='26' font-family='system-ui,sans-serif' font-size='16' font-weight='600' fill='%23eba941' text-anchor='middle'>SURVEY</text></svg>"
+            style="left:270mm;top:228mm;width:40mm;height:16mm"></om-image>
+
+  <om-text id="credit" kind="attribution" x="10" y="246" w="250" h="6">Scale 1:{{frame.main.scale}} at A3 · {{attribution}} · rendered with @nika-js/onlymap/cartograph</om-text>
+</om-cartograph>
+
+<script type="module">
+  const page = document.querySelector("om-cartograph");
+  document.getElementById("export-png").addEventListener("click", async () => {
+    const { renderCartograph } = await import("https://unpkg.com/@nika-js/onlymap/dist/cartograph.standalone.js");
+    const { blob } = await renderCartograph(page, { dpi: 300 });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "survey-sheet.png";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  document.getElementById("print-pdf").addEventListener("click", () => page.print());
+  document.getElementById("cvd").addEventListener("change", (e) => {
+    const value = e.target.value;
+    if (value) page.setAttribute("cvd", value);
+    else page.removeAttribute("cvd");
+  });
+</script>
+</body>
+</html>

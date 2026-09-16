@@ -155,7 +155,7 @@
         }
         this.render = (ctx) => {
           last = ctx;
-          const lo = ctx.layers.find(l => l.id === 'tornadoes')?.filter?.range?.[0] ?? 2;
+          const lo = ctx.layers.find(l => l.id === 'tornadoes')?.filter?.[0]?.range?.[0] ?? 2;
           for (const b of this.root.querySelectorAll('button[data-lo]'))
             b.classList.toggle('on', Math.abs(Number(b.dataset.lo) - lo) < 0.01);
         };

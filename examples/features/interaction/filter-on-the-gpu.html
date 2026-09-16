@@ -9,10 +9,22 @@
   triggers deck.gl's updateTriggers path. Reach for it whenever the reader's
   question is "show me only the ones where…".
 
+  Three independent questions at once, two kinds of filter: `filter-fields`
+  (plural) is a JSON array of up to 4 numeric {field, range} dimensions,
+  AND'd together — a station has to be inside every window to stay on
+  screen. `filter-category` is a SEPARATE mechanism (a discrete keep-list
+  test, not a range) and combines with the numeric ones the same way — a
+  station also has to be an unchecked-off fuel type. One `<om-widget
+  type="filter">` per dimension either way, each dragging/checking its own
+  slot without touching the others' current value (the filter-layer action
+  merges, it doesn't replace).
+
   The map: 21,337 power stations worldwide, every one rated 10 MW or more.
   Drag the capacity slider to watch the small stations fall away and the
-  fleet's real backbone appear — and watch the panel agree with it, because
-  both read the same filter.
+  fleet's real backbone appear; drag the commissioning-year slider to watch
+  it age backward; uncheck a fuel to make that color vanish everywhere at
+  once — and watch the panel agree with all three at once, because it reads
+  the same filters the shader is applying.
 -->
 <html>
 <head>
@@ -38,14 +50,13 @@
 
   <om-map center="[8, 34]" zoom="2.1" basemap="dark-matter">
 
-    <!-- filter-range is the STARTING window, not a hard limit — author it wide
-         and let the widget clamp it to the values actually present.
-
-         filter-category is the second, categorical filter: name a text column
-         and list the values to keep. It runs in the same shader pass as the
-         range, so a layer can carry both at once. Unlike the range it has no
-         built-in control and the filter-layer action does not touch it, so
-         treat a category list as authored state.
+    <!-- Each dimension's range/keep-list is a STARTING window, not a hard
+         limit — author it wide and let each widget clamp/seed from the
+         values actually present. filter-category-fields is the multi-
+         dimension categorical surface (mirrors filter-fields' shape, one
+         {field, categories} entry per dimension) — here just one dimension,
+         so the single filter-category/filter-categories pair works the same
+         way filter-field/filter-range does for one numeric dimension.
 
          A ternary chain on get-fill-color is what the legend reads back to
          build its key, so the palette is written once, here. -->
@@ -62,17 +73,33 @@
                             : '#7c8798'"
               get-radius="scale($capacity_mw, sqrt, [1.6, 26], domain=[10, 22500])"
               radius-units="pixels" opacity="0.86" pickable
-              filter-field="capacity_mw" filter-range="[10, 22500]"></om-layer>
+              filter-fields='[{"field":"capacity_mw","range":[10,22500]},{"field":"year","range":[1900,2020]}]'
+              filter-category="fuel" filter-categories='["Nuclear","Coal","Gas","Hydro","Wind","Solar"]'></om-layer>
 
-    <!-- The widget emits filter-layer, which rewrites the layer's own
-         filter-range attribute — so the MANIFEST stays the source of truth and
-         an undo, a story step or a behavior moving the same filter re-syncs
-         this slider. Keep every filter on a map the same kind: a filter here
-         and a hand-rolled range control elsewhere will disagree. -->
+    <!-- Each widget emits filter-layer with its OWN field — the action merges
+         the value into that one slot of the layer's filter-fields/
+         filter-category-fields, leaving every other dimension exactly where
+         it was, so the MANIFEST stays the source of truth and an undo, a
+         story step or a behavior moving any one filter re-syncs the
+         matching widget. Keep every filter on a map the same kind: a filter
+         here and a hand-rolled control elsewhere will disagree.
+
+         Same widget type either way — "filter" auto-renders sliders for a
+         numeric field, checkboxes for a categorical one (the layer's own
+         filter-category says which "fuel" is), so nothing here declares the
+         UI mode explicitly. -->
     <om-widget type="filter" layer="stations" field="capacity_mw" title="Capacity (MW)"
                watch="layers data:stations" position="top-right"></om-widget>
+    <om-widget type="filter" layer="stations" field="year" title="Commissioned"
+               watch="layers data:stations" position="top-right"></om-widget>
+    <om-widget type="filter" layer="stations" field="fuel" title="Fuel"
+               watch="layers data:stations" position="top-right"></om-widget>
 
-    <om-widget type="legend" title="Fuel" position="top-right" style="margin-top: 130px;"></om-widget>
+    <!-- The legend is a separate concern from the fuel filter above — it's
+         the COLOR key (which color renders which fuel), not a control; the
+         filter checkboxes don't show swatches, so both together tell the
+         full story. -->
+    <om-widget type="legend" title="Fuel colors" position="top-right"></om-widget>
 
     <!-- ctx.stats reads the SAME declarative filter the shader is applying, so
          a count here can never drift from what is drawn. Pass

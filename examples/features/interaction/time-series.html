@@ -91,7 +91,7 @@
       <script type="om/widget">
         this.watch = ["data:earthquakes", "layers"];
         this.render = (ctx) => {
-          const range = ctx.layers.find((layer) => layer.id === "earthquakes")?.filter?.range;
+          const range = ctx.layers.find((layer) => layer.id === "earthquakes")?.filter?.find((d) => d.field === "time")?.range;
           const magnitude = ctx.stats("earthquakes", "mag");
           const time = ctx.stats("earthquakes", "time");
           const duration = range ? Math.max(0, range[1] - range[0]) : 0;

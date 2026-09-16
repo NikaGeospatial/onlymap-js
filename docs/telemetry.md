@@ -16,6 +16,8 @@ The payload is **deployment-scoped**: it describes the page's use of the library
   "version": "0.2.3",
   "plan": "free", "keyId": null,
   "origin": "dashboard.example.com",   // hostname ONLY — never the path or query
+  "platform": "web",                   // "ios"/"android" when a native adapter declares it
+  "appId": null,                       // packaged-app id from native build metadata; replaces origin when set
   "frontend": "html",                  // html | react | programmatic
   "renderer": "maplibre" | "standalone",
   "dev": false,                        // true on localhost / *.local

@@ -115,7 +115,7 @@
       <script type="om/widget">
         this.watch = ["data:track", "data:stations", "layers"];
         this.render = (ctx) => {
-          const window = ctx.layers.find((l) => l.id === "track")?.filter?.range;
+          const window = ctx.layers.find((l) => l.id === "track")?.filter?.[0]?.range;
           const km = ctx.stats("track", "km");
           const open = ctx.stats("stations", "year");
           this.$("#year").textContent = window ? Math.round(window[1]) : "—";
