@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<!--
+  Behaviors wire an event on a layer to a named action, and overlays are
+  where the results land. Click a neighborhood for a rich popup, hover a
+  bike rack for a tooltip cloned from a <template>, and drag the filter
+  slider to change which racks are visible — all declarative, no custom
+  script.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Wire up behaviors and overlays</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    /* One --om-widget-* block themes every built-in widget at once. */
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #14161c;
+      --om-widget-fg: #f8fafc;
+      --om-widget-muted: #8b93a7;
+      --om-widget-border: #2c3040;
+      --om-widget-hover-bg: #22262f;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-122.42, 37.77]" zoom="12" basemap="dark-matter">
+
+    <om-layer id="regions" type="GeoJsonLayer"
+                data="../../data/sf-districts.geojson"
+                label="SF districts" color="#22d3ee"
+                filled stroked pickable
+                get-fill-color="[34, 211, 238, 70]"
+                get-line-color="[103,232,249]"
+                line-width-min-pixels="2"></om-layer>
+
+    <om-layer id="bikes" type="ScatterplotLayer"
+                data="../../data/bikes.json"
+                label="Bike racks" color="#fbbf24"
+                get-position="[$lon, $lat]"
+                get-radius="scale($size, sqrt, [3, 30], domain=[0, 100])"
+                radius-units="pixels" pickable
+                filter-field="size" filter-range="[0, 100]"></om-layer>
+
+    <!-- Geo-anchored popup — tracks whatever was last clicked via
+         anchor-from="selection". {{name}} is HTML-escaped by default. -->
+    <om-overlay id="region-detail" anchor-from="selection" layer="regions" visible="false">
+      <style>
+        .popup { background: var(--om-widget-bg); color: var(--om-widget-fg);
+                 border: 1px solid var(--om-widget-border); border-radius: 8px; padding: 10px 14px;
+                 box-shadow: 0 4px 16px rgba(0,0,0,.5); font-size: 13px; min-width: 140px; }
+        .close { float: right; cursor: pointer; color: var(--om-widget-muted); margin-left: 8px; }
+      </style>
+      <div class="popup">
+        <span class="close" data-emit="hide-overlay" data-target="region-detail">✕</span>
+        <strong>{{name}}</strong>
+      </div>
+    </om-overlay>
+
+    <!-- Declarative event -> action wiring, one behavior per (event, layer) pair. -->
+    <om-behavior on="click" layer="regions" action="show-overlay"
+                   target="region-detail" anchor-offset="top-center"></om-behavior>
+    <om-behavior on="hover" layer="bikes" action="show-tooltip"
+                   template="#bike-tooltip"></om-behavior>
+
+    <!-- The built-in filter widget: a slider bound to bikes' `size` field.
+         It emits filter-layer live — a filter is a plain prop, not an
+         accessor, so dragging it never recompiles anything. -->
+    <om-widget type="filter" layer="bikes" field="size" title="Rack size"
+                 position="top-right"></om-widget>
+
+    <om-widget type="legend" title="Layers" interactive position="top-right"></om-widget>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: var(--om-widget-bg); color: var(--om-widget-fg);
+                 border: 1px solid var(--om-widget-border); padding: 10px 14px; border-radius: 8px;
+                 box-shadow: 0 4px 18px rgba(0,0,0,.45); font-size: 13px; }
+      </style>
+      <div class="panel">
+        <strong>Try it</strong><br/>
+        Click a cyan neighborhood for a popup.<br/>
+        Hover an amber rack for a tooltip.<br/>
+        Drag the filter slider (top-right) by size.
+      </div>
+    </om-widget>
+
+  </om-map>
+
+  <!-- Referenced by the hover behavior's template="#bike-tooltip". -->
+  <template id="bike-tooltip">
+    <div style="background:#14161c; color:#fbbf24; border:1px solid #2c3040; padding:4px 8px; border-radius:4px; font:12px system-ui, sans-serif;">
+      Rack size: {{size}}
+    </div>
+  </template>
+
+</body>
+</html>

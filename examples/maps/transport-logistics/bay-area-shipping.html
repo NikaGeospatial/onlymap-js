@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<!--
+  Vessel tracking over a websocket, speaking aisstream.io's real message
+  format — here against a simulated feed of 24 vessels in San Francisco Bay,
+  so the page runs without an API key. To point it at the actual service,
+  change `data` to wss://stream.aisstream.io/v0/stream and add your key to
+  the subscription in the source plugin's onOpen.
+
+  The map: ships glide around the bay. Each socket message upserts its ship
+  by MMSI (key="mmsi"), bursts coalesce into ONE snapshot per flush="250ms",
+  and the stats widget re-renders on the same data:ships watch token. Hover
+  a ship for its name, speed and heading.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Bay Area shipping</title>
+  <!-- Import the library and register the source plugin in ONE module
+       script, so the plugin exists before the map opens the stream. -->
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module">
+    import { OmMap } from "https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js";
+    // A source plugin owns the domain decoding; the transport — WebSocket,
+    // reconnect, flush — stays the library's.
+    OmMap.registerSource("ais", {
+      // For the real aisstream.io service, subscribe here:
+      // onOpen: (send) => send(JSON.stringify({ APIKey: "...", BoundingBoxes: [[[37.7, -122.6], [37.9, -122.3]]] })),
+      decode: (raw) => {
+        const m = raw;
+        if (m?.MessageType !== "PositionReport") return null;
+        const p = m.Message.PositionReport;
+        return { mmsi: m.MetaData.MMSI, name: m.MetaData.ShipName, lon: p.Longitude, lat: p.Latitude, sog: p.Sog, cog: p.Cog };
+      },
+    });
+  </script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #0d1117;
+      --om-widget-fg: #e9eef5;
+      --om-widget-muted: #7d8899;
+      --om-widget-border: #1f2733;
+      --om-widget-hover-bg: #161d26;
+      --om-widget-accent: #22d3ee;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-122.42, 37.83]" zoom="11.6" basemap="dark-matter">
+
+    <!-- Each vessel is a pointed arrow rotated to its course. The SVG atlas
+         points north; deck's get-angle rotates COUNTER-clockwise while COG
+         is clockwise-from-north, so the angle is -$cog. mask:true lets
+         get-color tint the white arrow by speed. A `wss:` URL opens a
+         stream instead of a fetch; write it host-relative (`wss:/path`)
+         and the runtime fills in host and scheme from the page. -->
+    <om-layer id="ships" type="IconLayer"
+                data="wss://om-examples.nika.eco/ships" source="ais" key="mmsi" flush="250ms"
+                label="Ships (live AIS)" color="#c026d3"
+                icon-atlas="../../data/vehicle.svg"
+                icon-mapping='{"vehicle": {"x": 0, "y": 0, "width": 64, "height": 64, "mask": true, "anchorX": 32, "anchorY": 32}}'
+                get-icon="'vehicle'"
+                get-position="[$lon, $lat]"
+                get-angle="-$cog"
+                get-color="scale($sog, sequential, ['#00e5ff', '#c026d3', '#ff2d55'], domain=[0, 25])"
+                get-size="scale($sog, sqrt, [18, 34], domain=[0, 25])"
+                pickable></om-layer>
+
+    <om-widget type="legend" title="Layers" position="top-right"></om-widget>
+
+    <!-- Re-renders on every flush (data:ships) — live fleet stats. -->
+    <om-widget position="top-left" watch="data:ships">
+      <style>
+        .panel { background: var(--om-widget-bg); color: var(--om-widget-fg);
+                 border: 1px solid var(--om-widget-border); padding: 10px 14px;
+                 border-radius: 10px; font: 12px system-ui;
+                 box-shadow: 0 4px 18px rgba(0,0,0,.55); }
+        .row { display: flex; justify-content: space-between; gap: 18px; margin: 3px 0; }
+        .row b { color: #22d3ee; font-variant-numeric: tabular-nums; }
+      </style>
+      <div class="panel">
+        <strong>Fleet (live)</strong>
+        <div class="row"><span>Ships</span><b id="count">—</b></div>
+        <div class="row"><span>Mean speed</span><b id="mean">—</b></div>
+        <div class="row"><span>Fastest</span><b id="max">—</b></div>
+      </div>
+      <script type="om/widget">
+        this.watch = ["data:ships"];
+        this.render = (ctx) => {
+          const s = ctx.stats("ships", "sog");
+          if (!s.count) return;
+          this.$("#count").textContent = s.count;
+          this.$("#mean").textContent = s.mean.toFixed(1) + " kn";
+          this.$("#max").textContent = s.max.toFixed(1) + " kn";
+        };
+      </script>
+    </om-widget>
+
+    <om-behavior on="hover" layer="ships" action="show-tooltip"
+                   template="#ship-tooltip"></om-behavior>
+
+  </om-map>
+
+  <template id="ship-tooltip">
+    <div style="background:#0d1117; color:#e9eef5; border:1px solid #1f2733; padding:5px 9px; border-radius:6px; font:12px system-ui, sans-serif;">
+      <b>{{name}}</b> — {{sog}} kn, heading {{cog}}°
+    </div>
+  </template>
+
+</body>
+</html>

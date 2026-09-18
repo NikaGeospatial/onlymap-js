@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<!--
+  Icons and labels example — an IconLayer draws a marker for every place, a
+  TextLayer writes its name underneath, and both read the same file. Reach for
+  the pair whenever a point has to be recognised, not just located.
+
+  The map: 243 Natural Earth cities. Shape says what a place IS — a star for a
+  capital, a pin for anything else — and colour says how big it is, on a
+  rainbow ramp over population. Capitals and other cities are separate layers
+  so each gets its own toggle; only the largest cities are named, because 243
+  labels at this zoom is a wall of text. Click a marker for its record, or drag
+  the slider (top-right) to move the line between named and unnamed.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Add icons and labels</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <!-- basemap takes a preset name, a style URL like this one, or "none". This
+       style carries no place labels — what you want when you draw your own,
+       or every city gets named twice. -->
+  <om-map center="[10, 26]" zoom="2.2"
+          basemap="https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json">
+
+    <!-- Two layers over ONE file, split by filter-range: capital is 1 or 0 in
+         the data, so [1, 1] keeps the capitals and [0, 0] keeps the rest. A
+         layer is the unit the switcher toggles, which is the whole reason for
+         the split. Every filter on a map must be the same kind — a
+         filter-field here and a filter-category there leaves one blank.
+
+         icon-atlas is one image holding both markers; icon-mapping names the
+         rectangles inside it and get-icon returns one per row. anchorX/anchorY
+         pick the pixel that lands on the coordinate — the tip of the pin, the
+         base of the star — and mask:true draws the sprite as a stencil tinted
+         by get-color, so one white atlas serves every colour.
+
+         clamp() holds the top of the population ramp at 8 million; without it
+         a few megacities stretch the scale until every other city collapses
+         into the first colour. size-units="pixels" keeps markers a fixed size
+         — deck.gl measures in metres otherwise, and they shrink away as you
+         zoom out. -->
+    <om-layer id="capitals" type="IconLayer"
+              data="../../data/world-cities.json"
+              label="Capitals"
+              icon-atlas="../../data/map-pins.svg"
+              icon-mapping='{"pin":  {"x": 0,   "y": 0, "width": 128, "height": 128, "anchorX": 64, "anchorY": 118, "mask": true},
+                             "star": {"x": 128, "y": 0, "width": 128, "height": 128, "anchorX": 64, "anchorY": 106, "mask": true}}'
+              get-position="[$lon, $lat]"
+              get-icon="'star'"
+              get-color="scale(clamp($population, 0, 8), sequential,
+                               ['#a855f7', '#3b82f6', '#22d3ee', '#4ade80', '#facc15', '#fb923c', '#ef4444'],
+                               domain=[0, 8])"
+              get-size="scale($population, sqrt, [17, 44], domain=[0, 36])"
+              size-units="pixels"
+              filter-field="capital" filter-range="[1, 1]"
+              pickable></om-layer>
+
+    <!-- The same layer with the other half of the data and the other marker. -->
+    <om-layer id="cities" type="IconLayer"
+              data="../../data/world-cities.json"
+              label="Other cities"
+              icon-atlas="../../data/map-pins.svg"
+              icon-mapping='{"pin":  {"x": 0,   "y": 0, "width": 128, "height": 128, "anchorX": 64, "anchorY": 118, "mask": true},
+                             "star": {"x": 128, "y": 0, "width": 128, "height": 128, "anchorX": 64, "anchorY": 106, "mask": true}}'
+              get-position="[$lon, $lat]"
+              get-icon="'pin'"
+              get-color="scale(clamp($population, 0, 8), sequential,
+                               ['#a855f7', '#3b82f6', '#22d3ee', '#4ade80', '#facc15', '#fb923c', '#ef4444'],
+                               domain=[0, 8])"
+              get-size="scale($population, sqrt, [17, 44], domain=[0, 36])"
+              size-units="pixels"
+              filter-field="capital" filter-range="[0, 0]"
+              pickable></om-layer>
+
+    <!-- The names, off the same file. get-pixel-offset moves text in SCREEN
+         pixels, so the gap to the marker holds at every zoom, and
+         alignment-baseline hangs it from that offset rather than centring on
+         it. background fills the pill behind each name — one prop, not a
+         second layer.
+
+         character-set="auto" whenever labels are not plain ASCII: deck.gl
+         builds its glyph atlas up front and anything missing renders blank,
+         which would cost São Paulo and Chișinău their accents.
+
+         Only this layer carries a population filter, so the small cities keep
+         a marker and lose their name. -->
+    <om-layer id="city-labels" type="TextLayer"
+              data="../../data/world-cities.json"
+              label="City names" color="#f8fafc"
+              get-position="[$lon, $lat]"
+              get-text="$name"
+              get-color="[255, 255, 255]"
+              get-size="13"
+              size-units="pixels"
+              character-set="auto"
+              font-family="system-ui, sans-serif"
+              font-weight="600"
+              get-pixel-offset="[0, 4]"
+              get-alignment-baseline="'top'"
+              background
+              get-background-color="[8, 13, 24, 220]"
+              background-padding="[5, 2]"
+              background-border-radius="3"
+              filter-field="population" filter-range="[5, 36]"></om-layer>
+
+    <!-- The slider writes filter-range on the layer it names — the same
+         attribute set by hand above. -->
+    <om-widget type="filter" layer="city-labels" field="population"
+               title="Label cities above (millions)" position="top-right"></om-widget>
+
+    <!-- layer-switcher is the legend's plain sibling: one checkbox per layer,
+         no swatches. The right choice here, where colour means population
+         rather than which layer a marker belongs to. -->
+    <om-widget type="layer-switcher" position="top-right"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <!-- Rich detail in the DOM, where markup and any character set are fine —
+         everything the WebGL label layer cannot do. anchor-from="selection"
+         pins the card to whatever was clicked last and fills {{field}} from
+         that row, HTML-escaped. With NO layer attribute one overlay serves
+         both marker layers. An overlay is transparent to the cursor until it
+         holds a data-emit control — the close button — so a plain popup never
+         steals a click from the map. -->
+    <om-overlay id="city-detail" anchor-from="selection" visible="false">
+      <style>
+        .card { background: #0b1220; color: #e2e8f0; border: 1px solid #334155;
+                padding: 9px 13px; border-radius: 8px; white-space: nowrap;
+                box-shadow: 0 4px 20px rgba(0,0,0,.6); font-size: 13px; line-height: 1.4; }
+        .card strong { color: #f8fafc; font-size: 15px; }
+        .card em { color: #94a3b8; font-style: normal; }
+        .close { float: right; margin-left: 14px; color: #64748b; cursor: pointer; }
+      </style>
+      <div class="card">
+        <span class="close" data-emit="hide-overlay" data-target="city-detail">✕</span>
+        <strong>{{name}}</strong> <em>· {{country}}</em><br />
+        {{population}}M people
+      </div>
+    </om-overlay>
+    <!-- One behavior per layer, both opening the same overlay. -->
+    <om-behavior on="click" layer="capitals" action="show-overlay"
+                 target="city-detail" anchor-offset="bottom-center"></om-behavior>
+    <om-behavior on="click" layer="cities" action="show-overlay"
+                 target="city-detail" anchor-offset="bottom-center"></om-behavior>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: rgba(11,18,32,.9); color: #e2e8f0; padding: 11px 14px;
+                 border-radius: 8px; max-width: 250px; font-size: 13px; line-height: 1.45; }
+      </style>
+      <div class="panel">
+        243 Natural Earth cities. Stars are national capitals, pins are
+        everything else, and colour runs a rainbow ramp from the smallest to
+        the largest. Click any marker for detail, or use the legend to show one
+        group at a time.
+      </div>
+    </om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

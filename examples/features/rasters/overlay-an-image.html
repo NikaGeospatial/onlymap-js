@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<!--
+  BitmapLayer draws a picture that already has a place on Earth. It is the one
+  layer with no rows behind it — the image IS the data, and `bounds` is all
+  that ties it to the ground. Reach for it when your imagery arrives as ONE
+  flat picture: a scanned map, a model output, a crop from a satellite archive.
+
+  For imagery that arrives as {z}/{x}/{y} tiles, reach for TileLayer instead;
+  for a GeoTIFF, COGLayer. BitmapLayer is the answer for the single picture you
+  already have.
+
+  The map: the Nile at night, cut from NASA's Black Marble night-lights
+  composite. Almost every Egyptian lives on that ribbon of light, so a picture
+  says in one frame what a population layer needs a legend to say.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Overlay an image</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.3/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.3/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #0f141b;
+      --om-widget-fg: #f1f5f9;
+      --om-widget-muted: #8b93a7;
+      --om-widget-border: #26303c;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[31.5, 27]" zoom="6.1" basemap="dark-matter">
+
+    <!-- No `data` anywhere on this layer: `image` is the picture and `bounds`
+         is where it goes, written as [west, south, east, north] in lng/lat.
+
+         The image is stretched linearly across that box, so it has to be an
+         equirectangular (EPSG:4326) crop and its aspect ratio has to match the
+         degrees it covers — 1024 x 2048 pixels for 5° x 10° here. A screenshot
+         taken from a web map is in Web Mercator and lands skewed.
+
+         To get a crop that fits, ask an image service for the box you want in
+         EPSG:4326 — a WMS GetMap takes a BBOX and a pixel size and returns
+         exactly those bounds, which then go straight into the attribute.
+
+         desaturate, tint-color and transparent-color are the styling knobs.
+         transparent-color is the useful one: it drops a chosen colour out of a
+         picture that carries no alpha channel. Lower the opacity when the
+         basemap underneath still has to be readable. -->
+    <om-layer id="night-lights" type="BitmapLayer"
+              image="../../data/nile-at-night.jpg"
+              bounds="[29, 22, 34, 32]"
+              opacity="0.95"></om-layer>
+
+    <!-- Points drawn after the image sit on top of it — layers stack in
+         document order, so nothing here needs a z-index. A picture has no rows
+         to pick, so anything a user should be able to hover or click has to be
+         a layer of its own. -->
+    <om-layer id="cities" type="ScatterplotLayer"
+              label="Cities" color="#22d3ee"
+              get-position="[$lon, $lat]"
+              get-fill-color="[34, 211, 238]"
+              get-radius="5" radius-units="pixels"
+              stroked get-line-color="[8, 20, 30]" line-width-min-pixels="2"
+              pickable>
+      <script type="application/json">
+        [
+          { "name": "Alexandria", "lon": 29.92, "lat": 31.20 },
+          { "name": "Cairo",      "lon": 31.24, "lat": 30.05 },
+          { "name": "Luxor",      "lon": 32.64, "lat": 25.70 },
+          { "name": "Aswan",      "lon": 32.90, "lat": 24.09 }
+        ]
+      </script>
+    </om-layer>
+
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <om-widget type="attribution"
+               text="Imagery: NASA Global Imagery Browse Services (GIBS), part of NASA ESDIS"
+               position="bottom-start"></om-widget>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: rgba(15,20,27,.88); color: #e2e8f0; padding: 10px 14px;
+                 border-radius: 8px; font-size: 13px; max-width: 260px; line-height: 1.45; }
+        .panel b { color: #fcd34d; }
+      </style>
+      <div class="panel">
+        <b>The Nile at night.</b> One JPEG, pinned to five degrees of longitude
+        and ten of latitude. Hover a marker for the city.
+      </div>
+    </om-widget>
+
+    <om-behavior on="hover" layer="cities" action="show-tooltip" template="#city-tip"></om-behavior>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <template id="city-tip">
+    <div style="padding:6px 10px; border-radius:6px; background:#0f141b; color:#f1f5f9;
+                border:1px solid #26303c; font:12px system-ui, sans-serif;">
+      {{name}}
+    </div>
+  </template>
+
+</body>
+</html>

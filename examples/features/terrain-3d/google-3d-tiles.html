@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<!--
+  Google Photorealistic 3D Tiles: every building, tree and bridge in one
+  photogrammetry mesh. `type="Tile3DLayer"` with the tileset URL is the
+  whole manifest — tiles stream in and refine by view distance on their own,
+  and the usual widgets sit over the scene unchanged.
+
+  Bring a browser-restricted Google API key with the Map Tiles API enabled,
+  paste it in the panel — or open the page as ?key=YOUR_API_KEY. The key
+  stays in your browser's localStorage: use a restricted key, and delete it
+  when you are done.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Google Photorealistic 3D Tiles</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+  <style>
+    .hud {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      z-index: 10001;
+      max-width: 460px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: rgba(18, 22, 28, .88);
+      color: #fff;
+      font: 13px/1.45 system-ui, sans-serif;
+      box-shadow: 0 10px 28px rgba(0,0,0,.28);
+    }
+    .hud code { color: #b9d4ff; }
+    .hud input {
+      box-sizing: border-box;
+      width: 100%;
+      margin-top: 8px;
+      padding: 7px 9px;
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 6px;
+      background: rgba(255,255,255,.08);
+      color: #fff;
+      font: inherit;
+    }
+    .hud button {
+      margin-top: 8px;
+      padding: 7px 10px;
+      border: 0;
+      border-radius: 6px;
+      background: #4f7cff;
+      color: #fff;
+      font: inherit;
+      cursor: pointer;
+    }
+    .hud[data-ready="true"] .setup { display: none; }
+    .hud[data-ready="false"] .ready { display: none; }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-122.401, 37.795]" zoom="15.8" pitch="62" bearing="28" basemap="none">
+    <om-widget type="zoom-controls" position="top-right"></om-widget>
+    <om-widget type="attribution"
+                 text="3D tiles © Google. Requires Google Map Tiles API access."
+                 position="bottom-right"></om-widget>
+  </om-map>
+
+  <div class="hud" id="hud" data-ready="false">
+    <div class="setup">
+      <strong>Google Photorealistic 3D Tiles</strong><br />
+      Add a browser-restricted Map Tiles API key as <code>?key=...</code>, or paste it here for local testing.
+      <input id="key" autocomplete="off" spellcheck="false" placeholder="Google Map Tiles API key" />
+      <button id="apply" type="button">Load tiles</button>
+    </div>
+    <div class="ready">
+      Rendering Google Photorealistic 3D Tiles through OnlyMapJS <code>Tile3DLayer</code>.
+    </div>
+  </div>
+
+  <script type="module">
+    const STORAGE_KEY = "onlymapjs.google3dtiles.key";
+    const ROOT = "https://tile.googleapis.com/v1/3dtiles/root.json";
+    const params = new URLSearchParams(location.search);
+    const map = document.querySelector("om-map");
+    const hud = document.querySelector("#hud");
+    const input = document.querySelector("#key");
+    const apply = document.querySelector("#apply");
+
+    function ensureLayer() {
+      let layer = document.querySelector("#google-photorealistic");
+      if (layer) return layer;
+      layer = document.createElement("om-layer");
+      layer.id = "google-photorealistic";
+      layer.setAttribute("type", "Tile3DLayer");
+      layer.setAttribute("label", "Google Photorealistic 3D Tiles");
+      layer.setAttribute("opacity", "1");
+      map.append(layer);
+      return layer;
+    }
+
+    function useKey(key) {
+      const trimmed = key.trim();
+      if (!trimmed) return;
+      localStorage.setItem(STORAGE_KEY, trimmed);
+      const layer = ensureLayer();
+      layer.setAttribute("tileset", `${ROOT}?key=${encodeURIComponent(trimmed)}`);
+      hud.dataset.ready = "true";
+    }
+
+    input.value = params.get("key") || localStorage.getItem(STORAGE_KEY) || "";
+    apply.addEventListener("click", () => useKey(input.value));
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") useKey(input.value);
+    });
+    if (input.value) useKey(input.value);
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<!--
+  3D snapping + cutting tools (spec: issue #34) — region export, clip box,
+  XY snapping, and z-aware hover picking against a real georeferenced IFC
+  model. Built in this order: region export (self-contained, no elevation-
+  picking involved), then the clip box, then z-pickup, then XY snapping
+  (this page's newest piece) — all three parts of the spec now have
+  something to try below.
+
+  SNAPPING (Part A): `snap="vertex edge midpoint"` on `<om-map>` is a
+  two-stage resolver, not a spatial index — deck's own hover/click pick
+  already narrows to ONE feature under the cursor every frame (free, runs
+  regardless of snapping); `src/snapping.ts`'s `resolveSnap` then refines
+  that feature's OWN geometry to the nearest vertex/edge/midpoint within
+  `snap-tolerance` (14px here) pixels, entirely on the CPU, only when
+  snapping is on. Applies to every vector layer by default (`snap="off"` on
+  a layer opts it out, mirroring clip box's own opt-out default) — AND to
+  the BIM model's own edge/crease overlay (the real wall-corner geometry
+  BIMLayer already extracts and renders as a PathLayer outline): its picked
+  rows carry raw LOCAL meter-offset coordinates, not GeoJSON, so
+  `resolveMapPoint` (runtime-core.ts) converts them back to real
+  `[lng, lat]` first — via `site-placement.ts`'s `localOffsetToLngLat`,
+  fed the SAME lonLat/heading/scale BIMLayer itself uses to place that
+  overlay (`onGeoreference`, extended to report them) — before handing them
+  to the same resolver. Click the "Outline & export" tool below and drop a
+  vertex near one of the building's real corners, along a wall, or at a
+  wall's midpoint — it locks on (a small "Snapped: …" tip appears near the
+  cursor). Hold Space to place a vertex nearby WITHOUT snapping, same as
+  most CAD/GIS tools. The raw triangle MESH itself (as opposed to its edge
+  overlay) still isn't a snap target — no comparably simple "nearest
+  vertex" concept exists for a dense triangulated surface picked at
+  arbitrary points, a real follow-up rather than something faked here.
+
+  Model: the buildingSMART Medical-Dental Clinic (IFC 2x3, CC-BY 4.0 — see
+  dev/data/ifc-clinic/COPYRIGHT.md), the same public sample the BIM workbench
+  demo uses. It is a real multi-storey building, which is what these tools
+  need: dozens of walls give the snap agents real corners/edges to lock onto,
+  and a dense interior is the whole point of cutting a box through it. Loaded
+  keyless and entirely client-side by BIMLayer, straight from the .ifc.
+
+  Placement: the clinic georeferences itself through IfcSite's own
+  RefLatitude/RefLongitude (Boston) rather than a survey-grade
+  IfcMapConversion, so `loadIfc` reports `originSource: "ifc-site"` and there
+  is no `OrthogonalHeight` — no declared absolute elevation. That is why this
+  page authors `terrain="off"`: a model with no vertical datum placed over a
+  real DEM sits at Z=0 and renders BURIED inside the terrain mesh, since real
+  ground elevation at an inhabited location is essentially never 0. The
+  automatic OrthogonalHeight-on-terrain path (src/layers/bim-layer.ts) is
+  therefore NOT exercised here — it needs a model that declares one, and this
+  repo has no publicly-licensed sample that does. BIMLayer deliberately does
+  not accept `site-origin` either (see its own doc comment: the tileset is an
+  async blob URL, so the baked-transform machinery an authored override would
+  ride doesn't exist at construction time), so this is not something the page
+  can paper over with an attribute.
+
+  Z-PICKING (Part B, new on this page): the BIM layer sets `pickable="3d"`
+  instead of a bare `pickable` — deck.gl only runs its depth-pick render
+  pass when SOME layer in the scene declares `pickable: '3d'` exactly
+  (confirmed against node_modules/@deck.gl/core/dist/lib/deck.js's own
+  `_shouldUnproject3D`/`_getPointPickOptions`), and without that pass a
+  hover's `info.coordinate` is the ray∩z=0-plane intersection, not a real
+  surface point — z is silently absent, not zero. `pickable="3d"` here rides
+  the SAME generic attribute-coercion path bare `pickable` already used
+  (src/attribute-resolution.ts's `coerceValue` passes an unrecognized
+  string straight through — it isn't restricted to true/false), and
+  BIMLayer forwards it verbatim to its inner Tile3DLayer
+  (src/layers/bim-layer.ts's `...meshProps` spread), so no schema change
+  was needed — only widening `Selection.coordinate` (src/selection.ts) to
+  keep a real 3rd component when deck actually computed one, and merging it
+  into the hover tooltip's interpolation data as `{{z}}`
+  (src/elements/om-overlay.ts). Hover any wall/floor/roof element below to
+  see it. With terrain off, the BIM layer is the ONLY thing declaring
+  `pickable: '3d'` here, which makes the contract easy to see directly:
+  hovering the building reports a real height, hovering empty space past it
+  reports nothing at all — `{{z}}` goes blank rather than reading a
+  misleading 0.
+
+  CUTTING (Part C tier 2): the clip box below is seeded to slice the
+  building horizontally, keeping the lower floors — drag its 6
+  face handles (small colored dots — red=lng, green=lat, blue=elevation) or
+  edit the Min/Max fields directly. Region export (Part C's export-adjacent
+  sibling feature) outlines a 2D footprint and downloads the 3D content
+  inside it as a GLB.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — 3D snapping &amp; cutting tools</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.6.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.6.2/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-71.06088722277778, 42.3598175]" zoom="19.4" pitch="58" bearing="30"
+          basemap="dark-matter" lighting="studio" terrain="off"
+          snap="vertex edge midpoint" snap-tolerance="20" validate>
+
+    <om-layer id="clinic" type="BIMLayer"
+              src="../../data/ifc-clinic/Clinic_Architectural.ifc"
+              label="Medical-Dental Clinic — architectural (IFC 2x3)"
+              feature-filter-field="ifcClass"
+              ghost-opacity="0.15"
+              pickable="3d"></om-layer>
+
+    <om-widget type="feature-inspector" layer="clinic" position="top-left"
+               title="Element" fields="ifcClass material container netVolume"></om-widget>
+
+    <!-- Part B: z-picking. Scoped to the model with `layer="clinic"`: with
+         terrain off there is no co-located surface to lose a pick tie
+         against (the reason the earlier terrain-backed version of this page
+         had to leave the behavior unscoped), so the scoped form is both
+         correct and more precise here — hovering past the building reports
+         nothing rather than a z of 0. See the header comment for how
+         `pickable="3d"` + the widened Selection.coordinate + this template's
+         {{z}} connect end to end. -->
+    <om-behavior on="hover" layer="clinic" action="show-tooltip" template="#z-tooltip" anchor-offset="top-left"></om-behavior>
+
+    <!-- Region export (Part C sibling): outline a footprint and download the
+         3D content inside it as a GLB. Same shared DrawController commit
+         path the measure widget's own modes use. -->
+    <om-widget type="draw" modes="polygon" target="export-region" export-3d="glb"
+               fill-color="#0d948859" line-color="#0d9488" position="top-start"></om-widget>
+
+    <!-- Part C tier 2: the clip box. Seeded to cut through the upper floors
+         on load (see header comment) — drag the 6 face handles, or edit
+         Min/Max directly. "Invert" shows the complement; "Highlight" dims
+         instead of discarding. Applies to every layer by default. -->
+    <om-widget type="clip-box" position="top-end" title="Clip Box"
+               default-min="[-71.06135, 42.35955, 0]"
+               default-max="[-71.06042, 42.36008, 6]"></om-widget>
+
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+    <om-widget type="attribution"
+               text="Model: buildingSMART Medical-Dental Clinic (CC-BY 4.0)"
+               position="bottom-left"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <!-- Referenced by the hover behavior's template="#z-tooltip". Empty when
+       deck didn't run the depth pass for this particular pick — {{z}}
+       degrades to blank rather than a misleading 0. -->
+  <template id="z-tooltip">
+    <div style="background:#14161c; color:#5eead4; border:1px solid #2c3040; padding:4px 8px; border-radius:4px; font:12px system-ui, sans-serif;">
+      Elevation: {{z}} m
+    </div>
+  </template>
+
+</body>
+</html>

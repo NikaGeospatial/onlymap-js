@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<!--
+  48 cars crossing Singapore on a weekday morning.
+
+  TripsLayer is for many things moving at once. Every vehicle carries its own
+  departure time, so traffic builds, peaks and thins on its own — the pattern
+  is in the timing, not in any single route.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Animate trips</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <om-map center="[103.84, 1.345]" zoom="10.8" pitch="45" basemap="dark-matter">
+
+    <!-- The road network the cars use, drawn faintly from the same file so the
+         shape of the city is there before any car reaches it. -->
+    <om-layer id="network" type="PathLayer"
+              data="../../data/sg-trips.geojson"
+              label="Routes" color="#475569"
+              get-path="$geometry.coordinates"
+              get-color="[71, 85, 105, 70]"
+              get-width="2"
+              width-units="pixels"
+              width-min-pixels="1"></om-layer>
+
+    <!-- get-timestamps is the only accessor TripsLayer adds over PathLayer: one
+         number per vertex, in the same units as current-time. Here they are
+         seconds from 07:00, and each trip starts at its own departure rather
+         than at zero — that stagger is what makes it read as traffic.
+
+         trail-length is the whole feel of the layer. 90 seconds gives each car
+         a short comet tail, so you see MOVEMENT. Set it longer than the trips
+         and the lines simply accumulate, which is a different picture. -->
+    <om-layer id="cars" type="TripsLayer"
+              data="../../data/sg-trips.geojson"
+              label="Cars in motion" color="#fde047"
+              get-path="$geometry.coordinates"
+              get-timestamps="$timestamps"
+              get-color="[253, 224, 71]"
+              get-width="5"
+              width-units="pixels"
+              width-min-pixels="3"
+              trail-length="90"
+              current-time="0"
+              cap-rounded joint-rounded></om-layer>
+
+    <!-- `trace` reads the layer's own timestamp range — here 0 to about 2000
+         seconds — and sweeps current-time across it over the step's duration.
+         It is an ACTION, so an <om-behavior> or a button can fire the same
+         sweep without a story. -->
+    <om-story id="rush-hour" autoplay loop>
+      <om-step duration="20s" trace layer="cars"></om-step>
+    </om-story>
+
+    <om-widget type="legend" title="Morning rush" position="top-right"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: rgba(15,23,42,.85); color: #e2e8f0; padding: 10px 14px;
+                 border-radius: 8px; font-size: 13px; max-width: 250px; line-height: 1.45; }
+      </style>
+      <div class="panel">
+        Half an hour of commuting, replayed in twenty seconds. Watch the
+        expressways fill from the north and east, then empty again.
+      </div>
+    </om-widget>
+
+    <om-widget type="attribution"
+               text="Routes generated with OSRM from OpenStreetMap data © OpenStreetMap contributors, ODbL"
+               position="bottom-start"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>
