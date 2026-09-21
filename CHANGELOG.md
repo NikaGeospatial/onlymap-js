@@ -8,6 +8,15 @@ Note: npm collapsed a few closely-spaced releases — the GPX/FlatGeobuf (0.5.4)
 and GeoParquet (0.5.5) work shipped to npm together as **0.5.6**, so npm's
 version list jumps 0.5.3 → 0.5.6. Each logical version is listed here regardless.
 
+## 0.8.1 — 2026-09-18
+
+### Fixed
+- **A frame that used to show a captured image no longer shows it behind a live map.** Switching a cartograph frame back to live left its old capture drawing underneath, so the map appeared to have a ghost of itself behind it at low tilt. The capture is kept — switching back to static restores it — but it stays out of sight while the frame is live.
+- **A frame can no longer be tilted past the point where it stops working.** Tilt far enough and a frame's top edge reaches the horizon, which leaves it with no georeference — and without that, no scale bar, no north arrow, no graticule and no export. The tilt now stops at whatever that frame can still handle, which depends on its shape and zoom: a wide frame tilts further than a tall one, and zooming in lets both tilt further.
+
+### Added
+- **`max-pitch` on `<om-map>`** caps how far a map can be tilted, in degrees. Useful for a kiosk or an embedded map that should stay roughly upright. It is applied to the controls, so an over-tilt is simply refused rather than snapping back after the fact.
+
 ## 0.8.0 — 2026-09-11
 
 ### Added

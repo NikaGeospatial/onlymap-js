@@ -640,6 +640,7 @@ A separate lazy entry (`import "@nika-js/onlymap/cartograph"`; CDN: `https://unp
 ```
 
 - Frames: live (`<om-map>` child, the FRAME's camera attributes win) or `mode="static"` with `crs` + `corners` for a georeferenced raster. `overview-of="<frame-id>"` draws a locator footprint.
+- A live frame caps its map's tilt at the steepest pitch the frame's own box can still georeference (past it the top edge reaches the horizon and the frame loses its scale bar, north, graticule and export). The limit rises with zoom and with a wider box; `max-pitch` on `<om-map>` is the same control, settable by hand for a kiosk map.
 - `<om-legend for>` derives rows from the live map's own symbology (classified breaks included); literal rows via `derived="false"` + `<om-legend-row>` children.
 - `<om-atlas for="<frame-id>" layer="<layer-id>">` renders one page per feature sequentially and exports a ZIP.
 - Output: `page.print()` / `?print=1` (PDF at page size), `renderCartograph(page, {dpi})` / `?export=png&dpi=300` (PNG). Press attributes: `bleed`, `crop-marks`, `safe-zone` (screen-only), `flatten`. `cvd="deuteranopia|…"` simulates colour-vision deficiency; `lintLegendColours()` flags collapsing palettes.

@@ -22,6 +22,10 @@
           "description": "Initial bearing in degrees."
         },
         {
+          "name": "max-pitch",
+          "description": "Cap how far the user can tilt, in degrees. Applied to the controller, so an over-tilt is refused rather than clamped back. Absent = the renderer's default (60)."
+        },
+        {
           "name": "basemap",
           "description": "Basemap: a registered preset name, \"maplibre\" (demo style), a style URL, or \"none\" (standalone canvas).",
           "values": [
