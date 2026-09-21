@@ -22,8 +22,8 @@ to PDF at true page size via CSS `@page` and exports PNG/JPEG at print DPI throu
 <html>
 <head>
   <meta charset="utf-8">
-  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.8.0/dist/cartograph.standalone.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.8.0/dist/cartograph.css">
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.9.0/dist/cartograph.standalone.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.9.0/dist/cartograph.css">
 </head>
 <body>
 <om-cartograph cartograph-id="cg-lot-12" format="cartograph/2" size="A4" theme="minimal"
@@ -385,6 +385,14 @@ included in print and PNG export. Two ways it lifts:
 - **A paid plan.** When a live frame's map runtime verifies a paid key, the
   credit is removed (a static-only page loads no runtime, so the credit
   stays; the map inside a live frame is what carries `license-key`).
+
+Removal is a permission, not a requirement. `<om-cartograph keep-badge>`
+keeps the credit on a paid sheet, rendering it as "Built with OnlyMap by
+NIKA" — without the free-tier sentence, which would not describe that
+deployment. The attribute is read from the page element itself, so a
+static-only sheet honours it with no runtime loaded, and the canvas
+exporter prints whatever the element says, so a PNG can never disagree
+with the screen.
 
 Telemetry: a live frame's map beacon includes `cartograph` in its feature
 census — same endpoint, nothing new sent. Static-only pages load no runtime

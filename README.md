@@ -139,7 +139,7 @@ Private endpoints: `OmMap.configureData({ headers, credentials, fetch })` — ap
 
 ### Interaction
 
-Built-in actions wire to picks, widget buttons (`data-emit`), or script (`ctx.emit`) with one shared payload contract: `show-overlay`, `hide-overlay`, `show-tooltip`, `hide-tooltip`, `toggle-layer`, `set-pickable` (a runtime popups-on/off switch per layer), `highlight-feature`, `zoom-to-feature`, `filter-layer`, `set-basemap`, `zoom-in`, `zoom-out`, `undo`, `redo` — plus `OmMap.registerAction` for your own.
+Built-in actions wire to picks, widget buttons (`data-emit`), or script (`ctx.emit`) with one shared payload contract: `show-overlay`, `hide-overlay`, `show-tooltip`, `hide-tooltip`, `toggle-layer`, `set-pickable` (a runtime popups-on/off switch per layer), `highlight-feature`, `zoom-to-feature`, `filter-layer`, `set-basemap`, `set-effect`, `zoom-in`, `zoom-out`, `undo`, `redo` — plus `OmMap.registerAction` for your own.
 
 Hovering a pickable feature shows a pointer cursor automatically, so recipients can tell a map is interactive without clicking at random (`pick-cursor` on `<om-map>` customizes or disables it). Hover GPU picking is rest-debounced by default — one pick when the pointer stops instead of one per mouse move — which keeps hover popups smooth even on integrated graphics; `hover-pick="continuous|off|<ms>"` tunes it.
 
@@ -311,12 +311,42 @@ It is deliberately **not** Navisworks. An axis-aligned box test over-reports any
 **In-browser IFC.** `loadIfc(bytes)` parses an `.ifc` with web-ifc (WASM) and returns a 3D Tiles model held entirely in memory — nothing uploaded, nothing written to disk. Because the output *is* a tileset, per-element picking, styling, `site-*` and isolate/hide/ghost work on it unchanged. It returns `tilesetUrl`/`edgesUrl` blob URLs, the property table, the georeferencing (`lonLat`, `heading`, `scale`, and a `headingSource` that distinguishes a real reading from an assumption), per-phase `timings`, and a `revoke()` you must call when swapping models. web-ifc is MPL-2.0 and is *not* a package dependency — it's dynamic-imported from unpkg on first use, so it never reaches the bundle and pages that never open an IFC pay nothing (measured: the IFC chunk is 8.5 KB gzipped and contains only the URL). **For offline, air-gapped or strict-CSP deployments**, `npm run vendor:web-ifc public/vendor/web-ifc` copies the four files you serve yourself, then `wasm-path="/vendor/web-ifc/"` on the loader — 1.37 MB gzipped of *static assets*, with the JS bundle unchanged. Note that web-ifc is only one network dependency: a georeferenced model also switches a basemap on, so an offline page wants `basemap="none"` and `telemetry="off"` too. See `examples/features/terrain-3d/inspect-a-bim-model.html`.
 **Georeferencing is declarative too.** `site-origin="[lng, lat]"` (optionally `[lng, lat, elevation]`), `site-heading` (a bearing, degrees clockwise from true north) and `site-scale` place a model from the markup instead of baking a position into the tileset — `site-origin` overrides whatever the root transform carries, and rotation/scale pivot on the model's own anchor so a heading change spins the building about itself. They work on `Tile3DLayer` and on `PathLayer` (whose paths are then local east/north/up metres), which is what lets an IFC mesh and its outline overlay move together. This matters more than it sounds: authoring tools ship a default project location and a default is indistinguishable from a survey — the buildingSMART Medical-Dental Clinic sample carries Revit's Boston default, the Duplex a Chicago city-centre point — while `IfcMapConversion` is absent from most IFC2x3 exports and `TrueNorth` is routinely unset. Being attributes, corrections are undoable and story-steppable rather than a reconversion. Whenever a model resolves anything short of a real `IfcMapConversion` — `IfcSite` coordinates or no georeference at all — `BIMLayer` and `ifc-loader` raise a structured `"warning"` through the same validation channel other `om-layer` errors use (the `validate` on-page panel, `om-validation-error`'s `detail.warnings`), rather than only a status-line sentence a human has to notice; it never fails the map (`valid` stays `true`), it just names the layer and points at `site-origin`/`site-heading` as the fix. See `examples/features/terrain-3d/inspect-a-bim-model.html`.
 
+## Print finishes (post-processing)
+
+`<om-effect>` children of an `<om-map>` ARE deck.gl's `effects` array, declared as markup — document order is pipeline order. Three lanes, and an element uses exactly one:
+
+```html
+<om-map basemap="none">
+  <!-- 1. a named look -->
+  <om-effect preset="vintage" grain-amount="0.02"></om-effect>
+
+  <!-- 2. the knobs it is made of -->
+  <om-effect op="tint" paper="#efe4c8" ink="#2b1b10" amount="0.75"></om-effect>
+  <om-effect op="grain" amount="0.06" size="0.12mm"></om-effect>
+
+  <!-- 3. your own shader, handed to deck untouched -->
+  <om-effect uniforms='{"strength":0.8}'>
+    <script type="application/json">
+      {"name":"mine","fs":"…GLSL…","uniformTypes":{"strength":"f32"},"passes":[{"sampler":true}]}
+    </script>
+  </om-effect>
+</om-map>
+```
+
+Presets: `vintage`, `engraved`, `night`, `blueprint`, `riso`, `newsprint`, `muted`. Ops: `tint`, `levels`, `saturation`, `posterize`, `vignette`, `grain` (pointwise) and `edges`, `blur`, `sharpen`, `halftone` (neighbourhood). A preset is nothing but a saved op list — `OmMap.expandPreset("vintage")` returns it as markup, so "I like this but want less grain" is paste-and-edit rather than read-the-source.
+
+**Spatial knobs are in millimetres** (`size="0.12mm"`, `width="0.08mm"`) and resolve against the live pixel density, so a look keeps its physical texture when a cartograph frame captures it at 300 or 600 dpi. A pixel value is a validation error, because it would silently render finer every time the dpi went up.
+
+Consecutive pointwise ops compile into a **single** GPU pass; only a neighbourhood op — one that samples its surroundings — costs a pass of its own. `set-effect {preset}` swaps the finish live from a behavior or widget, and `<om-widget type="effects">` is that switcher as chrome — every preset plus Off, holding no state of its own, so a hand edit or an undo moves the radio with it. Guide: [docs/effects.md](docs/effects.md). It writes the document, so undo/redo treat it like any other edit; a story step can apply it, but seeking back does not yet remove an effect a step added (the rewind machinery restores `<om-map>` attributes, and this action adds a child element).
+
+An effect runs over deck's own frame. With a MapLibre basemap, which composites underneath, the data layers are treated and the basemap is not — the validator warns and suggests drawing the base as layers with `basemap="none"`.
+
 ## Programmatic surface
 
 - **`OmMap.*`** — `validate`, `snapshotIR`, `snapshotDescriptorIR`, `resolveImageOverlay`, `registerLayer`, `registerWidget`, `registerAction`, `registerSource`, `registerFormat`, `registerBasemap`, `configureBasemap`, `configureData`, `configureTelemetry`, `configureLicense`, `getLayerSchema`
 - **`@nika-js/onlymap/deck`** — the bundled deck.gl classes (`CompositeLayer`, `TileLayer`, …) for building custom layer types: shims must extend the same class hierarchy the core renders with, not a second installed deck.gl copy. Recipe: [docs/custom-layers.md](docs/custom-layers.md)
 - **On a `<om-map>` element** — `ready` (promise), `flyTo(coords, zoom?)`, `setLayerVisible(id, bool)`, `getLayers()`, `emit(action, payload)`, `snapshot(opts?)` (canvas-only PNG of basemap + layers at device pixels — DOM widgets/overlays and provider attribution are NOT captured, so exports must render credits themselves; `{as: "blob"}` for files, default dataURL); the `om-view-changed` event fires once the camera settles (debounced; `detail` = `{longitude, latitude, zoom, pitch, bearing, origin}`, where `origin` is `"user"` for gesture-driven bursts vs `"programmatic"` for API/story moves — the echo-suppression signal for state sync) — the camera-persistence hook; the `om-map-point` event (`detail = {coordinate: [lng,lat]|null, kind: "click"|"hover"}`) fires on every click/hover with the map coordinate, including empty-map clicks picks discard — the hook for custom capture tools the built-in draw widget doesn't cover; the `om-tileset-load` event (`detail = {layerId, tileset}`) surfaces a `Tile3DLayer`'s live deck `Tileset3D` for tools that need the real tileset (e.g. region export), not the IR; `document.querySelector("om-map")` is fully typed
-- **`MapController`** — the framework-grade programmatic front-end (typed `LayerDescriptor`s → the same reconcile core, no DOM manifest): `setLayers`, `watch`, `emit`, camera methods, `injectPick`, `ready`, `snapshot`, `suspend`/`resume`, an `onViewChange(view, origin)` option (the `om-view-changed` twin), plus `onMapPoint` / `onTilesetLoad` options (the `om-map-point` / `om-tileset-load` twins). Active descriptors own reference-counted fetch/poll/socket handles: layer removal, transport-option change, suspend, and destroy release them. Accessor props normally take functions; schema-declared accessors also accept restricted expression strings such as `getPosition: "[$lon, $lat]"`, which makes the descriptor JSON-safe for native/cross-process bridges. `snapshotDescriptorIR(descriptors)` resolves that lane without fetching URL data. The React adapter rides the function form; vanilla/native hosts may use either
+- **`MapController`** — the framework-grade programmatic front-end (typed `LayerDescriptor`s → the same reconcile core, no DOM manifest): `setLayers`, `watch`, `emit`, camera methods, `injectPick`, `ready`, `snapshot`, `setEffects` (deck `Effect` instances, 1:1 — takes precedence over the document's `<om-effect>` chain while set; `null` hands the chain back), `suspend`/`resume`, an `onViewChange(view, origin)` option (the `om-view-changed` twin), plus `onMapPoint` / `onTilesetLoad` options (the `om-map-point` / `om-tileset-load` twins). Active descriptors own reference-counted fetch/poll/socket handles: layer removal, transport-option change, suspend, and destroy release them. Accessor props normally take functions; schema-declared accessors also accept restricted expression strings such as `getPosition: "[$lon, $lat]"`, which makes the descriptor JSON-safe for native/cross-process bridges. `snapshotDescriptorIR(descriptors)` resolves that lane without fetching URL data. The React adapter rides the function form; vanilla/native hosts may use either
 - **`getStore(token)`** — the external-store contract: per-token `{subscribe, getSnapshot}` stores (`viewport`/`selection`/`layers`/`data:<id>`) with cached immutable plain-data snapshots and `origin` tagging — directly consumable by `useSyncExternalStore` (the React adapter's own hooks ride it), MobX autoruns, Redux listeners, Zustand mirrors. ~20-line integration-tested recipes for Redux Toolkit, MobX/mobx-keystone, Zustand, and Jotai: [docs/external-stores.md](docs/external-stores.md)
 - **Testing** — `mountForTest`, and imports are SSR-safe (importing in Node/jsdom never touches browser globals)
 
@@ -332,6 +362,14 @@ A license key lifts all limits and removes the badge:
 ```ts
 OmMap.configureLicense("om_live_…");     // or once, in code
 ```
+
+Removing the badge is a **permission, not a requirement** — if you'd rather keep crediting OnlyMap on a paid plan, `keep-badge` opts back in, and the badge then renders the credit *without* the "free for non-commercial use" sentence, which wouldn't describe your deployment:
+
+```html
+<om-map license-key="om_live_…" keep-badge>   <!-- or OmMap.setKeepBadge(true) -->
+```
+
+It has no effect on the free plan, where the badge is the license condition rather than a preference. The setting is page-level — a print sheet's foot credit follows it too, and `<om-cartograph keep-badge>` opts one in on its own (a static sheet has no map runtime to carry the key).
 
 Packaged native hosts can verify an app-scoped key by passing platform-derived identity:
 

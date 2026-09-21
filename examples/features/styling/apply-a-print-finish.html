@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<!--
+  A post-process finish is the last thing that happens to a frame: deck draws
+  the map, then <om-effect> passes run over the finished picture. Because the
+  elements ARE deck's effects array, document order is pipeline order — the
+  same rule <om-layer> follows.
+
+  Three lanes, and this page shows all three. A named `preset` is the one most
+  authors want. `op=` with knobs is the same thing one step down, which is
+  literally what a preset expands to — the buttons below print that expansion
+  so you can see there is no hidden machinery. An inline ShaderModule is the
+  escape hatch to raw GLSL.
+
+  The knobs that describe SIZE are in millimetres, not pixels, and that is the
+  whole point: a grain keyed to device pixels gets four times finer on a 4x
+  print plate, which is exactly where you'd notice it going. Millimetres
+  survive the trip.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Apply a print finish</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; background: #cfdbe1; }
+    .panel {
+      position: absolute; z-index: 10; top: 12px; left: 12px; width: 268px;
+      padding: 14px 16px; border-radius: 10px;
+      background: rgba(20, 22, 28, .93); color: #f8fafc;
+      font-size: 13px; line-height: 1.45; box-shadow: 0 6px 24px rgba(0,0,0,.35);
+    }
+    .panel h1 { margin: 0 0 6px; font-size: 14px; }
+    .panel p { margin: 0 0 10px; color: #aab2c5; }
+    pre {
+      margin: 0; padding: 9px 10px; border-radius: 6px; overflow-x: auto;
+      background: #0e1017; color: #cbd5e1; font-size: 11px; line-height: 1.4;
+    }
+    .note { margin-top: 9px; color: #8b93a7; font-size: 11.5px; }
+  </style>
+</head>
+<body>
+
+<div class="panel">
+  <h1>Apply a print finish</h1>
+  <p>Pick a finish in the switcher (top right). Each look is a <code>preset</code> on one <code>&lt;om-effect&gt;</code>, and a preset is only a saved op list — the markup below is what the current one expands to.</p>
+  <pre id="expansion">…</pre>
+  <div class="note">The widget doesn't hold the look — it writes the document through <code>set-effect</code>, so your choice is undoable, story-capturable and saved with the map. Spatial knobs are millimetres, so a look keeps its physical size at print DPI.</div>
+</div>
+
+<om-map center="[-98.5, 39.5]" zoom="3.6" basemap="none" validate>
+  <!-- basemap="none": a post-process pass runs over deck's own framebuffer,
+       so a MapLibre basemap would composite UNDERNEATH it and stay untreated.
+       Drawing the base as layers keeps the whole picture inside the effect. -->
+  <!-- A light base on purpose. These are finishes for a printed sheet, and a
+       paper duotone over a dark screen map flattens land and water into one
+       grey — the `night` preset is the one that wants dark layers. -->
+  <om-layer id="land" type="GeoJsonLayer" data="../../data/ne-countries/ne_110m_admin_0_countries.shp"
+            label="Land" filled stroked color="#efe7d6"
+            get-line-color="[111, 95, 76]" line-width-min-pixels="1"></om-layer>
+
+  <om-layer id="cities" type="ScatterplotLayer" data="../../data/us-cities.json"
+            label="Cities" pickable
+            get-position="[$lon, $lat]"
+            get-fill-color="scale($population, sequential, ['#2f6fb5','#d94f2b'], domain=[50000, 8000000])"
+            get-radius="scale($population, sqrt, [3, 26], domain=[50000, 8000000])"
+            radius-units="pixels"></om-layer>
+
+  <!-- The finish. Swapped live by the buttons; document order is pipeline order. -->
+  <om-effect id="finish" preset="vintage"></om-effect>
+
+  <!-- The switcher. It emits `set-effect`, which writes the <om-effect>
+       above — the widget owns no state of its own, so a hand edit, an undo
+       or a story step moves the radio too. -->
+  <om-widget type="effects" position="top-right" title="Finish"></om-widget>
+  <om-widget type="legend" position="bottom-right"></om-widget>
+</om-map>
+
+<script type="module">
+  import { expandPreset } from "https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js";
+
+  const out = document.getElementById("expansion");
+  const map = document.querySelector("om-map");
+
+  // Read the document, never the widget: whatever set the preset — the
+  // switcher, an undo, a story, a hand edit — this shows the same thing.
+  const show = () => {
+    const preset = map.querySelector(":scope > om-effect[preset]")?.getAttribute("preset");
+    out.textContent = preset ? expandPreset(preset) : "<!-- no effect -->";
+  };
+
+  new MutationObserver(show).observe(map, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["preset"],
+  });
+  show();
+</script>
+</body>
+</html>

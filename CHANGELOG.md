@@ -8,6 +8,51 @@ Note: npm collapsed a few closely-spaced releases — the GPX/FlatGeobuf (0.5.4)
 and GeoParquet (0.5.5) work shipped to npm together as **0.5.6**, so npm's
 version list jumps 0.5.3 → 0.5.6. Each logical version is listed here regardless.
 
+## 0.9.1 — 2026-09-21
+
+### Added
+- **A finish switcher you can drop on a map.** `<om-widget type="effects">` lists every preset plus Off, and picking one writes the document through `set-effect` — so a viewer's choice is undoable, travels in a story, and is there when the map is saved. The widget holds no state of its own, which means a hand edit or an undo moves the radio too.
+
+### Fixed
+- **A finish no longer bleeds colour into empty space.** Grain and tint were being applied to fully transparent pixels, so the texture spilled over whatever sat behind the map — the page background, most visibly. Transparent areas now stay transparent, and semi-transparent ones blend correctly.
+- **The `newsprint` screen is legible on screen.** Its dot cell was sized for a press (0.55mm ≈ two pixels on a normal display), which read as noise and erased small symbols. It is coarser and lighter now; take `halftone-cell` back down when you are exporting at 300 dpi.
+
+## 0.9.0 — 2026-09-21
+
+### Added
+- **Give a map a printed finish, in one attribute.** `<om-effect preset="vintage">` inside an `<om-map>` treats the rendered frame — warm paper and ink, a pressed edge, paper tooth, a soft vignette. Seven looks ship: `vintage`, `engraved`, `night`, `blueprint`, `riso`, `newsprint` and `muted` (which just calms a busy sheet, with no texture at all). Presets assume the map beneath them is styled to suit; a night plate still needs dark layers.
+- **Turn the knobs instead, when a preset is nearly right.** Every look is built from named operations you can write yourself — `<om-effect op="grain" amount="0.07" size="0.12mm">` — and compose in document order: `tint`, `levels`, `saturation`, `posterize`, `vignette`, `grain`, `edges`, `blur`, `sharpen`, `halftone`. To start from a preset and change one thing, either override a single knob (`<om-effect preset="vintage" grain-amount="0.02">`) or ask for the preset as markup with `OmMap.expandPreset("vintage")` and edit it.
+- **Or bring your own shader.** An `<om-effect>` carrying an inline `<script type="application/json">` shader module is handed to deck.gl untouched, so anything deck's own `PostProcessEffect` can do is available from the document — multiple passes included.
+- **Looks survive the printer.** Sizes are in millimetres (`size="0.12mm"`), so the grain and ink on a 600 dpi export are the same physical texture you tuned on screen rather than four times finer.
+- **`set-effect`** switches the finish live from a behavior or a widget button, and because it writes the document, undo/redo see it like any other edit. A story step can apply it; scrubbing back does not yet undo it.
+
+### Notes
+- An effect treats deck's own frame. With a MapLibre basemap, which is composited underneath, the data layers are treated and the basemap is not — the validator says so, with the fix.
+
+## 0.8.4 — 2026-09-21
+
+### Added
+- **Keep the OnlyMap badge on a paid plan, if you want to.** Removing the attribution badge is something a commercial license *permits*, not something it requires — so `keep-badge` on `<om-map>` (or `OmMap.setKeepBadge(true)`) lifts the free-tier limits while still crediting OnlyMap. The badge then shows the credit without the "free for non-commercial use" sentence, which wouldn't describe a paid deployment. It has no effect on the free plan, where the badge is the license condition rather than a preference. The setting is page-level and can be changed after load; a cartograph's foot credit follows it, and `<om-cartograph keep-badge>` opts a print sheet in on its own.
+
+## 0.8.3 — 2026-09-18
+
+### Fixed
+- **A cartograph frame zoomed far out now shows the world wrapping, like any web map, instead of an error.** Zoom out far enough and a frame covers more than the whole world; it used to give up at that point — no scale bar, north arrow, graticule or export, just an error note over the map. The frame now follows the map wherever it goes: the world repeats inside it, the graticule labels each copy correctly, and the scale bar measures the row it sits on. Nothing about the camera is changed or limited.
+- **The north arrow, scale bar, graticule and locator inset now follow the map inside a frame.** Pan, rotate or tilt a live frame's map and, as soon as it settles, everything that describes that frame updates to the view on screen — the compass points at true north for what you're actually looking at, not for the camera the document was saved with. Freezing a frame captures that same view, so a frozen frame keeps the correct north too.
+- **Cartographs saved zoomed-out or steeply tilted open and work again.** Documents that used to open onto an error render as authored, and the file is left exactly as it is.
+
+### Changed
+- **A frame no longer caps the tilt of the map inside it.** 0.8.1 introduced that cap, computed from the frame's shape; the underlying problem was the frame refusing views it could have handled, which is now fixed at the source. `max-pitch` on `<om-map>` remains as an author-set control.
+
+### Added
+- **`min-zoom` on `<om-map>`** floors how far a map can be zoomed out, the companion to `max-pitch`. Useful for keeping a kiosk or embedded map within its intended area. Neither is applied automatically.
+
+## 0.8.2 — 2026-09-18
+
+### Fixed
+- **The tilt limit on a cartograph frame now actually holds.** 0.8.1 worked out how far each frame could tilt and then, on any map with a basemap, failed to tell the map about it — so the camera could still be pushed to a near-horizontal angle where the frame loses its georeference, and with it the scale bar, north arrow, graticule and export. It now holds on every map, and survives switching the basemap.
+- **The limit follows the map instead of being fixed when the frame loads.** Zooming out makes a frame able to tilt less, not more; the ceiling now tightens and loosens as you move the map, rather than staying at whatever the frame was showing when it opened.
+
 ## 0.8.1 — 2026-09-18
 
 ### Fixed

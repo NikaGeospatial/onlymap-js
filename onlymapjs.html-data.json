@@ -26,6 +26,10 @@
           "description": "Cap how far the user can tilt, in degrees. Applied to the controller, so an over-tilt is refused rather than clamped back. Absent = the renderer's default (60)."
         },
         {
+          "name": "min-zoom",
+          "description": "Floor how far the user can zoom OUT. Applied to the controller, so a zoom-out past it is refused rather than clamped back. Absent = the renderer's default (0)."
+        },
+        {
           "name": "basemap",
           "description": "Basemap: a registered preset name, \"maplibre\" (demo style), a style URL, or \"none\" (standalone canvas).",
           "values": [
@@ -121,6 +125,10 @@
               "name": "custom"
             }
           ]
+        },
+        {
+          "name": "effects",
+          "description": "Print-finish switcher — preset radios over the map's own <om-effect>, written through the set-effect action so the choice is undoable and saved."
         },
         {
           "name": "lighting-ambient",
@@ -265,6 +273,10 @@
           "description": "OnlyMapJS license token (om_live_…) — lifts the free-tier limits (5 layers / 25k rows per layer) and removes the badge. Publishable, origin-restricted; or call OmMap.configureLicense once."
         },
         {
+          "name": "keep-badge",
+          "description": "Keep the OnlyMap attribution badge on a paid plan that would otherwise drop it (credit without the free-tier license sentence). No effect on the free plan, where the badge is the license condition. Or call OmMap.setKeepBadge(true)."
+        },
+        {
           "name": "telemetry",
           "description": "Set \"off\" to disable usage telemetry for this map (global opt-out: OmMap.configureTelemetry).",
           "values": [
@@ -284,6 +296,163 @@
         {
           "name": "height",
           "description": "Headless viewport height (px)."
+        }
+      ],
+      "references": [
+        {
+          "name": "README",
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/README.md"
+        }
+      ]
+    },
+    {
+      "name": "om-effect",
+      "description": "One entry in deck's effects array, as markup — a post-process pass over the rendered frame. Document order is pipeline order. Declare exactly one of: preset (a named look), op (one named operation), or an inline <script type=\"application/json\"> luma ShaderModule for raw GLSL.",
+      "attributes": [
+        {
+          "name": "preset",
+          "description": "A named look, expanded to its ops. Tune one knob with <op>-<param> (e.g. grain-amount), or eject it into markup with OmMap.expandPreset(name).",
+          "values": [
+            {
+              "name": "vintage"
+            },
+            {
+              "name": "engraved"
+            },
+            {
+              "name": "night"
+            },
+            {
+              "name": "blueprint"
+            },
+            {
+              "name": "riso"
+            },
+            {
+              "name": "newsprint"
+            },
+            {
+              "name": "muted"
+            }
+          ]
+        },
+        {
+          "name": "op",
+          "description": "One named operation; its knobs are this element's other attributes.",
+          "values": [
+            {
+              "name": "tint",
+              "description": "Duotone: pull the image toward ink-on-paper. `keep-color` lets saturated marks (the data) resist, so the base goes monochrome while the symbology stays readable."
+            },
+            {
+              "name": "levels",
+              "description": "Brightness, contrast and gamma, in that order — the usual tonal trim."
+            },
+            {
+              "name": "saturation",
+              "description": "0 is greyscale, 1 unchanged, above 1 boosts. Useful on its own to check a sheet survives photocopying."
+            },
+            {
+              "name": "posterize",
+              "description": "Quantise each channel to N steps — a screen-print/riso flatness."
+            },
+            {
+              "name": "vignette",
+              "description": "Darken toward the corners. Keyed to the FRAME, not the map, so it is a property of the plate rather than of the ground it shows."
+            },
+            {
+              "name": "grain",
+              "description": "Paper grain. `size` is the grain cell in millimetres, so it stays the same physical texture at any export resolution."
+            },
+            {
+              "name": "edges",
+              "description": "Ink the edges Sobel finds, in millimetres of line width — an engraved or pen-drawn register."
+            },
+            {
+              "name": "blur",
+              "description": "Gaussian-ish softening, radius in millimetres. Pair with `sharpen` for a printed-then-scanned register."
+            },
+            {
+              "name": "sharpen",
+              "description": "Unsharp mask — puts a crisp edge back on a plate that has been softened or downsampled."
+            },
+            {
+              "name": "halftone",
+              "description": "Screen the image into dots on a rotated grid, cell size in millimetres. Keeps each cell's own hue rather than going mono, so a thematic map stays readable."
+            }
+          ]
+        },
+        {
+          "name": "uniforms",
+          "description": "JSON uniform values for an inline shader module. Ignored by the preset and op lanes."
+        },
+        {
+          "name": "paper",
+          "description": "The light end of the duotone. Valid on: tint, halftone. On a preset, spell it <op>-paper."
+        },
+        {
+          "name": "ink",
+          "description": "The dark end of the duotone. Valid on: tint. On a preset, spell it <op>-ink."
+        },
+        {
+          "name": "amount",
+          "description": "0 leaves the image alone, 1 is full duotone. Valid on: tint, saturation, vignette, grain, edges, sharpen, halftone. On a preset, spell it <op>-amount."
+        },
+        {
+          "name": "keep-color",
+          "description": "How strongly saturated pixels resist the duotone. 0 tints everything; 1 keeps vivid marks. Valid on: tint. On a preset, spell it <op>-keep-color."
+        },
+        {
+          "name": "brightness",
+          "description": "Added after contrast; -1 to 1. Valid on: levels. On a preset, spell it <op>-brightness."
+        },
+        {
+          "name": "contrast",
+          "description": "1 leaves the image alone. Valid on: levels. On a preset, spell it <op>-contrast."
+        },
+        {
+          "name": "gamma",
+          "description": "Above 1 lifts midtones, below 1 deepens them. Valid on: levels. On a preset, spell it <op>-gamma."
+        },
+        {
+          "name": "levels",
+          "description": "Steps per channel; 2 or more. Valid on: posterize. On a preset, spell it <op>-levels."
+        },
+        {
+          "name": "radius",
+          "description": "Where the falloff starts; 0 centre, 1 corner. Valid on: vignette, blur, sharpen. On a preset, spell it <op>-radius."
+        },
+        {
+          "name": "softness",
+          "description": "How gradually it arrives. Valid on: vignette. On a preset, spell it <op>-softness."
+        },
+        {
+          "name": "size",
+          "description": "Grain cell size in mm. In MILLIMETRES (e.g. 0.12mm), so it keeps its physical size at any export resolution. Valid on: grain. On a preset, spell it <op>-size."
+        },
+        {
+          "name": "seed",
+          "description": "Any number; the same seed gives the same grain. Valid on: grain. On a preset, spell it <op>-seed."
+        },
+        {
+          "name": "mono",
+          "description": "1 is luminance noise, 0 is per-channel colour noise. Valid on: grain. On a preset, spell it <op>-mono."
+        },
+        {
+          "name": "width",
+          "description": "Sampling radius in mm — the ink's weight. In MILLIMETRES (e.g. 0.12mm), so it keeps its physical size at any export resolution. Valid on: edges. On a preset, spell it <op>-width."
+        },
+        {
+          "name": "color",
+          "description": "Ink colour. Valid on: edges. On a preset, spell it <op>-color."
+        },
+        {
+          "name": "cell",
+          "description": "Screen cell size in mm. In MILLIMETRES (e.g. 0.12mm), so it keeps its physical size at any export resolution. Valid on: halftone. On a preset, spell it <op>-cell."
+        },
+        {
+          "name": "angle",
+          "description": "Screen angle in degrees. Valid on: halftone. On a preset, spell it <op>-angle."
         }
       ],
       "references": [
@@ -1968,6 +2137,9 @@
               "name": "set-basemap"
             },
             {
+              "name": "set-effect"
+            },
+            {
               "name": "set-lighting"
             },
             {
@@ -2049,6 +2221,9 @@
             },
             {
               "name": "lighting"
+            },
+            {
+              "name": "effects"
             },
             {
               "name": "clip-box"
@@ -2573,6 +2748,9 @@
               "name": "set-basemap"
             },
             {
+              "name": "set-effect"
+            },
+            {
               "name": "set-lighting"
             },
             {
@@ -2848,6 +3026,10 @@
         {
           "name": "allow-url-actions",
           "description": "Opt in to the ?print=1 / ?export=png / ?cvd= URL triggers. Without it a hosted cartograph ignores them (no drive-by print/export)."
+        },
+        {
+          "name": "keep-badge",
+          "description": "Keep the OnlyMap foot credit on a paid plan that would otherwise drop it — rendered without the free-tier license sentence. No effect on the free plan, where the credit is the license condition."
         }
       ],
       "references": [
