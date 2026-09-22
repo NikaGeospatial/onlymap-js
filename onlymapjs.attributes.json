@@ -190,10 +190,15 @@
       "opacity",
       "rescale",
       "reverse",
+      "shading",
       "snap",
       "src",
       "stretch",
-      "visible"
+      "sun-azimuth",
+      "sun-elevation",
+      "sun-weight",
+      "visible",
+      "z-factor"
     ],
     "ColumnLayer": [
       "angle",
@@ -689,6 +694,21 @@
       "upper-percentile",
       "visible",
       "wrap-longitude"
+    ],
+    "HillshadeLayer": [
+      "blend",
+      "clip",
+      "decoder",
+      "max-zoom",
+      "opacity",
+      "snap",
+      "src",
+      "sun-azimuth",
+      "sun-elevation",
+      "sun-weight",
+      "visible",
+      "z-factor",
+      "zoom-offset"
     ],
     "IconLayer": [
       "alpha-cutoff",
@@ -1581,12 +1601,17 @@
       "opacity",
       "reverse",
       "select",
+      "shading",
       "snap",
       "spatial-dims",
       "src",
       "stretch",
+      "sun-azimuth",
+      "sun-elevation",
+      "sun-weight",
       "variable",
-      "visible"
+      "visible",
+      "z-factor"
     ]
   }
 }

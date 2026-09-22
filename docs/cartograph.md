@@ -22,8 +22,8 @@ to PDF at true page size via CSS `@page` and exports PNG/JPEG at print DPI throu
 <html>
 <head>
   <meta charset="utf-8">
-  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.9.0/dist/cartograph.standalone.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.9.0/dist/cartograph.css">
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.9.1/dist/cartograph.standalone.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.9.1/dist/cartograph.css">
 </head>
 <body>
 <om-cartograph cartograph-id="cg-lot-12" format="cartograph/2" size="A4" theme="minimal"

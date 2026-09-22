@@ -8,14 +8,25 @@ Note: npm collapsed a few closely-spaced releases — the GPX/FlatGeobuf (0.5.4)
 and GeoParquet (0.5.5) work shipped to npm together as **0.5.6**, so npm's
 version list jumps 0.5.3 → 0.5.6. Each logical version is listed here regardless.
 
-## 0.9.1 — 2026-09-21
+## 0.9.1 — 2026-09-22
 
 ### Added
+- **Shaded relief, as a layer.** `<om-layer type="HillshadeLayer" src="terrarium">` draws shaded terrain from keyless global elevation tiles — no data of your own, no 3D terrain, and it works on a flat map at any angle. Because it is an ordinary layer it sits underneath your data in document order, is captured by `snapshot()`, and is treated by a `<om-effect>` print finish.
+- **Or shade the elevation raster you already have.** `shading="hillshade"` on a `COGLayer` or `ZarrLayer` turns your own DEM into relief. Paired with `colormap`, the relief shows *through* the colours rather than covering them, so a hypsometric map with shaded terrain is one layer instead of two stacked ones.
+- **Up to four suns.** `sun-azimuth="315 45 135"` blends several light directions — the difference between the flat single-light shading most web maps ship and the Swiss-style relief used in printed atlases. `sun-weight`, `sun-elevation` and `z-factor` tune it, and all of them are instant: moving the sun redraws without downloading anything.
+- **Details you would otherwise have to fix yourself.** Tile edges are seamless rather than showing a faint grid. Relief keeps its true shape at every latitude instead of flattening near the equator and exaggerating near the poles, and on your own DEM that correction is read from the file's own coordinate system. A high-resolution export gets genuinely sharper relief rather than an enlarged screen image.
+- Two runnable examples: **Shaded relief** (global tiles) and **Shade your own DEM** (your GeoTIFF).
 - **A finish switcher you can drop on a map.** `<om-widget type="effects">` lists every preset plus Off, and picking one writes the document through `set-effect` — so a viewer's choice is undoable, travels in a story, and is there when the map is saved. The widget holds no state of its own, which means a hand edit or an undo moves the radio too.
 
 ### Fixed
+- **Elevation is now read exactly.** Terrain heights are stored in the colour channels of an image, and the browser was allowed to colour-adjust them on the way in. The error was far too small to notice in a single elevation reading, but big enough to band a whole hillside once slopes are calculated from it — so cut/fill volumes and elevation queries are more accurate too.
+- **A terrain source in a lossy image format now says so, once.** Heights live in the colour bytes, so lossy compression invents terrain that looks plausible and is wrong.
 - **A finish no longer bleeds colour into empty space.** Grain and tint were being applied to fully transparent pixels, so the texture spilled over whatever sat behind the map — the page background, most visibly. Transparent areas now stay transparent, and semi-transparent ones blend correctly.
 - **The `newsprint` screen is legible on screen.** Its dot cell was sized for a press (0.55mm ≈ two pixels on a normal display), which read as noise and erased small symbols. It is coarser and lighter now; take `halftone-cell` back down when you are exporting at 300 dpi.
+
+### Notes
+- `identify="off"` no longer frees memory on a raster while `shading="hillshade"` is set — seamless relief needs neighbouring pixels kept to hand. The validator points this out rather than letting the setting look like it worked.
+- Relief reads a single band as elevation, so it is not meant for multi-band colour composites; the validator says so if you select one.
 
 ## 0.9.0 — 2026-09-21
 

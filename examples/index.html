@@ -59,6 +59,14 @@
       <h3>GeoTIFF / COG</h3>
       <p>Real 38 m elevation over the Grand Canyon, streamed from a Cloud-Optimized GeoTIFF by Range request through the native COGLayer — min/max restretch and colormap swaps are GPU uniforms (no tile refetch), nodata filters to transparent, and the legend renders the ramp automatically.</p>
     </a>
+    <a class="card" href="./features/styling/shade-the-terrain.html">
+      <h3>Shaded relief</h3>
+      <p>Keyless global DEM tiles shaded on the GPU at pitch 0 — no terrain mesh and no data of your own. One to four blended suns rather than a multi-directional switch, seamless tile edges from a one-pixel apron, and because relief is a layer it sits inside deck's frame, so a print finish treats it.</p>
+    </a>
+    <a class="card" href="./features/rasters/shade-your-own-dem.html">
+      <h3>Shade your own DEM</h3>
+      <p>One <code>shading</code> attribute turns the GeoTIFF you already have into relief — and because it runs last in the styling chain it multiplies onto a colormap instead of replacing it, so a hypsometric tint with relief through it is one layer, not two. Ground scale is read from the file's own CRS, degrees included.</p>
+    </a>
     <a class="card" href="./features/terrain-3d/load-a-cityjson-model.html">
       <h3>CityJSON</h3>
       <p>A real 3DBAG tile — CityJSON 2.0, quantized vertices, compound CRS EPSG:7415, LoD 2.2 semantic surfaces — drawn either as true per-face geometry or as extruded footprints with derived eaves/roof/ridge heights. CityJSONSeq streams in as it downloads.</p>

@@ -523,6 +523,9 @@
               "name": "HexagonLayer"
             },
             {
+              "name": "HillshadeLayer"
+            },
+            {
               "name": "IconLayer"
             },
             {
@@ -1149,7 +1152,7 @@
         },
         {
           "name": "max-zoom",
-          "description": "deck.gl maxZoom. Valid on: MVTLayer, PopupLayer, TerrainLayer, TileLayer."
+          "description": "deck.gl maxZoom. Valid on: HillshadeLayer, MVTLayer, PopupLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "scenegraph",
@@ -1265,7 +1268,7 @@
         },
         {
           "name": "src",
-          "description": "deck.gl src. Valid on: BIMLayer, COGLayer, ImageOverlay, ZarrLayer."
+          "description": "deck.gl src. Valid on: BIMLayer, COGLayer, HillshadeLayer, ImageOverlay, ZarrLayer."
         },
         {
           "name": "geometry",
@@ -1416,6 +1419,26 @@
           "description": "deck.gl nodataOverride. Valid on: COGLayer, ZarrLayer."
         },
         {
+          "name": "shading",
+          "description": "deck.gl shading. Valid on: COGLayer, ZarrLayer."
+        },
+        {
+          "name": "sun-azimuth",
+          "description": "deck.gl sunAzimuth. Valid on: COGLayer, HillshadeLayer, ZarrLayer."
+        },
+        {
+          "name": "sun-weight",
+          "description": "deck.gl sunWeight. Valid on: COGLayer, HillshadeLayer, ZarrLayer."
+        },
+        {
+          "name": "sun-elevation",
+          "description": "deck.gl sunElevation. Valid on: COGLayer, HillshadeLayer, ZarrLayer."
+        },
+        {
+          "name": "z-factor",
+          "description": "deck.gl zFactor. Valid on: COGLayer, HillshadeLayer, ZarrLayer."
+        },
+        {
           "name": "variable",
           "description": "deck.gl variable. Valid on: ZarrLayer."
         },
@@ -1430,6 +1453,18 @@
         {
           "name": "spatial-dims",
           "description": "deck.gl spatialDims. Valid on: ZarrLayer."
+        },
+        {
+          "name": "decoder",
+          "description": "deck.gl decoder. Valid on: HillshadeLayer."
+        },
+        {
+          "name": "blend",
+          "description": "deck.gl blend. Valid on: HillshadeLayer."
+        },
+        {
+          "name": "zoom-offset",
+          "description": "deck.gl zoomOffset. Valid on: HillshadeLayer, MVTLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "get-source-position",
@@ -1698,10 +1733,6 @@
         {
           "name": "debounce-time",
           "description": "deck.gl debounceTime. Valid on: MVTLayer, TerrainLayer, TileLayer."
-        },
-        {
-          "name": "zoom-offset",
-          "description": "deck.gl zoomOffset. Valid on: MVTLayer, TerrainLayer, TileLayer."
         },
         {
           "name": "visible-min-zoom",

@@ -341,6 +341,29 @@ Consecutive pointwise ops compile into a **single** GPU pass; only a neighbourho
 
 An effect runs over deck's own frame. With a MapLibre basemap, which composites underneath, the data layers are treated and the basemap is not — the validator warns and suggests drawing the base as layers with `basemap="none"`.
 
+## Shaded relief
+
+`<om-layer type="HillshadeLayer" src="terrarium">` shades a global DEM on the GPU — keyless, and with no data of your own:
+
+```html
+<om-map center="[7.65, 45.98]" zoom="9" basemap="none">
+  <om-layer id="relief" type="HillshadeLayer" src="terrarium"
+            sun-azimuth="315 45 135" sun-elevation="45" z-factor="1.4"></om-layer>
+  <om-layer id="trails" type="GeoJsonLayer" data="./trails.geojson"></om-layer>
+  <om-effect preset="vintage"></om-effect>
+</om-map>
+```
+
+This is a **layer, not a mode of `terrain=`**. `terrain=` raises a 3D surface, replaces the basemap and means nothing at pitch 0; relief on a flat sheet has to compose underneath the data like any other layer. Being a layer is also what puts it inside deck's framebuffer, so `snapshot()` captures it and `<om-effect>` treats it — relief a print finish couldn't reach would be worth very little on a print sheet.
+
+**The sun is a list, not a switch.** `sun-azimuth="315 45 135"` blends up to four lights, which is what separates Swiss-style relief from the single-light shading every slippy map already ships; `sun-weight` weights them. There is deliberately no `multi-directional` boolean — a shorthand must never reach a look you have no other way to write. Azimuths are ° clockwise from north, the same convention `lighting-sun-azimuth` uses (they are not coupled). `z-factor` exaggerates the relief, `blend="multiply"` lets it read *under* your fills instead of greying them, and `opacity` fades it.
+
+Sources are the `terrain=` registry: `terrarium` and `mapterhorn` are keyless, or give a raw `{z}/{x}/{y}` template plus `decoder="terrarium"|"mapbox-rgb"`. `src` is required even for the keyless default, the same way `basemap="positron"` and `terrain="terrarium"` are named — keyless means no key, not no attribute.
+
+**Or shade a DEM you already have.** `shading="hillshade"` on a `COGLayer`/`ZarrLayer` shades that raster in place, with the same `sun-*`/`z-factor` attributes — and because relief runs last in the styling chain it multiplies onto a `colormap` rather than replacing it, so `colormap="terrain" shading="hillshade"` is a hypsometric tint with relief through it as **one layer, not two**. Ground scale comes from the file's own geotransform and CRS, so a DEM in UTM metres, state-plane feet or degrees is all handled — including the fact that a geographic pixel is not square on the ground. (`identify="off"` cannot free memory while shading is on: the seamless edges need neighbouring pixels on the CPU, and the validator says so.)
+
+Two things it gets right that hand-rolled hillshades usually don't. **Tile edges are seamless**: a hillshade is a derivative, so each tile is decoded with a one-pixel apron from its eight neighbours rather than clamping at the border and drawing a pale grid over the world. And **latitude is corrected per fragment**, so relief doesn't flatten toward the equator and exaggerate toward the poles. Tile zoom follows the capture pixel ratio, so a 300 dpi plate gets sharper relief rather than an upscaled screen image. The shader chunk is lazy — a map with no relief never downloads it. Examples: `examples/features/styling/shade-the-terrain.html` (global tiles) and `examples/features/rasters/shade-your-own-dem.html` (your own GeoTIFF). Guide: [docs/hillshade.md](docs/hillshade.md).
+
 ## Programmatic surface
 
 - **`OmMap.*`** — `validate`, `snapshotIR`, `snapshotDescriptorIR`, `resolveImageOverlay`, `registerLayer`, `registerWidget`, `registerAction`, `registerSource`, `registerFormat`, `registerBasemap`, `configureBasemap`, `configureData`, `configureTelemetry`, `configureLicense`, `getLayerSchema`
@@ -391,7 +414,7 @@ Mapbox GL basemaps, depth-interleaved 3D compositing, globe projection, SSE tran
 
 | | |
 |---|---|
-| [docs/react.md](docs/react.md) · [docs/basemaps.md](docs/basemaps.md) · [docs/testing.md](docs/testing.md) · [docs/live-data.md](docs/live-data.md) · [docs/image-overlays.md](docs/image-overlays.md) · [docs/3d-assets.md](docs/3d-assets.md) · [docs/stories.md](docs/stories.md) · [docs/routing.md](docs/routing.md) · [docs/telemetry.md](docs/telemetry.md) | Consumer guides |
+| [docs/react.md](docs/react.md) · [docs/basemaps.md](docs/basemaps.md) · [docs/testing.md](docs/testing.md) · [docs/live-data.md](docs/live-data.md) · [docs/image-overlays.md](docs/image-overlays.md) · [docs/3d-assets.md](docs/3d-assets.md) · [docs/stories.md](docs/stories.md) · [docs/routing.md](docs/routing.md) · [docs/effects.md](docs/effects.md) · [docs/hillshade.md](docs/hillshade.md) · [docs/telemetry.md](docs/telemetry.md) | Consumer guides |
 | [CHANGELOG.md](CHANGELOG.md) | Version-by-version release notes |
 | [llms.txt](llms.txt) | The agent-facing quick reference |
 | `skills/onlymapjs` | Installable LLM skill for OnlyMapJS authoring |
