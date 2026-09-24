@@ -8,6 +8,24 @@ Note: npm collapsed a few closely-spaced releases — the GPX/FlatGeobuf (0.5.4)
 and GeoParquet (0.5.5) work shipped to npm together as **0.5.6**, so npm's
 version list jumps 0.5.3 → 0.5.6. Each logical version is listed here regardless.
 
+## 0.10.0 — 2026-09-23
+
+### Added
+- **Maps in a real projection.** `crs="EPSG:5070"` on `<om-map>` draws the whole map in that projection's plane — parallels curve, an equal-area map is genuinely equal-area, and a national-grid sheet is drawn in its own grid rather than stretched out of Web Mercator. Albers, the UTM zones, British National Grid, Swiss LV95, Lambert 93, RD New and more are built in; anything else takes a `+proj=` string. Your camera does not change: `center` is still lng/lat and `zoom` still means what it meant, so stories, tours and saved views keep working, and clicks still report real coordinates.
+- **Shaded relief on a projected map.** The keyless global relief layer now works on any projection, and so does a DEM of your own. `sun-datum` picks which north the sun means: by default the light stays constant across the sheet, the way printed relief atlases do, because true north rotates by 34° across a map of the United States and light that turns with it reads as a printing fault.
+- **Geometry your data doesn't contain.** `<om-transform>` inside a layer adds `simplify` (thin a dense coastline), `smooth` (one pass removes the chain-of-straight-segments look that marks a map as a web map), `dot-density` (scatter points for a population figure), `buffer` (bands around a shape) and `contour` (elevation lines marched straight off a DEM). Sizes are millimetres on the page, so a line looks the same on screen and on a 300 dpi plate.
+- **The engraved shoreline.** `buffer` with `repeat` and `fade` draws the receding bands around a coast that old charts are known for. Five bands cost what one costs, and they cannot tangle into the slivers that polygon-offsetting usually produces.
+- **Labels that follow the line they name.** `<om-layer type="TextOnPathLayer">` runs a river's name along the river and a mountain range's along the range — the oldest label convention there is, and one no web map library ships. It reads the right way round whichever direction the line was drawn in, and a name too long for its line is left off rather than squeezed. In an SVG export it becomes a single editable word still attached to its path.
+- **Export a map as editable vector.** `snapshot({ format: "svg" })` gives you real `<path>` outlines and real `<text>` labels you can open in Illustrator, with relief and imagery placed as images underneath — vector linework over a raster base, the way printed maps have always been made. A print finish covers the whole frame, so a map carrying one exports as a single image at a resolution you choose, and the export tells you so rather than letting you find out at the print shop.
+- **Freeze a sheet to vector.** `frame.freeze({ format: "svg" })` turns a live map frame in a cartograph into editable artwork in place. The frozen sheet opens with no JavaScript at all and still reads correctly.
+- **A new example**, *Compose an atlas plate*: an Albers sheet of the United States with warped relief, an engraved coastal vignette, contour lines in a detail inset, and buttons for SVG export and freezing.
+
+### Fixed
+- **Relief with `blend="multiply"` no longer tints the map red.** It affected every map using that setting.
+- **A projected cartograph frame is no longer placed upside down.** Its graticule labels, north arrow and frozen output were all mirrored vertically.
+- **Contour lines no longer re-download their elevation tiles on every edit**, which made a page with contours far slower than it needed to be.
+- **Relief no longer stops short of a projected sheet's corners.**
+
 ## 0.9.1 — 2026-09-22
 
 ### Added

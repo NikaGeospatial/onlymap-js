@@ -704,6 +704,7 @@
       "snap",
       "src",
       "sun-azimuth",
+      "sun-datum",
       "sun-elevation",
       "sun-weight",
       "visible",
@@ -1442,6 +1443,23 @@
       "visible",
       "word-break",
       "wrap-longitude"
+    ],
+    "TextOnPathLayer": [
+      "clip",
+      "color",
+      "font-family",
+      "font-weight",
+      "get-color",
+      "get-path",
+      "get-size",
+      "get-text",
+      "letter-spacing",
+      "max-labels",
+      "offset",
+      "opacity",
+      "placement",
+      "snap",
+      "visible"
     ],
     "Tile3DLayer": [
       "auto-highlight",

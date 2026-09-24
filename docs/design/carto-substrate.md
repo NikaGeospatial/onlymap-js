@@ -88,9 +88,12 @@ for whole layers, and a **local origin**. The cartograph's georef keeps its inte
 and becomes a consumer.
 
 **Justifications.**
-- *Local origin is not optional.* Eastings near 500 000 and northings near 6 000 000
-  jitter in fp32 at high zoom (#2 §0, "whoever builds it will hit this in the first
-  hour"). The plane holds `(x − x₀, y − y₀)`; the origin is the map's initial centre,
+- *Local origin is not optional.* Measured, fp32 resolves no better than **0.48 m** at
+  a 500 km easting and **5.7 m** at a 6 000 km northing, against **1.9 mm** two
+  kilometres from an origin — and fp32 is what reaches the screen, whatever the CPU
+  computed. #2 §0 called this jitter and predicted "whoever builds it will hit this in
+  the first hour"; the numbers are worse than the word, since metres of error is
+  geometry in the wrong place rather than shimmer. The plane holds `(x − x₀, y − y₀)`; the origin is the map's initial centre,
   fixed for the map's life, and is written into the frame georef so nothing downstream
   has to know.
 - *The interface is the contract, not the library.* proj4 covers the conic,
@@ -110,6 +113,33 @@ Data is projected **once, at ingest**, in `parse-manifest`'s data stage — afte
 (`src/parse-manifest.ts:38`, `:129`) — and the renderer swaps `MapView` for
 `OrthographicView`. Every layer, accessor, classification, effect and the legend are
 untouched: none of them ever asked what the coordinates meant.
+
+**Corrected while building: positional ACCESSORS did ask.** The sentence above is
+true of colours, sizes and classification and false of positions.
+`get-position="[$lon, $lat]"` compiles to a function deck evaluates per row at draw
+time, reading fields off the row, so projecting the data never reaches it — the layer
+keeps emitting lng/lat into a metre plane and renders nothing, silently. Five accessors
+across every registered schema return coordinates (`getPosition`, `getPath`,
+`getPolygon`, `getSourcePosition`, `getTargetPosition`) and are wrapped alongside the
+ingest projection, at the single point where a deck layer is constructed —
+deliberately NOT in `parse-manifest` or `attribute-resolution`, which are the hottest
+shared paths in the library and must stay byte-identical for a Mercator map.
+
+Two things make that safe rather than merely working. The wrappers are memoised per
+`(accessor, plane)`, because an accessor's cache key IS its deck `updateTrigger`: a
+wrapper minted per rebuild would leave the trigger unchanged while the reference
+churned, and deck would recompute every attribute of every layer on every frame. And
+the list is guarded by a test that enumerates every registered schema and fails when an
+unclassified spatial accessor appears — a hand-maintained list would otherwise rot the
+first time a layer type was added, and the symptom would be geometry in the wrong place
+rather than an error.
+
+**Six accessors cannot be fixed this way and are a limit instead.** `getHexagon`,
+`getHexagons`, `getGeohash`, `getPentagon`, `getQuadkey` and `getS2Token` hand deck a
+spatial-index TOKEN, and deck builds the geometry inside the layer using its own
+geographic maths. There is no coordinate to intercept, so H3, S2, geohash and quadkey
+layers cannot draw in a plane view at all; that is a validation error naming the
+conversion to polygons, not a layer that quietly vanishes.
 
 ### What deliberately does not change: the authored camera
 
@@ -133,15 +163,17 @@ From #2 step 2, plus what this codebase adds:
 | No MapLibre basemap | separate Mercator renderer | `basemap="none"` — already required for effects and relief |
 | No `terrain` | `TerrainLayer` is Mercator | drop `terrain`, or use Mercator |
 | No `pitch`, no `bearing` | `OrthographicView` is planimetric; rotation via a model matrix is a follow-up | a print sheet is planimetric; rotate the frame in the layout |
-| **`HillshadeLayer`** (and `contour` off its tiles) is Mercator-only until the warp lands — relief itself is not | `src/hillshade.ts` samples `{z}/{x}/{y}` Mercator tiles and states ground scale at the equator (`:320`); `shading="hillshade"` on a raster reads the file's own grid and has no such tie | Use a DEM of your own with `shading="hillshade"` (§4a — works from Phase 1), or wait for Phase 6's warp to restore the keyless path. Freezing relief from a Mercator frame is affine and sound only over small extents (C3b) |
+| ~~`HillshadeLayer` is Mercator-only~~ — **LIFTED by Phase 6.** `contour` off the same tiles still is | the warp re-indexes Mercator tiles from the plane's own geography and draws them as subdivided meshes; `contour` needs marching squares in the source grid and the polylines projected, which is Phase 5 | nothing — global relief works on a projected sheet. Freezing relief from a Mercator frame is still affine and sound only over small extents (C3b) |
 | CRS fixed for the map's life | re-ingest on switch is a remount | author two maps |
 | `flyTo` arcs are linear | `FlyToInterpolator` is Web Mercator only; the `LinearInterpolator` branch at `runtime-core.ts:2235` is the plane path | none needed |
 
 ### Relief on a projected sheet — available from Phase 1
 
-The limits table says `HillshadeLayer` is Mercator-only, which reads as though a
-projected sheet cannot carry relief. It can, and by the route a cartographer would
-take anyway.
+**Both routes now work.** A DEM of the author's own worked from Phase 1, by the route a
+cartographer would take anyway; the keyless global source works from Phase 6. The
+original framing — that the limits table's Mercator-only row read as though a projected
+sheet could not carry relief at all — is kept below because the reasoning is what made
+the second route cheap.
 
 `shading="hillshade"` on a raster source takes the file's geotransform, the file's CRS
 units, and the tile's own pixels — **no viewport, no map projection, no zoom**. The
@@ -188,7 +220,22 @@ document exists to serve.
 
 ### Everything else the view touches
 
-- **Picking, hover, draw, snapping** — screen-space; unchanged (#2 confirms).
+- **Picking, hover, draw, snapping** — screen-space, but NOT unchanged, which an
+  earlier draft assumed on #2's word. Two seams carry coordinates out of the renderer
+  and both spoke lng/lat only because every viewport used to. `getViewport()` is the
+  shared one — overlays anchor through it, widgets read `getBounds()` for filtering and
+  stats, `ctx` hands it to accessors — so a plane view returns an adapter that converts
+  at the seam rather than teaching each consumer about the plane (its `getBounds`
+  samples along the EDGES, since a conic's extreme latitude sits mid-edge, not at a
+  corner). And deck reports `info.coordinate` in the viewport's own world space, which
+  is metres here: draw, measure, `om-map-point` and every behaviour would have received
+  plane coordinates. The resolution runs in the plane, where geometry and viewport
+  agree, and converts once on the way out. **Measuring is why this matters rather than
+  being tidy** — the measure tool feeds those points to `geodesy.ts`, and a projected
+  metre in a geodesic formula returns a confident, wrong distance. One snap branch
+  (BIMLayer's edge overlay, which builds its candidates in lng/lat from the model's own
+  georeference) is skipped on a projected map, because mixing those with plane
+  candidates would snap to a point hundreds of kilometres away rather than fail.
 - **Measure** — unproject to lng/lat, then the existing `geodesy.ts`. Never measure
   in projected metres: scale factor varies across a conic sheet.
 - **Scale bar** — computed at the frame centre, the cartographic convention; the
@@ -197,8 +244,13 @@ document exists to serve.
   view it curves correctly with no new work. This is the first visible payoff.
 - **Frame georef** — an orthographic frame's corners are an **affine** map of the
   plane, so `FrameGeoref { crs: "EPSG:5070", corners }` is exact and world-file-able:
-  no homography, no pitch cap, no wrap. The continuous-Mercator georef work stays for
-  Mercator frames.
+  no pitch cap, no wrap, and the projective fit carries no residue (interior points
+  land where the plane's own linear mapping says, to 1e-5 mm). The continuous-Mercator
+  georef work stays for Mercator frames. **Measured cost of getting it wrong:** fitting
+  a projected frame's corners in Mercator's plane instead puts the SHEET CENTRE 7.12 mm
+  out on a 180×120 mm sheet — a homography through four corners is least constrained
+  exactly in the middle, which is where a reader looks. Only the map can tell a frame
+  which case it is in, so it answers rather than being asked to guess.
 - **World copies** — a projected plane does not wrap. The antimeridian seam and
   `repeat: true` are Mercator-only concerns.
 - **Camera limits** — the Mercator zoom floor/pitch logic is bypassed; the plane needs
@@ -228,6 +280,24 @@ placement is what makes the rest of this document coherent:
   shape;
 - transforms are pure functions of `(geometry, params, metresPerMm)` — worker-able,
   cacheable by data identity + params, and unit-testable headless.
+
+**Correction, from building it: transforms run on lng/lat, not on the plane.** §5's
+first draft placed them "immediately after" the plane view's projection. In the code
+those are not the same seam at all — ingest lands in `parse-manifest.ts`, while the
+plane projection happens at layer-construction time in `runtime-core.ts`, because it
+also has to reach positional accessors (C18). Putting geometry transforms after it
+would have meant either moving the projection earlier — which C18 says cannot be done
+— or running transforms twice.
+
+They run on lng/lat instead, in a per-feature **equirectangular metric frame** about
+the feature's own centre latitude: metres in, metres out, degrees only at the boundary.
+That is what makes a tolerance mean the same thing everywhere; simplifying raw degrees
+thins a Norwegian coastline five times harder than an Ecuadorian one from the same
+authored number, and there is a test that measures exactly this with the naive version
+as its negative control. The frame is exact north-south and off by the cosine
+difference across the feature's own latitude span east-west: 0.02% across a 1°-tall
+feature at 45°, 0.3% across 10°. A tolerance is a threshold, not a measurement, so that
+is well inside the point of the number.
 
 **Columnar layers are out of scope, and say so.** Every primitive here operates on line
 or polygon geometry, while a columnar layer is precisely the case that has none: large
@@ -314,6 +384,31 @@ thousandth of a cell, because such a field is locally linear and that is what li
 interpolation reconstructs well. And the 1.42 worst case is √2, the cell diagonal,
 reached only at sharp convex corners; coastlines do not have those.
 
+**Re-measured on the shipped implementation, which is better than the spike** — and
+better for a reason worth recording, because the spike's numbers were used to argue the
+whole method:
+
+| Shape | mean | max |
+|---|---|---|
+| circle | 0.27 | 0.50 |
+| coastline | 0.26 | 0.50 |
+| square | 0.48 | 0.50 |
+
+The √2 corner penalty is gone and the bound is **half a cell everywhere, corners
+included**. The spike signed its field from one side; the shipped one transforms from
+both and subtracts, then shrinks the magnitude by half a cell — because a cell centre
+*t* outside the boundary has its nearest inside centre at about *t* + ½, so the raw
+difference is biased outward by exactly that. Uncorrected, the zero crossing still lands
+correctly (the biases cancel across the boundary) but every level ABOVE zero — which is
+every buffer anyone asks for — sits half a cell too far out. It presented as a maximum
+vertex error of exactly 1.000 cell widths, and *exactly* is the tell: noise is never
+round. The residual is now the rasterisation's own quantisation and nothing else, which
+is what the spike predicted and could not reach.
+
+On paper, at 300 dpi on a 200 mm frame: 0.085 mm cell, so **0.022 mm mean and 0.042 mm
+max** — against a 0.088 mm hairline and a ~0.1 mm visual threshold. Comfortably under
+half a hairline at the worst point of the worst shape.
+
 On a 200×150 mm frame that is:
 
 | | cell | coastline mean | coastline max | sharp corner |
@@ -361,16 +456,22 @@ Walk the IR in document order; for each layer choose a strategy:
 | Polygon / path / point / text (`GeoJsonLayer`, `PolygonLayer`, `PathLayer`, `ScatterplotLayer`, `TextLayer`, `IconLayer`, …) | `<path d>` / `<circle>` / `<text>` with the style the accessors resolve |
 | Raster (`COGLayer`, `ZarrLayer`, `BitmapLayer`, `TileLayer`, `HillshadeLayer`) | rendered by the GPU into a **raster band**, embedded as `<image>` at the correct stacking position |
 | 3D (`Tile3DLayer`, `BIMLayer`, `ScenegraphLayer`, terrain) | raster band |
-| `<om-effect>` present | **the whole map frame** becomes one raster band at `effect-dpi` — a post-process pass treats the finished frame, and there is no vector equivalent (see below) |
+| a **post-process pass** is present | **the whole map frame** becomes one raster band at `effect-dpi` — such a pass treats the finished frame, and there is no vector equivalent (see below) |
 
 Consecutive raster layers merge into one band. The "hybrid" is not a fallback: vector
 linework over placed relief is how cartographic production has always worked.
 
 ### Effects: the whole frame rasterises, at a resolution you choose
 
-An effect treats the **finished frame**, so there is no "some layers". Every layer is
-beneath every effect, and a sheet carrying a finish exports its map frame as a single
-raster band. Legend, crop marks, graticule labels and the rest of the sheet furniture
+A post-process pass treats the **finished frame**, so there is no "some layers". Every
+layer is beneath every such pass, and a sheet carrying a finish exports its map frame
+as a single raster band.
+
+**The test is `instanceof PostProcessEffect`**, applied to the resolved effect chain —
+not "is there an `<om-effect>` element", and not "does deck have any effects". Both of
+those are wrong, in opposite directions, and §13.1 has the reasoning: deck's effect
+array also carries effects it installs itself, while the authored element is not the
+only way an author supplies a real pass. Legend, crop marks, graticule labels and the rest of the sheet furniture
 stay vector, because they are not inside the frame.
 
 What that actually costs is narrower than it sounds. Almost everything on a map
@@ -482,11 +583,11 @@ Everything learned on the way here that a builder would otherwise rediscover.
 
 | # | Caveat | Decision |
 |---|---|---|
-| C1 | fp32 jitter in projected metres | local origin, fixed per map, written into georef |
+| C1 | fp32 cannot resolve METRES at projected magnitudes — measured 0.48 m at a 500 km easting and **5.7 m** at a 6 000 km northing, against 1.9 mm at 2 km from an origin | local origin, fixed per map, written into georef. "Jitter" understated it: at a real northing this is geometry in the wrong place, not shimmer |
 | C2 | `FlyToInterpolator` is Mercator-only | plane view uses the existing `LinearInterpolator` branch |
 | C3 | `HillshadeLayer` samples Mercator `{z}/{x}/{y}` tiles, so **that layer** is Mercator-only | A limit on the keyless-global-tiles convenience, NOT on relief. `shading="hillshade"` on a raster is projection-independent already (§4a), so a projected sheet can carry relief from Phase 1. The warp (Phase 6) restores the keyless path; validation error with the fix meanwhile |
 | C3b | Relief frozen from a Mercator frame into a projected sheet is an **affine approximation** | Sound over a city, wrong over a continent — the Mercator↔target difference is not affine. Bound the interim workaround by extent, or use a DEM in the sheet's own CRS (§4a) |
-| C4 | Effects cannot be vectorised, and treat the whole frame, so there is no partial answer | the map frame becomes one raster band at its own `effect-dpi` (600 keeps fine type good), with a dev notice naming the trade. SVG filters ruled out on print reliability; decomposition shelved; per-layer scoping is a renderer feature, not an export policy (§6) |
+| C4 | A post-process pass cannot be vectorised, and treats the whole frame, so there is no partial answer | the map frame becomes one raster band at its own `effect-dpi` (600 keeps fine type good), with a dev notice naming the trade. Triggered by `instanceof PostProcessEffect` over the resolved chain — not by the authored element, not by deck having effects (§13.1). SVG filters ruled out on print reliability; decomposition shelved; per-layer scoping is a renderer feature, not an export policy (§6) |
 | C5 | GPU collision is resolution-dependent and unqueryable | serializer runs its own CPU pass; deck collision stays preview-only — which means the two legitimately keep different label sets, so §10 excepts labels from the parity bar and §13.2 records the choice |
 | C6 | Two text measurers disagree | one measured layout (`textlayout.ts` rule); fonts embedded when known |
 | C7 | deck vs SVG rendering differences | explicit mapping + SSIM gate |
@@ -500,6 +601,34 @@ Everything learned on the way here that a builder would otherwise rediscover.
 | C15 | Reports of "still broken" may be a stale dep cache | every phase's gate runs in a real browser with a negative control (the spec against the previous version) |
 | C16 | Millimetre geometry cannot be re-resolved per frame the way a millimetre uniform can | transforms resolve against a reference scale, fixed for the map's life; open question §12.3 |
 | C17 | Geographic north is not sheet-up on a projection — ±17° across an Albers CONUS sheet | `sun-azimuth` needs a stated datum. Default **sheet north** (constant apparent lighting, the relief-atlas convention), geographic as an opt-in, corrected per tile through `gridConvergence()` (§4a) |
+| C18 | Positional ACCESSORS are not reached by ingest projection | five of them, wrapped at the layer-construction site and memoised per `(accessor, plane)` — an accessor's cache key is its deck `updateTrigger`, so a wrapper minted per rebuild would silently recompute every attribute every frame. A schema-enumerating test stops the list rotting (§4) |
+| C19 | Spatial-index layers (H3, S2, geohash, quadkey) build geometry inside deck from a token | no coordinate to intercept, so a limit rather than a fix: validation error naming the conversion to polygons (§4) |
+| C20 | `MapController` asserts on a viewState with no longitude/latitude | a plane view takes `OrthographicController`, with only the overrides that mean anything without a third dimension. An `OrthographicController` also normalises its initial viewState DURING `new Deck()`, so the controlled-viewState echo fires once before the assignment lands |
+| C21 | A projected map cannot build its renderer synchronously | proj4 is lazy and the view type depends on its answer, so Deck creation defers exactly as the basemap adapter already defers on its chunk — `isReady()` stays false and `om-map-ready` waits, which is what "the renderer finished async init" already meant. Layers reconciled before the projection lands are REBUILT, never replayed: they were prepared for a Mercator world |
+| C22 | A transformed layer has nothing honest to show on its first pass | the primitives are a lazy chunk and ingest is synchronous, so the first parse resolves to the EMPTY placeholder — the same Q6 state a URL-backed layer sits in before its fetch lands — and the chunk's completion triggers the reparse. Emitting the untransformed coastline and smoothing it a frame later is a flash of the wrong map, not progressive loading (§5) |
+| C23 | `dot-density` replaces the row set rather than rewriting geometry | it is the one primitive whose output is a different number of features, so every accessor the author already wrote has to keep working — each dot carries its source row's own `properties`. Dots are distributed across a MultiPolygon BY AREA, or a state's mainland and its offshore island get the same count; rejection sampling is budgeted, because an unbounded loop on a panhandle is a hung tab |
+| C24 | A plane view's VIEWPORT zoom is about -12, and deck's TileLayer gates on it | `minZoom: 0` is deck's default and it compares the viewport's own zoom, which is in plane units — a metre against a sixty-kilometre Mercator world unit. Every tile was selected, fetched and decoded, and `renderSubLayers` was never called: a blank sheet, no error, no warning. The plane path passes `minZoom: -Infinity` and applies the PYRAMID's zoom range inside the tileset, where it means something |
+| C25 | A tile's cull box and its geographic extent are different facts | deck culls `tile.bbox` against `viewport.unproject()` of the screen rect — plane metres here — so a geographic bbox in that slot compares degrees against metres, never overlaps, and every tile is invisible with nothing logged. The plane tileset returns BOTH: `bbox` as a plane-metre envelope (sampled along the tile's edges, since a conic bows them) and `lngLatBbox` for the warp to project |
+| C26 | Deck's `log2(512 / tileSize)` term is not optional | leaving it out of the plane's zoom derivation chose a pyramid level one coarser than the identical Mercator map — half the relief resolution, rendering perfectly, looking only slightly soft. Found by comparing against a Mercator control, which is now a test: a projected sheet must request the same DEM zooms as the same document without `crs` |
+| C27 | deck has no single accessor vocabulary, and the wrong guess renders plausibly | `PathLayer` and `LineLayer` declare `getColor`/`getWidth`; `GeoJsonLayer`, `PolygonLayer` and `ScatterplotLayer` declare `getLineColor`/`getLineWidth`; `ArcLayer` declares `getSourceColor`. Reading only the GeoJSON names exported every path layer as a black hairline — deck's own defaults, faithfully applied, and nothing like the authored sheet. The serializer tries each family's names in order, enumerated from the registry rather than remembered, and a test pins each one |
+| C28 | A serializer that throws loses the sheet, not the row | an authored expression that fails on one feature must cost that feature, exactly as it does in the renderer, which catches accessor errors itself. Otherwise a document that draws on screen refuses to export, and the author has no way to see which row did it. The vector path had this tolerance from the start and the text path did not; the asymmetry surfaced the first time a fixture had a wrong expression |
+| C29 | Most of this library's maps have no GeoJSON geometry at all | `<om-layer type="ScatterplotLayer" get-position="[$lng,$lat]">` over flat rows is the house style, and those coordinates exist ONLY as a compiled accessor's return value. A serializer reading `row.geometry` emitted a correctly-formed, entirely blank sheet for every one of them, with no error anywhere — found by the first fixture whose only layer was authored that way. Geometry now falls back to the positional accessors (`getPolygon`, then `getPath`, then a source/target pair, then `getPosition`), richest first |
+| C30 | Freezing a frame whose projection has not resolved must REFUSE | a projected live frame has no corners until proj4 lands, and they are not merely unknown — they are about to change. Freezing there would place the sheet by corners that were wrong, and a sheet placed wrong looks exactly like a sheet placed right, which is the failure this document exists to avoid. `freeze()` returns false and writes nothing; the caller waits for `ready` |
+| C31 | A signed distance field needs a half-cell correction, or every buffer is too wide | transforming from one side only, or from both without the correction, biases every non-zero level outward by half a cell. The zero crossing stays right, so a *validity* check passes and only the thing anyone actually draws is wrong. Diagnosed from a maximum vertex error of exactly 1.000 cell widths — noise is never round (§5) |
+| C32 | Marching-squares segments cannot be chained by direction | the sixteen cases only agree on orientation if every one of them was written to, including the two saddles where "agree" is itself ambiguous. A start→end chainer broke each contour into a dozen fragments — a dashed vignette, which reads as a broken field rather than broken bookkeeping. Matching at EITHER endpoint removes the class |
+| C33 | `contour` sources geometry, so two of the stage's own rules invert | its layer legitimately has ZERO rows (the transform fills them, as `dot-density` replaces them), and zero rows otherwise means "not fetched yet"; and it is the one step that FETCHES, which made the whole chain async. Both are stated at the seam rather than special-cased downstream |
+| C34 | A probe viewport must copy the LIVE view's `flipY` | deck's `OrthographicViewport` defaults to `flipY: true`; the plane view renders `flipY: false`. A probe built without it returned the frame's corners vertically MIRRORED — graticule labelled 50° at the bottom, north arrow pointing south, a frozen sheet placed inverted — while the map on screen stayed perfectly correct. It survived an entire phase of tests because those compared corners to themselves, where a flip cancels. It took composing a real plate to see |
+| C35 | `blend="multiply"` multiplied the shade into the HEIGHTFIELD | the composite branch was written for the raster path, where the layer's texture is a colormap. On the tiled layer that texture is the r32float heightfield — height in red, nothing in green or blue — so a multiply-blended relief painted whole sheets RED. `composite` now has three modes, because the two entry points genuinely do not sample the same thing, and the third emits the shade alone for the GL blend to apply |
+| C36 | A sourcing chain's cache has nothing stable to key on | the transform cache is a WeakMap keyed by the source data, which is right for a layer that has some. `contour` has none — its rows are the empty placeholder, and `[]` is a fresh array every parse — so every reconcile missed and re-ran, re-fetching every DEM tile. 112 requests where the cover is 16. It anchors on the layer's own identity instead |
+| C37 | A warped tile cover is one tile short at the corners | a tile's extent is a lng/lat rectangle whose image in the plane is a CURVED quadrilateral, so the tiles covering a plane rect's lng/lat box do not quite tile the rect — and the shortfall is where curvature is greatest, at the corners. It presented as an unshaded wedge with every selected tile loaded: a cover honestly computed and geometrically short. One tile of margin, and a test that samples the whole boundary rather than the four corners |
+| C38 | Every failure path here was only ever exercised with inputs that succeed | review found nine defects and the pattern behind them is one sentence: the phases tested the happy path of each seam and the unhappy path of none. An unresolvable `crs` left the map HANGING (deck is never built, so `isReady()` stays false, `om-map-ready` never fires and the page's own `await` never returns); `this.deck!` dereferenced an undefined deck for the whole proj4 window; a frame's `pendingLiveCrs` cleared only on success, so one unresolvable CRS wedged it permanently. None of these needed a new mechanism to find — only a fixture that fails |
+| C39 | A failed projection must NOT fall back to Web Mercator | tempting, because the page stays alive. Rejected: a sheet drawn in the wrong projection looks exactly like a sheet drawn in the right one, which is the failure class this entire document exists to avoid. Readiness settles so nothing hangs, the error is reported, and nothing is drawn |
+| C40 | A serializer must carry deck's ACCESSOR defaults, because the registry does not | the registry materialises scalar defaults (`sizeScale: 1`) but never an accessor's (`getSize: 32`), so reading `sizeScale` as the size's fallback exported every unstyled label at `font-size="1"` — invisible in the file, correct on screen, and the declutter pass measured the same wrong number so nothing was suppressed either. `getPixelOffset` was dropped entirely, collapsing every offset label onto the symbol it labels. Both are the export disagreeing with the screen, which is the one property the serializer exists to hold |
+| C41 | A LineString's coordinates are STRUCTURALLY a polygon ring | nothing in the coordinate tree can tell them apart, so `buffer` scanline-filled an open line as though its ends joined and seeded the field from a polygon present nowhere in the data. Measured on three sides of a square: 5 476 of 10 404 cells filled, and the square's own centre reported as 10 950 m INSIDE the phantom. Refused by geometry TYPE, which is the only thing that can distinguish them; unclosed polygon rings are CLOSED rather than rejected, because producers in the wild emit them and every other layer draws them |
+| C42 | The controller is set in FIVE places, and four of them did not know about the plane | Deck creation plus `setDrawCapture`, `setDragPan`, `setMaxPitch` and `setMinZoom`, each building a `MapController` unconditionally — so the first draw-tool activation on a projected map swapped a Mercator controller onto an orthographic viewState, and `MapState`'s constructor asserts on one with no longitude. C20 recorded exactly this failure for Deck creation; it came back through the setters. One `currentController()` now serves all five, and `minZoom` gets the geographic→plane conversion `maxZoom` already had |
+| C43 | A plane rect's extremes are not always on its boundary | edge-only sampling assumed a conic's extreme latitude sits mid-edge — true away from the apex, false for a sheet CONTAINING a pole (the pole is interior, and a 6 000 km polar plate's bounds bottomed out at −62.9° against a true −90°) and false across the ANTIMERIDIAN (longitudes wrap, min/max collapses to the whole world, the cover blows its budget and falls back three pyramid levels). Interior sampling plus longitude unwrapping fixes both. What it CANNOT fix: Web Mercator stops at ±85.05°, so a polar cap has no tiles at any zoom — a limit of the source, now stated |
+| C44 | The vector serializer requires `basemap="none"`, like its neighbours | `captureBand` goes through `snapshot()`, which composites a MapLibre basemap into EVERY band — so a map ordered relief → roads → imagery exported the roads and then covered them with the second band's opaque basemap. Refused rather than repaired, because `<om-effect>` and `crs` already carry the same requirement and a third behaviour would be one more rule to remember. Imagery that bands correctly is an ordinary deck layer |
+| C45 | A ceiling has to be sized against what is actually allocated | `signedDistanceField` holds 26 bytes per cell across five simultaneous arrays, so the 40 M-cell buffer ceiling was 1.04 GB — the tab-wedging it exists to prevent rather than a guard against it. 4 M cells is ~104 MB. The same arithmetic is worth doing wherever a guard is stated in units that are not bytes |
 
 ## 9. Phases
 
@@ -517,12 +646,12 @@ of Phase 3 is reasonable: a projected sheet with relief is a more compelling fir
 release than a projected sheet without it, and the serializer does not care which order
 it arrives in.
 
-**Phase 0 — projection core** (`src/projection.ts`). Unify `georef.ts`'s `CrsForward`
+**Phase 0 — projection core — IMPLEMENTED 2026-09-23** (`src/projection.ts`). Unify `georef.ts`'s `CrsForward`
 and `crs.ts`; forward/inverse/batch; local origin; `registerCrs`. Gate: fixtures for
 BNG, UTM 32N, Albers 5070 and Swiss LV95 agree with proj reference values to 1e-6
 relative, headless.
 
-**Phase 1 — plane view.** `<om-map crs>`; ingest projection; view swap; camera
+**Phase 1 — plane view — IMPLEMENTED 2026-09-23**, affine frame georef included. `<om-map crs>`; ingest projection; view swap; camera
 translation; events; measure/scale bar/graticule checks; the limits table as
 validator rules; affine frame georef. Gate (real GPU): an Albers US sheet with
 `basemap="none"` — a known lng/lat lands within 1 px of the CPU prediction,
@@ -530,7 +659,7 @@ parallels visibly curve, `getCamera()` round-trips, no jitter at zoom 14 near
 (500 000, 6 000 000), `snapshot({scale: 3.125})` renders at scale, and the manifest
 validates with exactly the listed limits and no others.
 
-**Phase 2 — transforms v1.** The `<om-transform>` seam, mm units, `simplify`,
+**Phase 2 — transforms v1 — IMPLEMENTED 2026-09-23.** The `<om-transform>` seam, mm units, `simplify`,
 `smooth`, `dot-density`. Gate: seed determinism at 1× and 4×; a transformed layer's
 legend and `anchor="surface"` follow the new shape; and **the renderer and the
 serializer receive identical transformed geometry**, asserted by hashing the coordinate
@@ -540,20 +669,46 @@ property anything can test. Hash both paths: the shared in-process result, and a
 re-parse of the same document, since the second is what proves a transform is the pure
 function §5 claims and not quietly dependent on call order or state.
 
-**Phase 3 — vector serializer v1.** Vector strategies, raster bands, effect policy,
+**Phase 3 — vector serializer v1 — IMPLEMENTED 2026-09-23.** Vector strategies, raster bands, effect policy,
 style mapping, SSIM gate, text parity, CPU declutter, feature guard, bundle assertion.
 Gate: the print-finish example and an Albers sheet round-trip within threshold; a map
 that never asks for SVG never fetches the chunk; and the effect path is exercised both
 ways — a sheet with a finish emits one raster band plus vector furniture and raises the
 notice, the same sheet without the finish emits no band at all, and `effect-dpi`
-demonstrably changes the band's pixel dimensions rather than only its scaling.
+demonstrably changes the band's pixel dimensions rather than only its scaling. The
+trigger is pinned from both sides (§13.1): a map with a decluttering layer and no
+finish must emit **vector**, and a map whose only finish arrived through
+`setEffects()` must emit a **raster band**.
 
-**Phase 4 — freeze to vector.** `<om-frame>` stores an inline `<svg>`; print CSS,
+**All of it landed** (`e2e/serialize.spec.ts`, `src/serialize/`). SSIM between the GPU
+capture and the browser-rasterised SVG measured **0.97** on a Mercator sheet and again
+on the same document with `crs="EPSG:5070"`, against a threshold of 0.9 — with an empty
+SVG as the negative control, which scores below it, so the gate is known to be able to
+fail. `effect-dpi` 96 → 288 widens the embedded band by more than 2.5×, so it changes
+pixels rather than scaling. The bundle assertion is stronger than "absent from the core
+chunk": the serializer's symbols must appear in **exactly one** chunk, which also
+catches the case where a future static import quietly duplicates it into two.
+
+**Phase 4 — freeze to vector — IMPLEMENTED 2026-09-23.** `<om-frame>` stores an inline `<svg>`; print CSS,
 bleed, crop marks, atlas; validator; downstream ticket for `nika-agent`'s exporter.
 Gate: a frozen vector sheet opens with no runtime, prints at 300 dpi with crisp
 linework, and its georef matches the live frame's to 1e-6.
 
-**Phase 5 — the raster-derived transforms.** `contour` from DEM (Mercator), then
+**Landed as `frame.freeze({format})`** (`e2e/freeze-vector.spec.ts`). The no-runtime
+claim is checked against the SAVED MARKUP on a page that imports nothing and defines no
+custom elements: the picture is still there, the corners are still on the attribute, and
+the stylesheet alone lays it out at the authored size. Corners round-trip to 1e-6
+degrees and the frame's INTERIOR lands **3.0e-6 mm** from where the live frame put it —
+the floor being the corners written with eight decimal places, about 1.1 mm of ground,
+which is 0.02 mm of paper at 1:50 000.
+
+Print needs no swap at all, and that is the point: `enterPrintMode` exists because a
+WebGL canvas prints blank, and inline vector has no such problem. The CANVAS exporter
+still needs pixels — `drawImage` cannot take an `<svg>` element — so a frozen vector
+frame rasterises itself from its own markup at the export's resolution, which is a
+different thing from being stored as a bitmap.
+
+**Phase 5 — the raster-derived transforms — IMPLEMENTED 2026-09-23.** `contour` from DEM (Mercator), then
 `buffer` with `repeat` + `fade` on the shared distance field (§5). The two are one
 piece of machinery — rasterize, transform, iso-contour — so `contour` lands first and
 `buffer` is a second threshold over it. Gate: the coastal vignette example; buffered
@@ -575,7 +730,7 @@ count before and after `simplify`, and the band's deviation from a reference off
 with the numbers recorded in this document, replacing the synthetic ones as the
 published figures.
 
-**Phase 6 — raster in the plane: the warp.** Lifts C3, and is the phase that decides
+**Phase 6 — raster in the plane: the warp — IMPLEMENTED 2026-09-23** (hillshade; `contour` waits for Phase 5). Lifts C3, and is the phase that decides
 whether a projected sheet can carry relief at all.
 
 The Mercator tiles covering the frame (`loadHeightfieldForBounds` already fetches and
@@ -602,10 +757,17 @@ position, in output pixels, for an N×N subdivided Mercator tile:
 
 | Projection | z=3, N=8 | z=5, N=4 | z=8, N=2 |
 |---|---|---|---|
-| Albers CONUS (5070) | 0.35 | 0.24 | 0.13 |
-| British National Grid (27700) | 0.42 | 0.30 | 0.16 |
-| Swiss LV95 (2056) | 0.30 | 0.29 | 0.14 |
-| Lambert 93 (2154) | 0.30 | 0.28 | 0.14 |
+| Albers CONUS (5070) | 0.40 | 0.26 | 0.11 |
+| British National Grid (27700) | 0.45 | 0.31 | 0.15 |
+| Swiss LV95 (2056) | 0.34 | 0.28 | 0.14 |
+| Lambert 93 (2154) | 0.34 | 0.28 | 0.14 |
+
+Re-measured by the shipped harness (`src/plane-warp.test.ts`, headless, no GPU), which
+samples strictly INSIDE each cell — the corners are exact by construction, so a sampler
+that hit them would report zero and prove nothing. The same test asserts the 1/N² fall
+and keeps an un-subdivided quad as its negative control: at z=3 that is 2.6 px, plainly
+wrong, which is what makes 0.40 px mean something. Lambert 93 had to be added to the
+bundled CRS table to measure it at all, so it is now authorable like the other three.
 
 Error falls as 1/N², so it is **sub-pixel at 8×8 even at continental zoom** — 64 quads
 and ~81 projection calls per tile, worst case, against a viewport of a few dozen tiles.
@@ -666,6 +828,25 @@ DEM within threshold; no seam at any source-tile boundary; relief detail scales 
 half an output pixel at z=3, 5 and 8, a headless test needing no GPU; and the azimuth
 datum (§4a, §12.4) is visible in the output, with sheet-north illumination constant from
 one edge of a CONUS sheet to the other and geographic-north demonstrably not.
+
+**What the gate actually holds, and one item it does not.** Landed as
+`e2e/plane-relief.spec.ts` against the shared synthetic DEM: the sheet inks and carries
+relief; it is a DIFFERENT picture from the same document without `crs` (15.9 luminance
+levels of 255); no source-tile boundary spikes out of the crowd; the document validates
+clean; the azimuth datum changes the projected picture and changes the Mercator one by
+EXACTLY zero, against a run-to-run noise floor of exactly zero. Plus the headless
+subdivision assertions above.
+
+Two substitutions, stated rather than quietly made. **A QGIS reference render** is not
+in the harness; the Mercator control plays that role — same DEM, same camera, same sun,
+one attribute apart — which catches a wrong projection but not a wrong projection
+*library*, a risk `projection.ts`'s own definitional-anchor fixtures carry instead.
+**"Relief detail scales with `snapshot({scale})`" is not asserted at the pixel level**:
+the Mercator control fails it identically, because a scaled capture returns before the
+deeper tiles it just requested arrive, so measuring it would report on the fixture's
+settling rather than on the warp. That claim is held by `captureZoomOffset`'s unit test,
+`subdivisionFor`'s √ratio term, and the tile-zoom parity test — which is the part the
+warp can actually get wrong, and did (C26).
 
 **Phase 6b — native-CRS pyramids (deferred until asked for).** `TileMatrixSet` from
 the registry: where a provider serves tiles already in the target grid (OS Terrain in
@@ -729,24 +910,32 @@ remotion battery dispatched **before** the pin moves.
    embedded bytes. Proposed: **600**, on the grounds that anyone exporting vector is
    exporting for print quality, and a surprising file size is easier to discover and
    fix than surprising soft type.
-3. **What scale do millimetre transforms resolve against?** (§5 Units, C16.) A sheet
-   has one; a live map's changes on every zoom, and geometry cannot be re-resolved per
-   frame the way an effect's uniforms can. Three candidates: resolve once at the map's
-   initial scale and freeze (cheap, but zooming in reveals over-simplified geometry);
-   re-run the data stage per zoom bucket, pyramid-style (correct, but puts geometry
-   work on the pan path and breaks the cache key); or require a declared reference
-   scale and make millimetre units a validation error where none exists. **Proposed:
-   the third** — a frame supplies its own scale, a live map declares one, and
-   "millimetres on paper" keeps meaning what it says. Settles before Phase 2 because it
-   decides the caching key.
-4. **Which north does `sun-azimuth` mean on a projected sheet?** (§4a, C17.) Geographic
-   north is physically true; sheet north is what relief atlases do, because constant
-   apparent illumination looks right and lighting that rotates across a plate reads as a
-   mistake. The difference is ±17° across an Albers CONUS sheet and ±4° on British
-   National Grid. Proposed: **sheet north by default, geographic as an opt-in**, applied
-   per tile through the existing `gridConvergence()`. Needed only when the warp lands,
-   but it is a cartographic call rather than a technical one, so it is worth making
-   deliberately rather than by whichever is easier to implement.
+3. *(Resolved — taken as proposed, and open to being overturned.)* **What scale do
+   millimetre transforms resolve against?** (§5 Units, C16.) The third candidate
+   shipped: a **declared reference scale**. A frame supplies its own from the georef; a
+   live map declares `reference-scale="1:50000"` (or `"50m"`, the ground metres one
+   millimetre stands for); a map with neither gets a validation error the moment a
+   transform asks for millimetres, naming the fix. The two rejected options both fail
+   quietly — freezing at the initial scale reveals over-simplified geometry on zoom-in,
+   and per-zoom-bucket re-running puts geometry work on the pan path and destroys the
+   cache key. **Ground units are the escape hatch that keeps this from being a wall:**
+   `tolerance="50m"` needs no scale and says exactly what it means, which is what makes
+   the millimetre error an error rather than an obstacle. This decision was taken
+   without maintainer input so the phase could proceed; it is cheap to reverse, because
+   the scale enters at exactly one place (`groundMetres`) and the cache key already
+   carries it.
+4. *(Resolved — taken as proposed, and open to being overturned.)* **Which north does
+   `sun-azimuth` mean on a projected sheet?** (§4a, C17.) **Sheet north by default,
+   `sun-datum="geographic"` as the opt-in.** Shading runs in the source tile's own grid,
+   where up IS geographic north, so sheet north is a per-tile rotation of the authored
+   azimuths by the grid convergence — applied where the uniforms are built, not in GLSL,
+   because it is a property of where the tile sits on the sheet rather than of a
+   fragment. Measured against the plane rather than by EPSG code
+   (`planeGridConvergence`), so a CRS registered as a bare pair of functions answers it
+   too. The swing is ±17° across Albers CONUS, ±4° on British National Grid, and exactly
+   zero in Mercator — where the attribute is therefore inert, and the validator says so.
+   Like §12.3 this was taken without maintainer input so the phase could finish; it is a
+   default flip to reverse.
 
 *Resolved since the first draft:* the buffer-library question (vendor a clipper vs
 write the narrow subset) is answered by scoping `buffer` as an ornament and building it
@@ -760,20 +949,39 @@ Two other designs are in flight against this codebase — **layer extensions**
 They were written independently and they touch this one in six places. Recording the
 interactions here so none of them is discovered by a failing gate.
 
-### 13.1 The rasterise trigger is the authored element, never deck's effect array
+### 13.1 The rasterise trigger is a post-process pass, by type
 
-The sharpest one. `CollisionFilterExtension` installs a map-level effect *by itself* —
-its `initializeState` calls deck's `_addDefaultEffect`, and deck resolves
+The sharpest one, and it has a wrong answer on each side.
+
+`CollisionFilterExtension` installs a map-level effect *by itself* — its
+`initializeState` calls deck's `_addDefaultEffect`, and deck resolves
 `userEffects.concat(defaultEffects)`. So the moment decluttering ships, **a map with no
-`<om-effect>` in it still has an effect in deck's resolved array.**
+finish at all still has an effect in deck's resolved array.** Rasterise on "deck has
+effects" and every map with decluttered labels silently exports as a bitmap — the
+vector feature disabled by an unrelated one, with no error and no notice.
 
-§6 rasterises the whole frame when an effect is present. If that test is implemented
-against deck's resolved effects, every map with decluttered labels silently exports as
-a bitmap — the vector feature quietly disabled by an unrelated one, with no error and
-no notice. The trigger is therefore the **authored `<om-effect>` element in the
-document**, and nothing else. Deck keeps its default effects in a separate list, so the
-distinction is available; it just has to be used. A test should pin it: a map with
-decluttering and no `<om-effect>` must emit vector.
+The obvious correction — "rasterise only when the document contains an `<om-effect>`
+element" — is wrong the other way. `MapController.setEffects()` takes deck `Effect`
+instances directly and outranks the document's chain while set, so a programmatic
+author supplying a genuine post-process pass would get vector output with the finish
+silently missing. Same class of failure, opposite direction.
+
+**The test is the effect's type, not its provenance.** Verified against the pin:
+`PostProcessEffect` is the only class that runs a shader pass over the finished frame,
+and `CollisionFilterEffect`, `MaskEffect` and `LightingEffect` are each standalone
+classes, none of them subclasses of it. So `instanceof PostProcessEffect` over the
+resolved chain admits exactly the cases that have no vector equivalent — the
+`<om-effect>` chain and a programmatic `setEffects` — and excludes exactly the ones that
+do: collision (the CPU declutter pass, §13.2), masks (`<clipPath>`, §13.4), and
+lighting, which shades layers rather than treating the frame.
+
+Pin it both ways: a map with decluttering and no finish must emit vector; a map whose
+only finish arrived through `setEffects` must emit a raster band.
+
+*Known edge, stated rather than engineered around:* a bespoke `Effect` passed to
+`setEffects` that post-renders without extending `PostProcessEffect` is not detected.
+Nothing the library produces does that, and the dev notice names what was emitted, so
+the failure is visible rather than silent.
 
 The same fact qualifies a sentence already shipped in the effects guide —
 `setEffects([])` no longer means "no effects run" once a decluttering layer is present.

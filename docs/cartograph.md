@@ -22,8 +22,8 @@ to PDF at true page size via CSS `@page` and exports PNG/JPEG at print DPI throu
 <html>
 <head>
   <meta charset="utf-8">
-  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.9.1/dist/cartograph.standalone.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.9.1/dist/cartograph.css">
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.10.0/dist/cartograph.standalone.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.10.0/dist/cartograph.css">
 </head>
 <body>
 <om-cartograph cartograph-id="cg-lot-12" format="cartograph/2" size="A4" theme="minimal"
@@ -400,5 +400,13 @@ and send nothing.
 
 ## Non-goals
 
-SVG export; multi-page non-atlas documents (`om-page` is reserved-inert); projections other
-than Web Mercator on **live** frames; automatic label placement.
+Multi-page non-atlas documents (`om-page` is reserved-inert); automatic label placement
+**on the GPU path** — the vector exporter runs its own deterministic CPU pass, and that
+is where candidate positions and leader lines will land.
+
+Two entries left this list in 0.10.0. **SVG export** shipped as
+`snapshot({ format: "svg" })`, and a frame freezes to inline vector with
+`freeze({ format: "svg" })`. **Projections other than Web Mercator on live frames**
+shipped as `crs` on the frame's own `<om-map>` — the frame takes its projection from the
+map it mounts, and its georeference is then an exact affine fit rather than a homography.
+See [cartography.md](cartography.md).

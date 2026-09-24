@@ -30,6 +30,10 @@
           "description": "Floor how far the user can zoom OUT. Applied to the controller, so a zoom-out past it is refused rather than clamped back. Absent = the renderer's default (0)."
         },
         {
+          "name": "reference-scale",
+          "description": "The scale millimetre-authored <om-transform> knobs resolve against — \"1:50000\", or the ground metres one millimetre of paper stands for (\"50m\"). A cartograph frame supplies its own; a live map has no sheet to ask, so millimetre knobs are a validation error without this."
+        },
+        {
           "name": "basemap",
           "description": "Basemap: a registered preset name, \"maplibre\" (demo style), a style URL, or \"none\" (standalone canvas).",
           "values": [
@@ -580,6 +584,9 @@
               "name": "TextLayer"
             },
             {
+              "name": "TextOnPathLayer"
+            },
+            {
               "name": "Tile3DLayer"
             },
             {
@@ -1056,7 +1063,7 @@
         },
         {
           "name": "get-text",
-          "description": "Accessor for deck.gl getText — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer, PopupLayer, TextLayer."
+          "description": "Accessor for deck.gl getText — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer, PopupLayer, TextLayer, TextOnPathLayer."
         },
         {
           "name": "get-text-angle",
@@ -1136,11 +1143,11 @@
         },
         {
           "name": "get-color",
-          "description": "Accessor for deck.gl getColor — expression language: $field, scale(), formatDate(), arithmetic. Valid on: IconLayer, LineLayer, PathLayer, PointCloudLayer, PopupLayer, ScenegraphLayer, SimpleMeshLayer, TextLayer, TripsLayer."
+          "description": "Accessor for deck.gl getColor — expression language: $field, scale(), formatDate(), arithmetic. Valid on: IconLayer, LineLayer, PathLayer, PointCloudLayer, PopupLayer, ScenegraphLayer, SimpleMeshLayer, TextLayer, TextOnPathLayer, TripsLayer."
         },
         {
           "name": "get-size",
-          "description": "Accessor for deck.gl getSize — expression language: $field, scale(), formatDate(), arithmetic. Valid on: IconLayer, PopupLayer, TextLayer."
+          "description": "Accessor for deck.gl getSize — expression language: $field, scale(), formatDate(), arithmetic. Valid on: IconLayer, PopupLayer, TextLayer, TextOnPathLayer."
         },
         {
           "name": "layout",
@@ -1459,12 +1466,44 @@
           "description": "deck.gl decoder. Valid on: HillshadeLayer."
         },
         {
+          "name": "sun-datum",
+          "description": "deck.gl sunDatum. Valid on: HillshadeLayer."
+        },
+        {
           "name": "blend",
           "description": "deck.gl blend. Valid on: HillshadeLayer."
         },
         {
           "name": "zoom-offset",
           "description": "deck.gl zoomOffset. Valid on: HillshadeLayer, MVTLayer, TerrainLayer, TileLayer."
+        },
+        {
+          "name": "get-path",
+          "description": "Accessor for deck.gl getPath — expression language: $field, scale(), formatDate(), arithmetic. Valid on: PathLayer, TextOnPathLayer, TripsLayer."
+        },
+        {
+          "name": "font-family",
+          "description": "deck.gl fontFamily. Valid on: TextLayer, TextOnPathLayer."
+        },
+        {
+          "name": "font-weight",
+          "description": "deck.gl fontWeight. Valid on: TextLayer, TextOnPathLayer."
+        },
+        {
+          "name": "letter-spacing",
+          "description": "deck.gl letterSpacing. Valid on: TextOnPathLayer."
+        },
+        {
+          "name": "offset",
+          "description": "deck.gl offset. Valid on: ColumnLayer, GridCellLayer, TextOnPathLayer."
+        },
+        {
+          "name": "placement",
+          "description": "deck.gl placement. Valid on: TextOnPathLayer."
+        },
+        {
+          "name": "max-labels",
+          "description": "deck.gl maxLabels. Valid on: TextOnPathLayer."
         },
         {
           "name": "get-source-position",
@@ -1535,10 +1574,6 @@
           "description": "deck.gl angle. Valid on: ColumnLayer, GridCellLayer."
         },
         {
-          "name": "offset",
-          "description": "deck.gl offset. Valid on: ColumnLayer, GridCellLayer."
-        },
-        {
           "name": "coverage",
           "description": "deck.gl coverage. Valid on: ColumnLayer, GridCellLayer, GridLayer, H3HexagonLayer, HexagonLayer."
         },
@@ -1583,10 +1618,6 @@
           "description": "deck.gl _pathType. Valid on: PathLayer, TripsLayer."
         },
         {
-          "name": "get-path",
-          "description": "Accessor for deck.gl getPath — expression language: $field, scale(), formatDate(), arithmetic. Valid on: PathLayer, TripsLayer."
-        },
-        {
           "name": "get-normal",
           "description": "Accessor for deck.gl getNormal — expression language: $field, scale(), formatDate(), arithmetic. Valid on: PointCloudLayer."
         },
@@ -1625,14 +1656,6 @@
         {
           "name": "character-set",
           "description": "deck.gl characterSet. Valid on: TextLayer."
-        },
-        {
-          "name": "font-family",
-          "description": "deck.gl fontFamily. Valid on: TextLayer."
-        },
-        {
-          "name": "font-weight",
-          "description": "deck.gl fontWeight. Valid on: TextLayer."
         },
         {
           "name": "line-height",
@@ -1925,6 +1948,133 @@
         {
           "name": "_instanced",
           "description": "deck.gl _instanced. Valid on: SimpleMeshLayer."
+        }
+      ]
+    },
+    {
+      "name": "om-transform",
+      "description": "A geometry transform on its parent <om-layer>'s line or polygon data — geometry the source doesn't contain. Runs in the data stage, so deck, anchor=\"surface\", the legend and the vector export all see the same shape. Document order is chain order. Spatial knobs are millimetres on paper, resolved against <om-map reference-scale>; ground units (m, km, ft) need no scale.",
+      "attributes": [
+        {
+          "name": "type",
+          "description": "Which transform.",
+          "values": [
+            {
+              "name": "simplify"
+            },
+            {
+              "name": "smooth"
+            },
+            {
+              "name": "dot-density"
+            },
+            {
+              "name": "buffer"
+            },
+            {
+              "name": "contour"
+            }
+          ]
+        },
+        {
+          "name": "tolerance",
+          "description": "simplify: Douglas-Peucker tolerance, e.g. \"0.15mm\" (paper) or \"50m\" (ground). No vertex moves further than this."
+        },
+        {
+          "name": "iterations",
+          "description": "smooth: Chaikin corner-cutting passes, 0-6. One removes the straight-segment look; past three the shape stops being the shape.",
+          "values": [
+            {
+              "name": "1"
+            },
+            {
+              "name": "2"
+            },
+            {
+              "name": "3"
+            }
+          ]
+        },
+        {
+          "name": "distance",
+          "description": "buffer: band width, e.g. \"1.2mm\" (paper) or \"500m\" (ground). Negative buffers inward. A cartographic ornament — grid-accurate, not an exact setback."
+        },
+        {
+          "name": "repeat",
+          "description": "buffer: how many bands, 1-12. Each is another threshold of ONE distance field, so five bands cost no more than one. Five with fade is the engraved shoreline of an old chart."
+        },
+        {
+          "name": "fade",
+          "description": "buffer: fade the bands' opacity outward, as a _bandOpacity property each feature carries. Needs repeat> 1."
+        },
+        {
+          "name": "quality",
+          "description": "buffer: cells across one band width (default 8). The whole error budget is one cell; raising it costs memory quadratically for accuracy linearly."
+        },
+        {
+          "name": "letter-spacing",
+          "description": "TextOnPathLayer: extra tracking between glyphs, in pixels. Letter-spaced names are a cartographic convention — an ocean or a range is conventionally tracked out across its own extent."
+        },
+        {
+          "name": "placement",
+          "description": "TextOnPathLayer: where along the line the label sits.",
+          "values": [
+            {
+              "name": "start"
+            },
+            {
+              "name": "middle"
+            },
+            {
+              "name": "end"
+            }
+          ]
+        },
+        {
+          "name": "max-labels",
+          "description": "TextOnPathLayer: ceiling on emitted glyphs, so one enormous label set cannot wedge a frame."
+        },
+        {
+          "name": "src",
+          "description": "contour: DEM source — a terrain preset (\"terrarium\") or a {z}/{x}/{y} template."
+        },
+        {
+          "name": "bounds",
+          "description": "contour: the extent to contour, \"[west,south,east,north]\". DECLARED, not taken from the camera — a transform runs once at ingest, and a camera changes on every pan."
+        },
+        {
+          "name": "interval",
+          "description": "contour: vertical spacing between lines, e.g. \"100m\". A ground height, never paper millimetres — an elevation is not on the page."
+        },
+        {
+          "name": "zoom",
+          "description": "contour: DEM tile zoom (default 10). Higher is sharper and quadratically more tiles."
+        },
+        {
+          "name": "decoder",
+          "description": "contour: elevation encoding for a raw tile URL — \"terrarium\" or \"mapbox-rgb\". Implied by a preset."
+        },
+        {
+          "name": "field",
+          "description": "dot-density: the row property holding the count to scatter."
+        },
+        {
+          "name": "per",
+          "description": "dot-density: units of that field per dot, e.g. per=\"1000\" for one dot per thousand people."
+        },
+        {
+          "name": "seed",
+          "description": "dot-density: scatter seed. Fixed by default, so a recorded story and a live map place the same dots."
+        },
+        {
+          "name": "max",
+          "description": "dot-density: ceiling on dots per feature (default 20000), so one bad row cannot emit a million points."
+        }
+      ],
+      "references": [
+        {
+          "name": "README",
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/README.md"
         }
       ]
     },
