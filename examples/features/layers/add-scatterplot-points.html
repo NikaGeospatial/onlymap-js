@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<!--
+  Points from a JSON file, sized and coloured by their own fields.
+  ScatterplotLayer is the layer to reach for whenever your rows are places.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Add scatterplot points</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-96, 38.5]" zoom="3.6" basemap="positron">
+
+    <!-- Two accessors do the work. get-radius scales population with sqrt, so
+         area reads as the value rather than the radius. get-fill-color is a
+         ternary chain on a text field — the legend turns that shape into a
+         category palette on its own.
+
+         radius-units="pixels" matters: deck.gl's default radius is 1 METRE,
+         which is sub-pixel at this zoom and renders nothing visible. -->
+         
+    <om-layer id="cities" type="ScatterplotLayer"
+              data="../../data/us-cities.json"
+              label="US metro areas" color="#2563eb"
+              get-position="[$lon, $lat]"
+              get-radius="scale($population, sqrt, [4, 26], domain=[0, 19])"
+              get-fill-color="$region == 'West' ? '#0ea5e9'
+                            : $region == 'South' ? '#f59e0b'
+                            : $region == 'Midwest' ? '#10b981'
+                            : '#8b5cf6'"
+              radius-units="pixels"
+              opacity="0.85"
+              stroked
+              get-line-color="[255, 255, 255]"
+              line-width-min-pixels="1"
+              pickable></om-layer>
+
+    <om-widget type="legend" title="Region" position="top-right"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <om-overlay id="detail" anchor-from="selection" visible="false">
+      <style>
+        .card { background: #fff; padding: 8px 12px; border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,.2); font-size: 13px; white-space: nowrap; }
+        .card em { color: #64748b; font-style: normal; }
+      </style>
+      <div class="card">
+        <strong>{{name}}</strong><br />
+        {{population}}M people <em>· {{region}}</em>
+      </div>
+    </om-overlay>
+    <om-behavior on="click" layer="cities" action="show-overlay" target="detail"></om-behavior>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

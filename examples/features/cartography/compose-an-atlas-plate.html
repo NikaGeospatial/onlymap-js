@@ -1,0 +1,228 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Compose an atlas plate — OnlyMapJS</title>
+<meta name="description" content="A projected A3 plate: Albers Equal Area, shaded relief warped into the plane, an engraved coastal vignette from one distance field, and a vector export that stays editable.">
+<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.10.0/dist/cartograph.standalone.js"></script>
+<style>
+  :root {
+    --paper: #f4efe4;
+    --ink: #1d1a15;
+    --rule: #b9ae99;
+    --accent: #8c3b2f;
+  }
+  body { margin: 0; background: #2b2722; padding: 20px; font: 13px/1.55 ui-sans-serif, system-ui, sans-serif; color: #e8e2d6; }
+  .toolbar { display: flex; gap: 8px; align-items: center; margin: 0 auto 16px; flex-wrap: wrap; max-width: 420mm; }
+  .toolbar button { font: inherit; padding: 7px 14px; border: 1px solid #4b443c; border-radius: 7px; background: #3a342d; color: #f0eade; cursor: pointer; }
+  .toolbar button:hover { background: #494138; }
+  .toolbar button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .hint { color: #a89f90; }
+  #status { color: #d8c9a8; font-variant-numeric: tabular-nums; }
+  om-cartograph { box-shadow: 0 10px 50px rgba(0,0,0,.5); margin: 0 auto; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button id="svg" class="primary">Export SVG (vector)</button>
+  <button id="freeze">Freeze frame to vector</button>
+  <button id="png">Export PNG (300 dpi)</button>
+  <button id="print">Print / PDF</button>
+  <span class="hint">Albers Equal Area · relief warped into the plane · vignette from one distance field</span>
+  <span id="status"></span>
+</div>
+
+<om-cartograph id="sheet" cartograph-id="cg-atlas" format="cartograph/2" size="A3" orientation="landscape"
+               theme="minimal" title="The Contiguous United States"
+               attribution="Relief: Terrarium DEM · Outlines: Natural Earth"
+               dpi="300" color-profile="sRGB">
+
+  <om-text id="title" kind="title" x="18" y="12" w="240" h="14">{{title}}</om-text>
+  <om-text id="sub" x="18" y="26" w="240" h="7" font-size="9">Albers Equal Area · {{frame.main.crs}} · scale 1:{{frame.main.scale}} at A3</om-text>
+
+  <!--
+    The main plate. `crs` on the <om-map> puts the whole renderer in the Albers
+    plane: parallels curve, the projection is equal-area, and the relief below
+    is re-indexed from the plane's own geography and drawn as subdivided meshes.
+    `reference-scale` is what the millimetre-authored transforms resolve against.
+  -->
+  <om-frame id="main" x="18" y="38" w="270" h="200"
+            center="[-96.8, 38.6]" zoom="3.78"
+            style="left:18mm;top:38mm;width:270mm;height:200mm">
+    <om-map crs="EPSG:5070" reference-scale="1:6500000" center="[0,0]" zoom="2"
+            basemap="none" data-om-recording style="background:#c9d8dd">
+
+      <!--
+        RELIEF FIRST. Mercator DEM tiles, re-indexed from the plane's own
+        geography and drawn as subdivided warped meshes — sub-pixel at this
+        zoom. `sun-datum="sheet"` keeps the apparent light constant across the
+        plate: geographic north swings 34 degrees from one edge of a CONUS
+        sheet to the other, and light that rotates reads as a mistake.
+      -->
+      <om-layer id="relief" type="HillshadeLayer" label="Shaded relief" color="#9b968d"
+                src="terrarium" sun-azimuth="315 20 135" sun-weight="0.6 0.25 0.15"
+                sun-elevation="38" sun-datum="sheet" z-factor="2.1"
+                opacity="1" max-zoom="9" zoom-offset="-1"></om-layer>
+
+      <!--
+        THE COASTAL VIGNETTE. Five bands from ONE signed distance field, faded
+        outward — the engraved shoreline of a nineteenth-century chart. Each
+        band is another threshold of the same field rather than another offset
+        operation, so five cost what one does.
+      -->
+      <om-layer id="vignette" type="GeoJsonLayer" label="Coastal vignette" color="#7d9bad"
+                filled stroked="false"
+                get-fill-color="[125,155,173, $_bandOpacity * 165]"
+                data="../../data/world-countries.geojson">
+        <om-transform type="simplify" tolerance="0.25mm"></om-transform>
+        <om-transform type="buffer" distance="0.9mm" repeat="5" fade></om-transform>
+      </om-layer>
+
+      <!--
+        The land wash, laid OVER the relief and translucent, so the terrain
+        reads through it as warmth rather than being hidden by it. Simplified
+        to the page's own resolution first, then smoothed once — one Chaikin
+        pass is the difference between a coastline and a chain of straight
+        segments, which is the loudest "web map" tell there is.
+      -->
+      <om-layer id="land" type="GeoJsonLayer" label="Land" color="#e6d9bd"
+                filled stroked get-fill-color="[226,206,166,88]"
+                get-line-color="[64,54,42,225]" line-width-min-pixels="0.75"
+                data="../../data/world-countries.geojson">
+        <om-transform type="simplify" tolerance="0.18mm"></om-transform>
+        <om-transform type="smooth" iterations="2"></om-transform>
+      </om-layer>
+
+      <!--
+        CURVED TEXT. A label that follows the line it names — the oldest label
+        convention there is, and one deck has no layer for. One glyph per text
+        instance, each rotated to the local tangent; the SVG export turns the
+        same path and string into a single `<textPath>`, so the file carries
+        one editable word attached to the river rather than nine rotated
+        characters.
+      -->
+      <om-layer id="river-names" type="TextOnPathLayer" label="Rivers"
+                get-path="$path" get-text="$name" get-size="10"
+                get-color="[52,84,112]" font-family="ui-serif, Georgia, serif"
+                font-weight="600" letter-spacing="1.4" offset="5">
+        <script type="application/json">[
+  {"name":"Mississippi River","path":[[-95.2,46.6],[-93.9,44.9],[-91.2,43.5],[-90.2,38.9],[-89.4,36.6],[-90.9,32.3],[-91.2,30.1]]},
+  {"name":"Missouri River","path":[[-111.5,45.9],[-107.0,47.6],[-101.4,47.1],[-96.4,42.5],[-94.6,39.1],[-90.2,38.8]]},
+  {"name":"Rio Grande","path":[[-106.6,35.1],[-106.5,31.8],[-104.7,29.4],[-101.4,29.8],[-99.1,26.4],[-97.4,25.9]]},
+  {"name":"Colorado River","path":[[-106.0,40.5],[-109.5,38.5],[-111.5,36.9],[-114.0,35.1],[-114.6,32.7]]},
+  {"name":"Ohio River","path":[[-80.0,40.4],[-82.5,38.7],[-86.1,37.9],[-88.6,37.1],[-89.1,36.9]]}
+]</script>
+      </om-layer>
+
+      <om-layer id="range-names" type="TextOnPathLayer" label="Ranges"
+                get-path="$path" get-text="$name" get-size="12"
+                get-color="[92,66,44]" font-family="ui-serif, Georgia, serif"
+                font-weight="600" letter-spacing="5" offset="0">
+        <script type="application/json">[
+  {"name":"ROCKY MOUNTAINS","path":[[-113.8,48.2],[-111.5,44.5],[-109.6,40.8],[-107.2,37.6],[-106.4,35.4]]},
+  {"name":"APPALACHIAN MOUNTAINS","path":[[-78.0,43.4],[-79.4,40.4],[-81.9,37.2],[-84.2,34.9],[-85.6,33.4]]},
+  {"name":"SIERRA NEVADA","path":[[-120.8,40.2],[-119.9,38.3],[-118.4,36.6]]}
+]</script>
+      </om-layer>
+
+      <om-layer id="cities" type="ScatterplotLayer" label="Major cities" color="#8c3b2f"
+                get-position="[$lon,$lat]" get-radius="3.2" radius-units="pixels"
+                get-fill-color="[140,59,47]" stroked get-line-color="[244,239,228]"
+                line-width-min-pixels="1"
+                data="../../data/us-cities.json"></om-layer>
+
+      <om-layer id="city-labels" type="TextLayer" label="City names" color="#1d1a15"
+                get-position="[$lon,$lat]" get-text="$name"
+                get-size="11" get-color="[29,26,21]"
+                get-pixel-offset="[0,-11]"
+                font-family="ui-serif, Georgia, serif"
+                data="../../data/us-cities.json"></om-layer>
+    </om-map>
+  </om-frame>
+
+  <om-graticule id="grid" for="main" x="18" y="38" w="270" h="200"
+                interval="5" kind="dashed" labels="outside" format="decimal"
+                style="left:18mm;top:38mm;width:270mm;height:200mm"></om-graticule>
+
+  <!--
+    DETAIL INSET: contours marched straight off the DEM. Not deck's ContourLayer,
+    which contours point density — this is marching squares over a real elevation
+    grid, so the lines are polylines and project exactly. The extent is DECLARED,
+    because a transform runs once at ingest and a camera changes on every pan.
+  -->
+  <om-frame id="detail" x="296" y="38" w="82" h="70"
+            center="[-105.68, 39.62]" zoom="9.1" overview-of="main" overview-stroke="#8c3b2f"
+            style="left:296mm;top:38mm;width:82mm;height:70mm">
+    <om-map center="[0,0]" zoom="2" basemap="none" data-om-recording style="background:#efe8da">
+      <om-layer id="detail-relief" type="HillshadeLayer" label="Relief"
+                src="terrarium" sun-azimuth="315" sun-elevation="45"
+                z-factor="1.1" opacity="0.85" max-zoom="12"></om-layer>
+      <om-layer id="contours" type="GeoJsonLayer" label="Contours (100 m)" color="#5c4a34"
+                get-line-color="[92,74,52, $index ? 210 : 120]"
+                get-line-width="$index ? 1.6 : 0.8" line-width-units="pixels">
+        <om-transform type="contour" src="terrarium" zoom="10"
+                      bounds="[-105.95,39.42,-105.38,39.82]" interval="100m"></om-transform>
+      </om-layer>
+    </om-map>
+  </om-frame>
+  <om-text id="detail-cap" x="296" y="109" w="82" h="9" font-size="7">Front Range detail — 100 m contours marched from the DEM. Index lines every 500 m.</om-text>
+
+  <om-legend id="legend" for="main" x="296" y="122" w="82" h="54" title="Legend"></om-legend>
+
+  <om-text id="method" x="296" y="180" w="82" h="40" font-size="7">River and range names follow their own lines — one glyph per text instance on screen, one editable &lt;textPath&gt; in the SVG export. Relief is shaded in each tile's own grid and warped into the Albers plane afterwards, so the derivative never sees a resampler. The coastal vignette is five thresholds of one signed distance field: measured error 0.042 mm at 300 dpi, and structurally unable to self-intersect.</om-text>
+
+  <om-shape id="keyline" kind="rect" x="18" y="38" w="270" h="200" fill="none" stroke="#1d1a15" stroke-width="0.4"
+            style="left:18mm;top:38mm;width:270mm;height:200mm"></om-shape>
+
+  <om-scalebar id="bar" for="main" x="18" y="244" w="90" h="11" kind="double" units="metric" segments="4"
+               style="left:18mm;top:244mm;width:90mm;height:11mm"></om-scalebar>
+  <om-north id="north" for="main" x="262" y="242" w="18" h="20" kind="rose"
+            style="left:262mm;top:242mm;width:18mm;height:20mm"></om-north>
+
+  <om-text id="credit" kind="attribution" x="120" y="250" w="170" h="6" font-size="7">{{attribution}} · composed with @nika-js/onlymap</om-text>
+</om-cartograph>
+
+<script type="module">
+  const page = document.querySelector("om-cartograph");
+  const status = document.getElementById("status");
+  const say = (text) => { status.textContent = text; };
+
+  const download = (blobOrText, name, type) => {
+    const blob = typeof blobOrText === "string" ? new Blob([blobOrText], { type }) : blobOrText;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  document.getElementById("svg").addEventListener("click", async () => {
+    say("serialising…");
+    const map = document.querySelector("#main om-map");
+    const notices = [];
+    const svg = await map.snapshot({ format: "svg", onNotice: (n) => notices.push(n) });
+    download(svg, "atlas-plate.svg", "image/svg+xml");
+    const shapes = (svg.match(/<(path|circle|text)\b/g) || []).length;
+    say(`${shapes} editable shapes${notices.length ? ` · ${notices[0].message}` : " · no raster band"}`);
+  });
+
+  document.getElementById("freeze").addEventListener("click", async () => {
+    say("freezing…");
+    const frame = document.getElementById("main");
+    const ok = await frame.freeze({ format: "svg" });
+    say(ok ? "frozen — the frame is now inline vector, placed by its own corners" : "not ready to freeze yet");
+  });
+
+  document.getElementById("png").addEventListener("click", async () => {
+    say("rendering 300 dpi…");
+    const { renderCartograph } = await import("https://unpkg.com/@nika-js/onlymap@0.10.0/dist/cartograph.standalone.js");
+    const { blob, widthPx, heightPx } = await renderCartograph(page, { dpi: 300 });
+    download(blob, "atlas-plate.png");
+    say(`${widthPx} × ${heightPx} px`);
+  });
+
+  document.getElementById("print").addEventListener("click", () => page.print());
+</script>
+</body>
+</html>

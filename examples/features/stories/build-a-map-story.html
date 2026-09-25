@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<!--
+  A story turns a map into a guided tour. `<om-story>` is a SIBLING of the
+  scene, not a wrapper: it names a timeline of steps, and each step fires the
+  same action a behavior or a button would fire. Delete the story and the map
+  is byte-for-byte the same map — which is what makes a tour something you add
+  to a finished map rather than something you build the map around.
+
+  Reach for it when a map has an order to it: an argument, a walkthrough, a
+  product tour. Anything a reader would otherwise have to be told to click.
+
+  The tour: three districts trace themselves on together, a card over each reads
+  that feature's own attributes, the camera flies to each in turn while the
+  markup that moved it is shown beside it, then the polygons clear and a
+  thousand bike racks drop in one by one. Press ▶ (bottom left), or drag the
+  scrubber to any point — a story is seekable, not just playable.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Build a map story</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    /* Custom properties inherit THROUGH shadow roots where selectors cannot,
+       so one block here themes every built-in widget and every overlay card
+       below — the cards only name the tokens, never the colours. */
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #14161c;
+      --om-widget-fg: #f8fafc;
+      --om-widget-muted: #8b93a7;
+      --om-widget-border: #2c3040;
+      --om-widget-hover-bg: #22262f;
+      --om-widget-accent: #22d3ee;
+
+      --card-bg: #14161c;
+      --card-fg: #f8fafc;
+      --card-muted: #8b93a7;
+      --card-border: #2c3040;
+      --card-accent: #22d3ee;
+      --card-shadow: 0 12px 38px rgba(0, 0, 0, .62);
+      --code-bg: #0b0e14;
+      --c-tag: #7dd3fc; --c-attr: #c4b5fd; --c-val: #86efac; --c-key: #fbbf24;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- The opening frame holds all three polygons; the tour returns to it. -->
+  <om-map center="[-122.45, 37.773]" zoom="11.3" basemap="dark-matter">
+
+    <!-- Both layers start hidden, so the story opens on a bare basemap and
+         every reveal belongs to a step. `trace` draws a polygon on along its
+         own outline; `populate` drops a point layer in one marker at a time. -->
+    <om-layer id="regions" type="GeoJsonLayer"
+                data="../../data/sf-districts.geojson"
+                label="SF districts" color="#22d3ee"
+                filled stroked pickable visible="false"
+                get-fill-color="[34, 211, 238, 70]"
+                get-line-color="[103, 232, 249]"
+                line-width-min-pixels="2"></om-layer>
+
+    <om-layer id="bikes" type="ScatterplotLayer"
+                data="../../data/bikes.json"
+                label="Bike racks" color="#fbbf24" visible="false"
+                get-position="[$lon, $lat]"
+                get-radius="scale($size, sqrt, [3, 30], domain=[0, 100])"
+                radius-units="pixels" pickable></om-layer>
+
+    <!-- Anchored to a coordinate: this card belongs to the whole set, not to
+         one polygon, so it takes a lng/lat rather than a feature. -->
+    <om-overlay id="chapter" anchor="[-122.45, 37.80]" visible="false" anchor-offset="bottom-center">
+      <style>
+        .card { display:grid; grid-template-columns:minmax(155px,.8fr) minmax(255px,1.2fr); gap:14px; align-items:center;
+                width:min(520px,calc(100vw - 56px)); box-sizing:border-box; background:var(--card-bg); color:var(--card-fg);
+                border:1px solid var(--card-border); border-radius:12px; padding:14px 16px;
+                box-shadow:var(--card-shadow); font:13px system-ui,sans-serif; }
+        .card h3 { margin:0 0 4px; font-size:14px; color:var(--card-accent); }
+        pre { margin:0; padding:10px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:var(--code-bg); border:1px solid var(--card-border);
+              font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .tag{color:var(--c-tag)} .attr{color:var(--c-attr)} .value{color:var(--c-val)} .key{color:var(--c-key);font-weight:700}
+        @media (max-width:700px){ .card{grid-template-columns:1fr;width:min(340px,calc(100vw - 32px))} }
+      </style>
+      <div class="card">
+        <div>
+          <h3>The districts</h3>
+          Three districts, drawn from plain GeoJSON. Watch each one trace itself on.
+        </div>
+        <pre><code><span class="tag">&lt;om-step</span>
+  <span class="attr">duration</span>=<span class="value">"3s"</span> <span class="key">trace</span>
+  <span class="attr">layer</span>=<span class="value">"regions"</span>
+  <span class="attr">feature-id</span>=<span class="value">"north-beach"</span><span class="tag">&gt;&lt;/om-step&gt;</span></code></pre>
+      </div>
+    </om-overlay>
+
+    <!-- Anchored to a FEATURE instead of a coordinate: name the layer and the
+         feature id and the card follows that polygon's own geometry, so it
+         stays put through every camera move. {{field}} pulls from the same
+         feature's properties and is HTML-escaped. -->
+    <om-overlay id="detail-north-beach" anchor-layer="regions" anchor-feature-id="north-beach" visible="false" anchor-offset="center">
+      <style>
+        .card { background:var(--card-bg); color:var(--card-fg); border:1px solid var(--card-border);
+                border-radius:12px; padding:13px 16px; min-width:190px; box-shadow:var(--card-shadow);
+                font:13px system-ui,sans-serif; }
+        .card h3 { margin:0 0 7px; font-size:14px; color:var(--card-accent); }
+        .row { display:flex; justify-content:space-between; gap:16px; margin-top:3px; color:var(--card-muted); }
+        .row span:last-child { color:var(--card-fg); font-variant-numeric:tabular-nums; font-weight:600; }
+      </style>
+      <div class="card">
+        <h3>{{name}}</h3>
+        <div class="row"><span>Population</span><span>{{population}}</span></div>
+        <div class="row"><span>Area</span><span>{{area_km2}} km²</span></div>
+        <div class="row"><span>Founded</span><span>{{founded}}</span></div>
+      </div>
+    </om-overlay>
+    <om-overlay id="detail-mission" anchor-layer="regions" anchor-feature-id="mission" visible="false" anchor-offset="center">
+      <style>
+        .card { background:var(--card-bg); color:var(--card-fg); border:1px solid var(--card-border);
+                border-radius:12px; padding:13px 16px; min-width:190px; box-shadow:var(--card-shadow);
+                font:13px system-ui,sans-serif; }
+        .card h3 { margin:0 0 7px; font-size:14px; color:var(--card-accent); }
+        .row { display:flex; justify-content:space-between; gap:16px; margin-top:3px; color:var(--card-muted); }
+        .row span:last-child { color:var(--card-fg); font-variant-numeric:tabular-nums; font-weight:600; }
+      </style>
+      <div class="card">
+        <h3>{{name}}</h3>
+        <div class="row"><span>Population</span><span>{{population}}</span></div>
+        <div class="row"><span>Area</span><span>{{area_km2}} km²</span></div>
+        <div class="row"><span>Founded</span><span>{{founded}}</span></div>
+      </div>
+    </om-overlay>
+    <om-overlay id="detail-sunset" anchor-layer="regions" anchor-feature-id="sunset" visible="false" anchor-offset="center">
+      <style>
+        .card { background:var(--card-bg); color:var(--card-fg); border:1px solid var(--card-border);
+                border-radius:12px; padding:13px 16px; min-width:190px; box-shadow:var(--card-shadow);
+                font:13px system-ui,sans-serif; }
+        .card h3 { margin:0 0 7px; font-size:14px; color:var(--card-accent); }
+        .row { display:flex; justify-content:space-between; gap:16px; margin-top:3px; color:var(--card-muted); }
+        .row span:last-child { color:var(--card-fg); font-variant-numeric:tabular-nums; font-weight:600; }
+      </style>
+      <div class="card">
+        <h3>{{name}}</h3>
+        <div class="row"><span>Population</span><span>{{population}}</span></div>
+        <div class="row"><span>Area</span><span>{{area_km2}} km²</span></div>
+        <div class="row"><span>Founded</span><span>{{founded}}</span></div>
+      </div>
+    </om-overlay>
+
+    <om-overlay id="points-card" anchor="[-122.45, 37.80]" visible="false" anchor-offset="bottom-center">
+      <style>
+        .card { display:grid; grid-template-columns:minmax(155px,.8fr) minmax(255px,1.2fr); gap:14px; align-items:center;
+                width:min(520px,calc(100vw - 56px)); box-sizing:border-box; background:var(--card-bg); color:var(--card-fg);
+                border:1px solid var(--card-border); border-radius:12px; padding:14px 16px;
+                box-shadow:var(--card-shadow); font:13px system-ui,sans-serif; }
+        .card h3 { margin:0 0 4px; font-size:14px; color:var(--card-accent); }
+        pre { margin:0; padding:10px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:var(--code-bg); border:1px solid var(--card-border);
+              font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .tag{color:var(--c-tag)} .attr{color:var(--c-attr)} .value{color:var(--c-val)} .key{color:var(--c-key);font-weight:700}
+        @media (max-width:700px){ .card{grid-template-columns:1fr;width:min(340px,calc(100vw - 32px))} }
+      </style>
+      <div class="card">
+        <div>
+          <h3>Point layers too</h3>
+          A point layer can be populated in — each rack drops onto the map one by one.
+        </div>
+        <pre><code><span class="tag">&lt;om-step</span>
+  <span class="attr">duration</span>=<span class="value">"3s"</span> <span class="key">populate</span>
+  <span class="attr">layer</span>=<span class="value">"bikes"</span> <span class="key">parallel</span><span class="tag">&gt;&lt;/om-step&gt;</span></code></pre>
+      </div>
+    </om-overlay>
+
+    <!-- These cards show the markup that is moving the camera while it moves,
+         which is the fastest way to read a story: the step on the left of the
+         screen is the step running on the right. -->
+    <om-overlay id="camera-control-card" anchor-layer="regions" anchor-feature-id="north-beach"
+                visible="false" anchor-offset="bottom-center">
+      <style>
+        .card { display:grid; grid-template-columns:minmax(165px,.8fr) minmax(270px,1.2fr); gap:14px; align-items:center;
+                width:min(540px,calc(100vw - 56px)); box-sizing:border-box; background:var(--card-bg); color:var(--card-fg);
+                border:1px solid var(--card-border); border-radius:12px; padding:14px 16px;
+                box-shadow:var(--card-shadow); font:13px system-ui,sans-serif; }
+        .card h3 { margin:0 0 4px; font-size:14px; color:var(--card-accent); }
+        pre { margin:0; padding:10px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:var(--code-bg); border:1px solid var(--card-border);
+              font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .tag{color:var(--c-tag)} .attr{color:var(--c-attr)} .value{color:var(--c-val)} .key{color:var(--c-key);font-weight:700}
+        @media (max-width:700px){ .card{grid-template-columns:1fr;width:min(340px,calc(100vw - 32px))} }
+      </style>
+      <div class="card">
+        <div>
+          <h3>Camera control</h3>
+          Name a feature and the camera frames it — no coordinates, no zoom maths.
+        </div>
+        <pre><code><span class="tag">&lt;om-step</span>
+  <span class="attr">action</span>=<span class="key">"zoom-to-feature"</span>
+  <span class="attr">layer</span>=<span class="value">"regions"</span>
+  <span class="attr">feature-id</span>=<span class="value">"north-beach"</span>
+  <span class="key">curve</span><span class="tag">&gt;&lt;/om-step&gt;</span></code></pre>
+      </div>
+    </om-overlay>
+
+    <om-overlay id="viewing-angle-card" anchor-layer="regions" anchor-feature-id="north-beach"
+                visible="false" anchor-offset="bottom-center">
+      <style>
+        .card { display:grid; grid-template-columns:minmax(145px,.7fr) minmax(280px,1.3fr); gap:14px; align-items:center;
+                width:min(540px,calc(100vw - 56px)); box-sizing:border-box; background:var(--card-bg); color:var(--card-fg);
+                border:1px solid var(--card-border); border-radius:12px; padding:14px 16px;
+                box-shadow:var(--card-shadow); font:13px system-ui,sans-serif; }
+        .card h3 { margin:0 0 4px; font-size:14px; color:var(--card-accent); }
+        pre { margin:0; padding:10px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:var(--code-bg); border:1px solid var(--card-border);
+              font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .tag{color:var(--c-tag)} .attr{color:var(--c-attr)} .value{color:var(--c-val)} .key{color:var(--c-key);font-weight:700}
+        @media (max-width:700px){ .card{grid-template-columns:1fr;width:min(340px,calc(100vw - 32px))} }
+      </style>
+      <div class="card">
+        <div>
+          <h3>Camera angles</h3>
+          Tilt with `pitch`, swivel with `bearing` — positive turns east, negative west.
+        </div>
+        <pre><code><span class="tag">&lt;om-step</span>
+  <span class="attr">action</span>=<span class="key">"fly-to"</span>
+  <span class="attr">pitch</span>=<span class="value">"45"</span>
+  <span class="attr">bearing</span>=<span class="value">"<span data-live-bearing>0</span>"</span><span class="tag">&gt;&lt;/om-step&gt;</span></code></pre>
+      </div>
+    </om-overlay>
+
+    <!-- A transform on the card shifts it clear of the polygon it is anchored
+         to, so the destination stays visible while the card explains it. -->
+    <om-overlay id="camera-smoothing-mission" anchor-layer="regions" anchor-feature-id="mission"
+                visible="false" anchor-offset="center">
+      <style>
+        .card { transform:translate(min(380px,30vw),100px); display:grid; grid-template-columns:minmax(140px,.8fr) minmax(220px,1.2fr);
+                gap:14px; align-items:center;
+                width:min(470px,calc(100vw - 64px)); box-sizing:border-box; background:var(--card-bg); color:var(--card-fg);
+                border:1px solid var(--card-border); border-radius:12px; padding:14px 16px;
+                box-shadow:var(--card-shadow); font:13px system-ui,sans-serif; }
+        pre { margin:0; padding:10px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:var(--code-bg); border:1px solid var(--card-border);
+              font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .tag{color:var(--c-tag)} .attr{color:var(--c-attr)} .value{color:var(--c-val)} .key{color:var(--c-key);font-weight:700}
+      </style>
+      <div class="card">
+        <div>Easing is handled for you — `curve` arcs the move out and back in.</div>
+        <pre><code><span class="tag">&lt;om-step</span>
+  <span class="attr">duration</span>=<span class="value">"2500ms"</span>
+  <span class="attr">action</span>=<span class="key">"zoom-to-feature"</span>
+  <span class="attr">feature-id</span>=<span class="value">"mission"</span> <span class="key">curve</span><span class="tag">&gt;&lt;/om-step&gt;</span></code></pre>
+      </div>
+    </om-overlay>
+
+    <om-overlay id="camera-smoothing-sunset" anchor-layer="regions" anchor-feature-id="sunset"
+                visible="false" anchor-offset="center">
+      <style>
+        .card { transform:translate(max(-380px,-30vw),100px); display:grid; grid-template-columns:minmax(140px,.8fr) minmax(220px,1.2fr);
+                gap:14px; align-items:center;
+                width:min(470px,calc(100vw - 64px)); box-sizing:border-box; background:var(--card-bg); color:var(--card-fg);
+                border:1px solid var(--card-border); border-radius:12px; padding:14px 16px;
+                box-shadow:var(--card-shadow); font:13px system-ui,sans-serif; }
+        pre { margin:0; padding:10px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:var(--code-bg); border:1px solid var(--card-border);
+              font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .tag{color:var(--c-tag)} .attr{color:var(--c-attr)} .value{color:var(--c-val)} .key{color:var(--c-key);font-weight:700}
+      </style>
+      <div class="card">
+        <div>Easing is handled for you — `curve` arcs the move out and back in.</div>
+        <pre><code><span class="tag">&lt;om-step</span>
+  <span class="attr">duration</span>=<span class="value">"2500ms"</span>
+  <span class="attr">action</span>=<span class="key">"zoom-to-feature"</span>
+  <span class="attr">feature-id</span>=<span class="value">"sunset"</span> <span class="key">curve</span><span class="tag">&gt;&lt;/om-step&gt;</span></code></pre>
+      </div>
+    </om-overlay>
+
+    <om-overlay id="layers-hidden-card" anchor="[-122.45, 37.80]"
+                visible="false" anchor-offset="bottom-center">
+      <style>
+        .card { display:grid; grid-template-columns:minmax(155px,.8fr) minmax(255px,1.2fr); gap:14px; align-items:center;
+                width:min(520px,calc(100vw - 56px)); box-sizing:border-box; background:var(--card-bg); color:var(--card-fg);
+                border:1px solid var(--card-border); border-radius:12px; padding:14px 16px;
+                box-shadow:var(--card-shadow); font:13px system-ui,sans-serif; }
+        pre { margin:0; padding:10px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:var(--code-bg); border:1px solid var(--card-border);
+              font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .tag{color:var(--c-tag)} .attr{color:var(--c-attr)} .value{color:var(--c-val)} .key{color:var(--c-key);font-weight:700}
+        @media (max-width:700px){ .card{grid-template-columns:1fr;width:min(340px,calc(100vw - 32px))} }
+      </style>
+      <div class="card">
+        <div>A step can hide a layer as easily as reveal one, to clear the view.</div>
+        <pre><code><span class="tag">&lt;om-step</span>
+  <span class="attr">action</span>=<span class="key">"toggle-layer"</span>
+  <span class="attr">layer</span>=<span class="value">"regions"</span>
+  <span class="attr">visible</span>=<span class="value">"false"</span><span class="tag">&gt;&lt;/om-step&gt;</span></code></pre>
+      </div>
+    </om-overlay>
+
+    <om-overlay id="end-card" anchor="[-122.45, 37.80]"
+                visible="false" anchor-offset="bottom-center">
+      <style>
+        .card { display:grid; grid-template-columns:minmax(175px,.85fr) minmax(235px,1.15fr); gap:14px; align-items:center;
+                width:min(520px,calc(100vw - 56px)); box-sizing:border-box; background:var(--card-bg); color:var(--card-fg);
+                border:1px solid var(--card-border); border-radius:12px; padding:14px 18px;
+                box-shadow:var(--card-shadow); font:14px system-ui,sans-serif; }
+        .package { color:var(--card-accent); font-weight:700; }
+        pre { margin:0; padding:10px 12px; border-radius:8px; overflow:auto; white-space:pre-wrap;
+              background:var(--code-bg); border:1px solid var(--card-border);
+              font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+        .command{color:var(--c-key)} .package-code{color:var(--c-val);font-weight:700}
+        @media (max-width:700px){ .card{grid-template-columns:1fr;width:min(340px,calc(100vw - 32px))} }
+      </style>
+      <div class="card">
+        <div>Try it today: check out OnlyMapJS on npm at <span class="package">@nika-js/onlymap</span></div>
+        <pre><code><span class="command">npm install</span> <span class="package-code">@nika-js/onlymap</span></code></pre>
+      </div>
+    </om-overlay>
+
+    <!-- The timeline. Steps run in document order; `parallel` starts a step
+         with the one before it instead of after, which is how a card fades in
+         over a camera move rather than waiting for it. `interrupt="pause"`
+         hands control back the moment a viewer touches the map. -->
+    <om-story id="tour" interrupt="pause">
+      <!-- Step 2: chapter card + all three polygons trace on together. Each
+           trace runs as its own temporary layer, and the source layer keeps
+           every feature hidden until its own trace reveals it, so nothing
+           flashes on ahead of its own reveal. -->
+      <om-step action="toggle-layer" layer="regions" visible="true"></om-step>
+      <om-step duration="3s" trace layer="regions" feature-id="north-beach" parallel></om-step>
+      <om-step duration="3s" trace layer="regions" feature-id="mission" parallel></om-step>
+      <om-step duration="3s" trace layer="regions" feature-id="sunset" parallel></om-step>
+      <om-step duration="3s" action="show-overlay" target="chapter" parallel></om-step>
+
+      <!-- Step 3: dismiss the chapter card and put a detail card over each
+           polygon, each one reading its own feature's attributes. -->
+      <om-step duration="1s" action="hide-overlay" target="chapter"></om-step>
+      <om-step action="show-overlay" target="detail-north-beach"></om-step>
+      <om-step action="show-overlay" target="detail-mission" parallel></om-step>
+      <om-step action="show-overlay" target="detail-sunset" parallel></om-step>
+
+      <!-- Step 4: fly to each district in turn. The camera tilts, swivels
+           right then left, and levels off before moving on. -->
+      <om-step duration="2500ms" action="zoom-to-feature" layer="regions" feature-id="north-beach" curve></om-step>
+      <om-step duration="2500ms" action="show-overlay" target="camera-control-card" parallel></om-step>
+      <om-step action="hide-overlay" target="detail-north-beach" parallel></om-step>
+      <om-step action="hide-overlay" target="camera-control-card"></om-step>
+
+      <om-step duration="1400ms" action="fly-to" pitch="45"></om-step>
+      <om-step duration="1400ms" action="show-overlay" target="viewing-angle-card" parallel></om-step>
+      <om-step duration="1600ms" action="fly-to" bearing="28"></om-step>
+      <om-step duration="2400ms" action="fly-to" bearing="-28"></om-step>
+      <om-step duration="1600ms" action="fly-to" bearing="0"></om-step>
+      <om-step duration="1200ms" action="fly-to" pitch="0" bearing="0"></om-step>
+      <om-step action="hide-overlay" target="viewing-angle-card" parallel></om-step>
+
+      <om-step duration="2500ms" action="zoom-to-feature" layer="regions" feature-id="mission" curve></om-step>
+      <om-step duration="4500ms" action="show-overlay" target="camera-smoothing-mission" parallel></om-step>
+      <om-step action="hide-overlay" target="camera-smoothing-mission"></om-step>
+      <om-step duration="2500ms" action="zoom-to-feature" layer="regions" feature-id="sunset" curve></om-step>
+      <om-step duration="4000ms" action="show-overlay" target="camera-smoothing-sunset" parallel></om-step>
+      <om-step action="hide-overlay" target="camera-smoothing-sunset"></om-step>
+
+      <!-- Step 5: clear the cards and the polygons, return to the opening
+           frame, and drop the point layer in one marker at a time. -->
+      <om-step action="hide-overlay" target="detail-north-beach"></om-step>
+      <om-step action="hide-overlay" target="detail-mission" parallel></om-step>
+      <om-step action="hide-overlay" target="detail-sunset" parallel></om-step>
+      <om-step duration="3s" action="fly-to" center="[-122.45, 37.773]" zoom="11.3" curve parallel></om-step>
+      <om-step action="toggle-layer" layer="regions" visible="false"></om-step>
+      <om-step duration="2200ms" action="show-overlay" target="layers-hidden-card" parallel></om-step>
+      <om-step action="hide-overlay" target="layers-hidden-card"></om-step>
+      <om-step action="toggle-layer" layer="bikes" visible="true"></om-step>
+      <om-step duration="3s" populate layer="bikes" parallel></om-step>
+      <om-step duration="3s" action="show-overlay" target="points-card" parallel></om-step>
+      <om-step action="hide-overlay" target="points-card"></om-step>
+      <om-step action="show-overlay" target="end-card"></om-step>
+    </om-story>
+
+    <!-- A widget sits in a managed slot, so this title holds its corner while
+         the geo-anchored cards move with the map underneath it. -->
+    <om-widget position="top-left" order="-10">
+      <style>
+        .story-title { padding:11px 15px; border:1px solid var(--card-border); border-radius:12px;
+                       background:rgba(20,22,28,.86); color:var(--card-fg); box-shadow:var(--card-shadow);
+                       font:650 15px/1.25 system-ui,sans-serif; letter-spacing:.01em; backdrop-filter:blur(10px); }
+        .story-title span { display:block; margin-top:3px; font:11px/1.3 system-ui,sans-serif;
+                            letter-spacing:.08em; text-transform:uppercase; color:var(--card-accent); }
+      </style>
+      <div class="story-title">
+        San Francisco, three districts
+        <span>A map story</span>
+      </div>
+    </om-widget>
+
+    <!-- The player is ordinary chrome — it emits story-play, story-pause and
+         story-seek, so your own transport controls can replace it. -->
+    <om-widget type="player" story="tour" position="bottom-left"></om-widget>
+    <om-widget type="legend" title="Layers" position="top-right"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <script type="module">
+    // The card above quotes the bearing the story is flying to. This keeps the
+    // quoted number in step with the camera as it interpolates, so the sample
+    // never disagrees with the map behind it: positive swivels east, negative
+    // west. Reading the camera is all it does — nothing here drives the map.
+    await customElements.whenDefined("om-overlay");
+    const map = document.querySelector("om-map");
+    const angleCard = document.querySelector("#viewing-angle-card");
+    let bearingFrame = 0;
+
+    const updateBearing = () => {
+      if (angleCard.getAttribute("visible") !== "true") {
+        bearingFrame = 0;
+        return;
+      }
+      const output = angleCard.shadowRoot?.querySelector("[data-live-bearing]");
+      const bearing = map.getViewStateInternal()?.bearing;
+      if (output && bearing != null) output.textContent = String(Math.round(bearing));
+      bearingFrame = requestAnimationFrame(updateBearing);
+    };
+
+    new MutationObserver(() => {
+      if (angleCard.getAttribute("visible") === "true" && !bearingFrame) updateBearing();
+    }).observe(angleCard, { attributes: true, attributeFilter: ["visible"] });
+  </script>
+
+</body>
+</html>

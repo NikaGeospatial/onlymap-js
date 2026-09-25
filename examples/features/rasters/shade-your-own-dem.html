@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<!--
+  Relief from the author's OWN DEM — `shading="hillshade"` on a COGLayer.
+
+  The other hillshade entry point (`<om-layer type="HillshadeLayer">`) shades
+  keyless global tiles. This one shades the raster you already have, and the
+  reason it exists is the "Tinted relief" button below: relief runs LAST in the
+  styling chain, after the colormap, so it MULTIPLIES onto the tint rather than
+  replacing it. A hypsometric plate with relief through it is one layer, not
+  two — no second layer to keep in sync, no blend mode to hand-tune.
+
+  Ground scale is the part you would otherwise have to get right yourself.
+  This file is EPSG:4326, so its pixel is measured in DEGREES — and a degree of
+  longitude shrinks with latitude while a degree of latitude does not. At the
+  Grand Canyon that is a 1.23x difference between the two axes. Ignore it and
+  the relief still renders, still looks like terrain, and is quietly sheared,
+  with every shadow falling at the wrong angle.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Shade your own DEM</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.9.1/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.9.1/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; background: #11141b; }
+    /* The map and its overlay share a positioned wrapper, so the panel is
+       anchored to the MAP rather than the viewport. A viewport-anchored
+       overlay slides under the dev chrome's header and its push-out
+       drawer — and, on a real page, under whatever the host puts around
+       the map. */
+    .map-wrap { position: relative; }
+    .panel {
+      position: absolute; z-index: 10; top: 12px; left: 12px; width: 292px;
+      padding: 14px 16px; border-radius: 10px;
+      background: rgba(20, 22, 28, .93); color: #f8fafc;
+      font-size: 13px; line-height: 1.45; box-shadow: 0 6px 24px rgba(0,0,0,.35);
+    }
+    .panel h1 { margin: 0 0 6px; font-size: 14px; }
+    .panel p { margin: 0 0 10px; color: #aab2c5; }
+    .row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    button {
+      flex: 1 1 auto; padding: 6px 9px; border-radius: 6px; cursor: pointer;
+      border: 1px solid #394054; background: #1c2130; color: #e7ecf6; font-size: 11.5px;
+    }
+    button[aria-pressed="true"] { background: #38507a; border-color: #5c7bb5; }
+    pre {
+      margin: 0; padding: 9px 10px; border-radius: 6px; overflow-x: auto;
+      background: #0e1017; color: #cbd5e1; font-size: 11px; line-height: 1.4;
+    }
+    .note { margin-top: 9px; color: #8b93a7; font-size: 11.5px; }
+  </style>
+</head>
+<body>
+  <div class="map-wrap">
+  <div class="panel">
+    <h1>Shade your own DEM</h1>
+    <p>One <code>shading</code> attribute on the GeoTIFF you already have — no second layer, no blend mode.</p>
+
+    <div class="row">
+      <button id="plain">Elevation</button>
+      <button id="relief" aria-pressed="true">Relief</button>
+      <button id="tinted">Tinted relief</button>
+    </div>
+    <div class="row">
+      <button id="one" aria-pressed="true">One sun</button>
+      <button id="three">Three suns</button>
+      <button id="deep">z 2.5&times;</button>
+    </div>
+
+    <pre id="markup"></pre>
+    <p class="note">
+      This DEM is in degrees, not metres, so its pixel is not square on the
+      ground — 1.23&times; longer north&ndash;south here. That correction is
+      read from the file and applied for you.
+    </p>
+  </div>
+
+  <om-map center="[-112.17, 36.2]" zoom="9.6" basemap="dark-matter" validate>
+    <om-layer
+      id="dem"
+      type="COGLayer"
+      src="../../data/grand-canyon-dem.tif"
+      shading="hillshade"
+      sun-azimuth="315"
+      sun-elevation="45"
+      z-factor="1"
+    ></om-layer>
+  </om-map>
+  </div>
+
+  <script type="module">
+    const dem = document.getElementById("dem");
+    const markup = document.getElementById("markup");
+
+    const press = (id, group) => {
+      for (const other of group) document.getElementById(other).setAttribute("aria-pressed", String(other === id));
+    };
+
+    const show = () => {
+      markup.textContent = dem.outerHTML
+        .replace(/ style="[^"]*"/g, "")
+        .replace(/\s+(src|shading|colormap|sun-|z-factor)/g, "\n  $1");
+    };
+
+    const MODE = ["plain", "relief", "tinted"];
+    document.getElementById("plain").onclick = () => {
+      dem.removeAttribute("shading");
+      dem.setAttribute("colormap", "terrain");
+      press("plain", MODE); show();
+    };
+    document.getElementById("relief").onclick = () => {
+      dem.setAttribute("shading", "hillshade");
+      dem.removeAttribute("colormap");
+      press("relief", MODE); show();
+    };
+    document.getElementById("tinted").onclick = () => {
+      dem.setAttribute("shading", "hillshade");
+      dem.setAttribute("colormap", "terrain");
+      press("tinted", MODE); show();
+    };
+
+    const SUN = ["one", "three"];
+    document.getElementById("one").onclick = () => { dem.setAttribute("sun-azimuth", "315"); press("one", SUN); show(); };
+    document.getElementById("three").onclick = () => { dem.setAttribute("sun-azimuth", "315 45 135"); press("three", SUN); show(); };
+
+    document.getElementById("deep").onclick = (e) => {
+      const deep = e.currentTarget.getAttribute("aria-pressed") !== "true";
+      dem.setAttribute("z-factor", deep ? "2.5" : "1");
+      e.currentTarget.setAttribute("aria-pressed", String(deep));
+      show();
+    };
+
+    show();
+  </script>
+</body>
+</html>

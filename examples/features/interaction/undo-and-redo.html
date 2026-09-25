@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<!--
+  Undo works because the manifest IS the state. Every change a widget, a
+  behavior or a story makes lands as an attribute write on an element, so the
+  history only has to record attributes and put the old values back. Nothing
+  needs a store, a reducer or a snapshot.
+
+  That also draws the line for what is undoable: scene state, not viewing
+  state. Toggling a layer, moving a filter, switching a basemap, changing the
+  lighting and drawing a shape all step back. Panning, zooming, hovering and
+  story playback do not — a camera move is how you look at the map, not a
+  change to it, and stacking those would bury the edit you wanted back.
+
+  The map: Europe's power stations, with four ways to change what you see.
+  Make a few changes, then press ⟲ at the bottom right or Cmd/Ctrl-Z. Try
+  panning between edits: the camera is deliberately not on the stack.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Undo and redo</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.6/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.6/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #12151d;
+      --om-widget-fg: #f3f6fb;
+      --om-widget-muted: #8790a1;
+      --om-widget-border: #262d39;
+      --om-widget-hover-bg: #1c222c;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[9, 48.5]" zoom="4.2" basemap="dark-matter">
+
+    <om-layer id="stations" type="ScatterplotLayer"
+              data="../../data/global-power-plants.csv"
+              label="Power stations" color="#fbbf24"
+              get-position="[$lon, $lat]"
+              get-fill-color="$fuel == 'Nuclear' ? '#22d3ee'
+                            : $fuel == 'Coal' ? '#f43f5e'
+                            : $fuel == 'Gas' ? '#fbbf24'
+                            : $fuel == 'Hydro' ? '#4ade80'
+                            : '#8b96a8'"
+              get-radius="scale($capacity_mw, sqrt, [2, 22], domain=[10, 22500])"
+              radius-units="pixels" opacity="0.88" pickable
+              filter-field="capacity_mw" filter-range="[10, 22500]"></om-layer>
+
+    <!-- Every control below writes an attribute, which is the ONLY thing that
+         makes it undoable. A control that kept its state internally would move
+         the map and leave nothing for the history to restore. -->
+
+    <!-- `interactive` turns each legend row into a visibility checkbox, so a
+         toggle here is one entry on the stack. -->
+    <om-layer id="grid" type="GeoJsonLayer"
+              data="../../data/world-countries.geojson"
+              label="Country outlines" color="#334155"
+              filled="false" stroked get-line-color="[71, 85, 105]"
+              line-width-min-pixels="0.8"></om-layer>
+
+    <om-widget type="legend" title="Layers" interactive position="top-right"></om-widget>
+
+    <!-- A drag is ONE undo step, not two hundred: consecutive writes to the
+         same attribute within half a second merge into a single transaction. -->
+    <om-widget type="filter" layer="stations" field="capacity_mw" title="Capacity (MW)"
+               watch="layers data:stations" position="top-right" style="margin-top: 130px;"></om-widget>
+
+    <!-- Scene attributes on <om-map> are recorded too — basemap, lighting and
+         terrain. Camera attributes are not, by the same rule. -->
+    <om-widget type="basemap-switcher" options="dark-matter positron voyager osm"
+               position="bottom-left"></om-widget>
+
+    <!-- Sketches live outside the DOM, so the draw controller pushes its own
+         undo entry rather than relying on an attribute write. Draw a shape,
+         then step back over it like any other change. -->
+    <om-layer id="sketch" type="GeoJsonLayer" data="draw:sketch"
+              label="Sketch" color="#c084fc"
+              get-fill-color="[192, 132, 252, 70]" get-line-color="[216, 180, 254]"
+              point-radius-min-pixels="5" line-width-min-pixels="2"
+              stroked filled pickable></om-layer>
+
+    <om-widget type="draw" target="sketch" modes="point line polygon" position="top-left"
+               style="margin-top: 148px;"></om-widget>
+
+    <!-- The buttons. They emit the `undo` and `redo` actions, which the
+         keyboard also fires — Cmd/Ctrl-Z and Shift-Cmd/Ctrl-Z work with no
+         widget on the page at all. Compact widgets sharing a slot merge into
+         one control group. -->
+    <om-widget type="undo-redo" position="bottom-right"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <!-- ctx.history is { canUndo, canRedo }, and the `history` watch token
+         re-renders when either flips — which is how you drive your own
+         transport controls, a "you have unsaved changes" prompt, or a
+         disabled Save button. -->
+    <om-widget position="top-left" watch="history">
+      <style>
+        .panel { width: 236px; box-sizing: border-box; background: rgba(18,21,29,.92); color: #eef2f9;
+                 border: 1px solid #262d39; border-radius: 9px; padding: 11px 14px;
+                 font: 12px/1.5 system-ui, sans-serif; }
+        .panel h3 { margin: 0 0 8px; font: 650 13px system-ui, sans-serif; color: #c084fc; }
+        .row { display: flex; justify-content: space-between; gap: 14px; margin: 3px 0; color: #8790a1; }
+        .row b { color: #f3f6fb; }
+        .hint { margin-top: 8px; padding-top: 7px; border-top: 1px solid #262d39; color: #8790a1; }
+      </style>
+      <section class="panel" aria-live="polite">
+        <h3>History</h3>
+        <div class="row"><span>Can undo</span><b id="can-undo">no</b></div>
+        <div class="row"><span>Can redo</span><b id="can-redo">no</b></div>
+        <div class="hint">Toggle a layer, drag the slider, switch the basemap or
+          draw a shape — then press Cmd/Ctrl-Z. Panning will not be undone.</div>
+      </section>
+      <script type="om/widget">
+        this.watch = ["history"];
+        this.render = (ctx) => {
+          this.$("#can-undo").textContent = ctx.history.canUndo ? "yes" : "no";
+          this.$("#can-redo").textContent = ctx.history.canRedo ? "yes" : "no";
+        };
+      </script>
+    </om-widget>
+
+    <om-behavior on="hover" layer="stations" action="show-tooltip" template="#station-tip"></om-behavior>
+
+    <om-widget type="attribution"
+               text="Power stations © World Resources Institute, Global Power Plant Database v1.3, CC BY 4.0"
+               position="bottom-start"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <template id="station-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#12151d; color:#f3f6fb;
+                border:1px solid #262d39; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>{{name}}</b><br />
+      <span style="color:#8790a1">{{capacity_mw}} MW · {{fuel}} · {{country}}</span>
+    </div>
+  </template>
+
+</body>
+</html>

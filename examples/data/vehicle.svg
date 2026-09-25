@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- A moving vehicle, pointing NORTH (up) — IconLayer's get-angle rotates it
+       to the heading. One chevron serves ships and road vehicles alike: at
+       20px a literal silhouette has no detail left to be a ship or a car with,
+       while a chevron still says which way the thing is going, which is the
+       information that matters. White + mask:true so get-color tints it;
+       solid, with no cut-outs, because transparent pixels inside an icon are
+       unpickable — and the centre is exactly where people aim. -->
+  <path fill="#ffffff" d="M32 5 C33 5 34 6 34.5 8 L52 53 C53 56 50 58 47 56 L32 46 L17 56 C14 58 11 56 12 53 L29.5 8 C30 6 31 5 32 5 Z"/>
+</svg>
