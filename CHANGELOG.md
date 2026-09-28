@@ -8,6 +8,17 @@ Note: npm collapsed a few closely-spaced releases — the GPX/FlatGeobuf (0.5.4)
 and GeoParquet (0.5.5) work shipped to npm together as **0.5.6**, so npm's
 version list jumps 0.5.3 → 0.5.6. Each logical version is listed here regardless.
 
+## 0.10.2 — 2026-09-25
+
+### Fixed
+- **A popup opened by a click now closes when you click away.** Clicking a feature to open a tooltip left it on screen with no way to dismiss it — it only changed when you clicked a different feature. It was erratic rather than simply stuck: the same popup did close if your pointer happened to leave a feature last, so it looked intermittent. Tooltips now dismiss whenever the selection clears, whichever kind of pick opened them. A popup carrying its own close button is unaffected and still stays open when you click inside it.
+
+## 0.10.1 — 2026-09-25
+
+### Fixed
+- **Curved labels are findable again.** `TextOnPathLayer` — the layer that runs a name along a river or a ridge — shipped in 0.10.0 and was documented everywhere except `llms.txt`, which is the file most editors and coding agents actually read. Anything working from that file could not discover the layer, however well it worked. It is now described there in full.
+- **The layer count matches reality.** `llms.txt` and the README both said 39 layer types against the 41 the package registers, and neither named `HillshadeLayer` or `TextOnPathLayer` in its list.
+
 ## 0.10.0 — 2026-09-23
 
 ### Added

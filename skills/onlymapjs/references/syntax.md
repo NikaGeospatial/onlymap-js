@@ -16,8 +16,8 @@ Vite/npm project:
 Static CDN page (raw-file CDNs only — unpkg/jsDelivr; never esm.sh or another rebundling CDN, which duplicates the WebGL runtime and breaks layer shaders):
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.10.0/dist/onlymapjs.css">
-<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.10.0"></script>
+<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.10.2/dist/onlymapjs.css">
+<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.10.2"></script>
 ```
 
 Always include `onlymapjs.css` — it carries the MapLibre basemap styles and the no-JS fallback rules (`<om-fallback>` / default banner). For the fallback to work in script-disabled previews it must load without JavaScript: a real `<link rel="stylesheet">` or inlined `<style>` on no-build pages (a bundler-emitted stylesheet is fine in npm projects).
@@ -714,7 +714,7 @@ Events: `click`, `hover`, `drag`, `load`, `data-loaded`.
 Common built-in actions:
 
 - `show-overlay`, `hide-overlay`
-- `show-tooltip`, `hide-tooltip`
+- `show-tooltip`, `hide-tooltip` — a tooltip dismisses ITSELF when the selection clears (pointer leaving the feature on hover, a click on empty map for a click), so do not wire `hide-tooltip` by hand for that. A template containing an interactive `[data-emit]` element takes pointer events and therefore does not close on its own click, which is how a popup carries its own close button.
 - `toggle-layer`
 - `set-effect` — payload `{ preset }` (a preset name, or `"none"` to remove it); optional `<op>-<param>` knob overrides, e.g. `{ preset: "vintage", "grain-amount": 0.02 }`. Writes one `<om-effect preset>` child, so it is undoable; NOT story-rewindable yet (rewind restores `<om-map>` attributes, this adds an element). A hand-composed op chain is left alone.
 - `set-pickable` — payload `{ layer, pickable: true|false|"3d" }`; writes/removes the layer's `pickable` attribute at runtime (turns popups/tooltips/hover behaviors on or off per layer — the viewer-facing popup toggle), story-capturable and undoable
