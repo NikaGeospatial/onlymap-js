@@ -16,8 +16,8 @@ Vite/npm project:
 Static CDN page (raw-file CDNs only — unpkg/jsDelivr; never esm.sh or another rebundling CDN, which duplicates the WebGL runtime and breaks layer shaders):
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.10.2/dist/onlymapjs.css">
-<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.10.2"></script>
+<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.10.5/dist/onlymapjs.css">
+<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.10.5"></script>
 ```
 
 Always include `onlymapjs.css` — it carries the MapLibre basemap styles and the no-JS fallback rules (`<om-fallback>` / default banner). For the fallback to work in script-disabled previews it must load without JavaScript: a real `<link rel="stylesheet">` or inlined `<style>` on no-build pages (a bundler-emitted stylesheet is fine in npm projects).
@@ -63,6 +63,10 @@ Common attributes:
   - Millimetre knobs need `reference-scale` on the map (or a cartograph frame, which supplies its own); without one they are a validation error naming the fix. Ground units need none. Columnar layers are out of scope and say so.
 - A LABEL THAT FOLLOWS ITS LINE is `<om-layer type="TextOnPathLayer" get-path="$path" get-text="$name">` — a river's name along the river, a range's along the range. deck has no such layer; this is a composite over `TextLayer` emitting one instance per glyph, each rotated to the local tangent.
   - `get-path` and `get-text` are both REQUIRED — either alone is silently inert, and the validator says so.
+  - `get-path` must resolve to a LIST OF COORDINATES, and which expression does that depends on the data's shape. On GEOJSON write `get-path="d.geometry.coordinates"` — a `$field` compiles to `properties.<field>`, so `$geometry` hands the layer the geometry OBJECT and every label is silently dropped (measured: 0 glyphs against 11). A `$field` is correct only when the rows are FLAT and carry the list themselves, as in `get-path="$path"` over `[{"name":"Mississippi","path":[[lng,lat], …]}]`. The validator errors when the data is inline and provably GeoJSON, and warns when the data is a URL, because the shape cannot be known before it loads.
+  - WHERE the name sits is a SEARCH, not a constant: `placement="auto"` (the default) scans the line for the straightest reach the name fits on. Pinning it to the midpoint put labels on whatever the line happened to be doing there, which on real hydrography is usually a bend — measured on Natural Earth rivers at continental scale, the Colorado turned 151 degrees between adjacent glyphs and the Columbia spread 292. Auto brought all eleven under 45. Use `start`/`middle`/`end` when a name belongs somewhere specific, such as a river's mouth; they are honoured even where the reach is poor.
+  - `max-angle="45"` is the legibility limit, in degrees between adjacent glyphs — the same knob and default as MapLibre's `text-max-angle`. When no reach satisfies it the label is STRAIGHTENED rather than dropped, because a readable name slightly off the meander beats no name.
+  - `orientation="curve|chord"`. `curve` follows every bend; `chord` lays the whole name straight along the span it occupies, angled to the line's own direction. Reach for `chord` on data too jagged to follow at the scale you are drawing.
   - `letter-spacing="1.5"` tracks the glyphs out (pixels). A convention for oceans and ranges, not a flourish. `offset="5"` moves the label perpendicular; POSITIVE is to the LEFT of the line's direction. `placement="start|middle|end"` picks where along the line it sits (default `middle`). `max-labels` caps the glyphs emitted.
   - It READS LEFT TO RIGHT whichever way the line was digitised — a path's direction is an accident of the data, and a label following a right-to-left line would come out upside down, so the layer flips the path (and `start`/`end` flip with it, because they mean a place on the line rather than a direction).
   - A name that does NOT FIT its line is dropped, not compressed and not run off the end.

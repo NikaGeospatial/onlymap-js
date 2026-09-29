@@ -1454,9 +1454,11 @@
       "get-size",
       "get-text",
       "letter-spacing",
+      "max-angle",
       "max-labels",
       "offset",
       "opacity",
+      "orientation",
       "placement",
       "snap",
       "visible"

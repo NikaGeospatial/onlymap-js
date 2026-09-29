@@ -1502,6 +1502,14 @@
           "description": "deck.gl placement. Valid on: TextOnPathLayer."
         },
         {
+          "name": "max-angle",
+          "description": "deck.gl maxAngle. Valid on: TextOnPathLayer."
+        },
+        {
+          "name": "orientation",
+          "description": "deck.gl orientation. Valid on: TextOnPathLayer."
+        },
+        {
           "name": "max-labels",
           "description": "deck.gl maxLabels. Valid on: TextOnPathLayer."
         },

@@ -8,6 +8,31 @@ Note: npm collapsed a few closely-spaced releases — the GPX/FlatGeobuf (0.5.4)
 and GeoParquet (0.5.5) work shipped to npm together as **0.5.6**, so npm's
 version list jumps 0.5.3 → 0.5.6. Each logical version is listed here regardless.
 
+## 0.10.5 — 2026-09-25
+
+### Changed
+- **A name now goes where its line is legible.** A label following a line used to sit at the midpoint, which on real rivers is usually a bend — so the name wrapped it and came out scrambled. It now searches the line for the straightest stretch it fits on. Measured on Natural Earth's rivers at continental scale: the Colorado turned 151° between neighbouring letters and the Columbia spread 292°, nearly a full circle; all eleven rivers now come in under 45°, and none was dropped to get there. `placement="start"`, `"middle"` and `"end"` still work when a name belongs somewhere specific, like a river's mouth.
+
+### Added
+- **`max-angle`** — how sharply a name may bend, in degrees between neighbouring letters. Defaults to 45°, the same figure MapLibre uses. When no stretch of the line is straight enough, the name is laid straight instead of being thrown away.
+- **`orientation="chord"`** — lay the whole name straight, angled along the stretch it covers rather than following every wiggle. For data too jagged to follow at the scale you are drawing.
+
+### Fixed
+- **Legend entries show their layer's actual colour.** A layer coloured the ordinary way — `get-fill-color="[226,206,166,92]"` — produced a grey square, because only data-driven colour ramps were understood and a flat colour fell through to a default. Flat colours are now read, in the order the eye sees them: a layer whose fill is transparent and whose stroke does the drawing shows the stroke.
+
+## 0.10.4 — 2026-09-25
+
+### Fixed
+- **Labels and lines on a projected map land where their data says.** On a map with a `crs`, a layer that read coordinates through an accessor over GeoJSON — `get-path="d.geometry.coordinates"`, the documented way to run a river's name along the river — had those coordinates converted into the projection **twice**. The Mississippi's first vertex came out 12 000 km west and 19 900 km north of where it belongs, so labels sprawled across the sheet while the land drawn from the very same file sat correctly. Only projected maps were affected, and only when the data was GeoJSON: the same layer over flat rows was always right, which is why the library's own atlas plate never showed it.
+
+## 0.10.3 — 2026-09-25
+
+### Fixed
+- **Three authoring mistakes that used to pass validation and then draw nothing.** A generated map can now be told what is wrong with it instead of quietly rendering the wrong picture:
+  - **Labels along a line, on GeoJSON data.** `get-path` has to resolve to a list of coordinates. On GeoJSON that is `get-path="d.geometry.coordinates"`; writing `get-path="$geometry"` hands the layer the geometry object instead and every label vanishes. This is now an error when the data is inline, a warning when it is a URL (the shape cannot be known until it loads), and both name the form that works. It is also documented now, which it was not on any surface.
+  - **A millimetre stroke width.** `line-width-units="millimeters"` reads like a cartographer's unit but is not one — there are only `meters`, `pixels` and `common`, so widths silently fell back. Now an error that says which to pick. (Millimetres on paper remain correct for `<om-transform>`, which has a reference scale to resolve them against.)
+  - **A widget type that does not exist.** A misspelled or invented `type` rendered nothing at all and said nothing. Now an error listing the real types — and pointing out that a north arrow, scale bar, legend frame or graticule on a print sheet is a cartograph element, not a map widget.
+
 ## 0.10.2 — 2026-09-25
 
 ### Fixed
