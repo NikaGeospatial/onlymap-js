@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<!--
+  A drone photo already knows where it was taken. ImageOverlay reads the GPS
+  fix, the flight altitude and the gimbal angles out of the file's EXIF and XMP,
+  works out the ground footprint, and draws the picture at those coordinates —
+  `src` and `georeference="exif"` are the whole manifest.
+
+  Reach for it to drop a survey pass straight onto a map with no processing
+  step. It is a flat-ground pinhole estimate with an axis-aligned footprint, so
+  it is visualization-grade: good enough to see what the pilot saw, not a
+  substitute for orthorectification. A finished orthomosaic belongs in COGLayer.
+
+  Known DJI and Parrot cameras carry their sensor dimensions in the bundled
+  database, so nothing else is needed here. For anything else, state the sensor
+  yourself with `sensor-width-mm` and `sensor-height-mm`.
+
+  The map: one frame from a 32 m survey pass over Monterey Road in New South
+  Wales, shot on a Mavic 2 Pro looking almost straight down. Nothing here says
+  where it goes — pan away and back, and it stays put.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Place a drone photo</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.6.1/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.6.1/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #0d1117;
+      --om-widget-fg: #e9eef5;
+      --om-widget-muted: #7d8899;
+      --om-widget-border: #1f2733;
+      --om-widget-hover-bg: #161d26;
+      --om-widget-accent: #22d3ee;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[151.0345, -31.2678]" zoom="19" pitch="45" basemap="dark-matter">
+
+    <!-- `georeference="exif"` is what turns the file into a located layer: the
+         browser parses it, bakes the camera yaw into the pixels, and derives
+         the bounds. Give it `bounds` INSTEAD once you have saved a processed
+         image — never both, because bounds win and the pair is a warning. -->
+    <om-layer id="pass" type="ImageOverlay"
+              src="../../data/road-bend-nsw.jpg"
+              georeference="exif"
+              label="Survey frame — 32 m AGL"
+              opacity="0.9"></om-layer>
+
+    <om-widget type="zoom-controls" position="bottom-end"></om-widget>
+
+    <om-widget position="top-start">
+      <style>
+        .panel { background: var(--om-widget-bg); color: var(--om-widget-fg);
+                 border: 1px solid var(--om-widget-border); padding: 10px 14px;
+                 border-radius: 10px; max-width: 250px; line-height: 1.45;
+                 font: 12.5px system-ui, sans-serif; box-shadow: 0 4px 18px rgba(0,0,0,.55); }
+        .panel b { color: #22d3ee; }
+      </style>
+      <div class="panel">
+        <b>One photo, no processing.</b> Shot at 32 m with the gimbal 89° down.
+        The map read its own position out of the file.
+      </div>
+    </om-widget>
+
+    <om-widget type="attribution"
+               text="Imagery: OpenDroneMap monterey_road_bend dataset (CC BY-SA 4.0)"
+               position="bottom-start"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

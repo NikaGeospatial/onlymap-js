@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<!--
+  H3 is a global grid of hexagons, and every cell in it has an id. A row that
+  carries that id needs no coordinates at all — H3HexagonLayer resolves the
+  shape from the id. Reach for it when the binning already happened upstream,
+  in a warehouse or a notebook, and the rows arrive counted.
+
+  HexagonLayer is the other end of the same idea: hand it raw points and it
+  bins them in the browser. Choose H3 when the bins have to line up with the
+  ones the rest of your stack already uses.
+
+  The map: every tropical cyclone track since 1980, from NOAA's IBTrACS
+  archive, counted into hexagons. Colour is how many separate storms crossed
+  the cell. The frame runs from Mongolia down to Australia, so both cyclone
+  seasons are on screen at once — the northern one over the Philippines and the
+  South China Sea, the southern one along the Australian coast. Hover a hexagon
+  for its tally.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Aggregate by H3 cells</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.3/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.3/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #0d1220;
+      --om-widget-fg: #eef2fb;
+      --om-widget-muted: #8791ab;
+      --om-widget-border: #232c42;
+      --om-widget-hover-bg: #182036;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[124, 13]" zoom="3.2" basemap="dark-matter">
+
+    <!-- get-hexagon is the whole binding: point it at a column of H3 ids and
+         the layer draws a cell for each one. The id carries its own
+         resolution, so nothing here sets a cell size — these are resolution 3,
+         roughly 60 km across. To change it, re-bin the data upstream:
+         `latLngToCell(lat, lng, res)` in h3-js or `latlng_to_cell` in h3-py,
+         then group by the id and count.
+
+         A threshold scale suits a lopsided count. Most cells saw one or two
+         storms and a few saw eighty, so a smooth ramp would leave almost the
+         whole map in its first colour. The domain lists the BREAKS, so five
+         colours take four numbers, and the legend turns them into labelled
+         classes.
+
+         coverage shrinks each hexagon inside its own cell, which is what makes
+         the grid read as cells rather than as one sheet of colour.
+
+         Add `extruded` with get-elevation and the same cells stand up as 3D
+         bars. H3ClusterLayer is the sibling for outlines: give it get-hexagons
+         — a LIST of ids per row — and it merges them into one shape, for a
+         service area or a catchment rather than a grid. -->
+    <om-layer id="storm-cells" type="H3HexagonLayer"
+              data="../../data/cyclone-tracks-h3.csv"
+              label="Storms crossing the cell, since 1980"
+              get-hexagon="$h3"
+              get-fill-color="scale($storms, threshold,
+                                    ['#1e3a8a', '#0ea5e9', '#67e8f9', '#fde047', '#f97316'],
+                                    domain=[3, 10, 25, 55])"
+              coverage="0.94"
+              opacity="0.85"
+              stroked="false"
+              pickable></om-layer>
+
+    <om-widget type="legend" title="Storms since 1980" position="top-right"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: rgba(13,18,32,.88); color: #e3e9f6; padding: 10px 14px;
+                 border-radius: 8px; font-size: 13px; max-width: 260px; line-height: 1.45; }
+        .panel b { color: #fde047; }
+      </style>
+      <div class="panel">
+        <b>Where hurricanes go.</b> 4,949 storms, 307,638 six-hourly fixes,
+        counted into hexagons. The gap along the equator is real — a cyclone
+        needs the Coriolis force to spin up.
+      </div>
+    </om-widget>
+
+    <om-behavior on="hover" layer="storm-cells" action="show-tooltip" template="#cell-tip"></om-behavior>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <template id="cell-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#0d1220; color:#eef2fb;
+                border:1px solid #232c42; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>{{storms}} storms</b> · peak {{max_wind}} kt<br />
+      <span style="color:#8791ab">cell {{h3}}</span>
+    </div>
+  </template>
+
+</body>
+</html>

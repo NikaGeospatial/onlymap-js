@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<!--
+  Shaded relief as a LAYER, not a mode of `terrain=`.
+
+  `terrain=` gives you a 3D surface: it replaces the basemap, changes what the
+  camera means, and is meaningless at pitch 0. A print sheet wants the other
+  thing — a flat shaded raster that composes underneath the data like any
+  other layer. That also buys the property that matters most here: a layer
+  draws inside deck's own framebuffer, so relief lands in snapshot() and sits
+  UNDER <om-effect>. Relief a print finish could not reach would be worth very
+  little, which is why the finish button below treats the mountains too.
+
+  The sun is a LIST, not a switch. One azimuth is what every slippy map
+  already ships. Two to four blended is Swiss-style relief, and the azimuths
+  want choosing for the terrain — so `sun-azimuth="315 45 135"` is the surface
+  rather than a `multi-directional` boolean that could reach a look you had no
+  other way to write.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Shade the terrain</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.9.1/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.9.1/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; background: #e9e4d8; }
+    /* The map and its overlay share a positioned wrapper, so the panel is
+       anchored to the MAP rather than the viewport. A viewport-anchored
+       overlay slides under the dev chrome's header and its push-out
+       drawer — and, on a real page, under whatever the host puts around
+       the map. */
+    .map-wrap { position: relative; }
+    .panel {
+      position: absolute; z-index: 10; top: 12px; left: 12px; width: 280px;
+      padding: 14px 16px; border-radius: 10px;
+      background: rgba(20, 22, 28, .93); color: #f8fafc;
+      font-size: 13px; line-height: 1.45; box-shadow: 0 6px 24px rgba(0,0,0,.35);
+    }
+    .panel h1 { margin: 0 0 6px; font-size: 14px; }
+    .panel p { margin: 0 0 10px; color: #aab2c5; }
+    .row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    button {
+      flex: 1 1 auto; padding: 6px 9px; border-radius: 6px; cursor: pointer;
+      border: 1px solid #394054; background: #1c2130; color: #e7ecf6; font-size: 11.5px;
+    }
+    button[aria-pressed="true"] { background: #38507a; border-color: #5c7bb5; }
+    pre {
+      margin: 0; padding: 9px 10px; border-radius: 6px; overflow-x: auto;
+      background: #0e1017; color: #cbd5e1; font-size: 11px; line-height: 1.4;
+    }
+    .note { margin-top: 9px; color: #8b93a7; font-size: 11.5px; }
+  </style>
+</head>
+<body>
+  <div class="map-wrap">
+  <div class="panel">
+    <h1>Shaded relief</h1>
+    <p>Keyless global DEM tiles, shaded on the GPU at pitch 0 — no terrain mesh, no data of your own.</p>
+
+    <div class="row">
+      <button id="one" aria-pressed="true">One sun</button>
+      <button id="three">Three suns</button>
+    </div>
+    <div class="row">
+      <button id="flat">z 1&times;</button>
+      <button id="tall">z 2.5&times;</button>
+    </div>
+    <div class="row">
+      <button id="finish">Print finish</button>
+      <button id="plain" aria-pressed="true">No finish</button>
+    </div>
+
+    <pre id="markup"></pre>
+    <p class="note">
+      Tile edges are seamless because each tile is decoded with a one-pixel
+      apron from its eight neighbours — a hillshade is a derivative, and
+      clamping at a tile border draws a pale grid instead.
+    </p>
+  </div>
+
+  <om-map id="map" center="[7.65, 45.98]" zoom="9" basemap="none" validate>
+    <om-layer
+      id="relief"
+      type="HillshadeLayer"
+      src="terrarium"
+      sun-azimuth="315"
+      sun-elevation="45"
+      z-factor="1"
+    ></om-layer>
+  </om-map>
+  </div>
+
+  <script type="module">
+    const relief = document.getElementById("relief");
+    const map = document.getElementById("map");
+    const markup = document.getElementById("markup");
+
+    const press = (onId, offId) => {
+      document.getElementById(onId).setAttribute("aria-pressed", "true");
+      document.getElementById(offId).setAttribute("aria-pressed", "false");
+    };
+
+    // Everything below is an ATTRIBUTE write. Moving the sun rebuilds no tile
+    // and refetches nothing — the illumination is uniforms all the way down.
+    const show = () => {
+      markup.textContent = relief.outerHTML
+        .replace(/ style="[^"]*"/g, "")
+        .replace(/></g, ">\n<")
+        .replace(/\s+(sun-|z-factor|src)/g, "\n  $1");
+    };
+
+    document.getElementById("one").onclick = () => { relief.setAttribute("sun-azimuth", "315"); press("one", "three"); show(); };
+    document.getElementById("three").onclick = () => { relief.setAttribute("sun-azimuth", "315 45 135"); press("three", "one"); show(); };
+    document.getElementById("flat").onclick = () => { relief.setAttribute("z-factor", "1"); press("flat", "tall"); show(); };
+    document.getElementById("tall").onclick = () => { relief.setAttribute("z-factor", "2.5"); press("tall", "flat"); show(); };
+
+    document.getElementById("finish").onclick = () => {
+      if (!map.querySelector("om-effect")) {
+        const effect = document.createElement("om-effect");
+        effect.setAttribute("preset", "vintage");
+        map.appendChild(effect);
+      }
+      press("finish", "plain");
+    };
+    document.getElementById("plain").onclick = () => {
+      map.querySelector("om-effect")?.remove();
+      press("plain", "finish");
+    };
+
+    show();
+  </script>
+</body>
+</html>
