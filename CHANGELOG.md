@@ -8,6 +8,47 @@ Note: npm collapsed a few closely-spaced releases — the GPX/FlatGeobuf (0.5.4)
 and GeoParquet (0.5.5) work shipped to npm together as **0.5.6**, so npm's
 version list jumps 0.5.3 → 0.5.6. Each logical version is listed here regardless.
 
+## 0.10.9 — 2026-09-29
+
+### Added
+- **An atlas can now be paged by whoever is reading it.** Open a multi-page atlas anywhere — a browser, an app's preview, an exported file — and turn the pages with `←`/`→`, `PageUp`/`PageDown`, `Home` and `End`, or with the small page control at the foot of the sheet (`‹ 3 / 49 · Alabama ›`). Until now a 49-page atlas showed page one everywhere except an editor with its own controls. The control is on-screen only: it never appears in print or in an exported image, and `pager="none"` on `<om-atlas>` removes it for an app that draws its own.
+- **An app embedding a sheet can drive its atlas from outside.** The sheet posts which page is showing to the window that embeds it, and accepts a page to jump to in return — so a host that shows the sheet in an iframe it cannot reach into can still build a pager for it. Details in the atlas section of the cartograph guide.
+
+### Changed
+- **Validation now catches an `atlas-margin` written in millimetres.** It is a fraction of the feature's extent, the one spatial number in the sheet vocabulary that is not millimetres, and `atlas-margin="10"` pads each page by ten feature-widths — every page a speck. A margin above 2 now warns and names the fix; so does a margin that is not a number, or one set on a frame without `atlas-fit="feature"`, where it does nothing.
+
+## 0.10.8 — 2026-09-28
+
+### Changed
+- **A print sheet credits itself once, not once per map on it.** Every live frame used to carry the corner badge a standalone map carries, so a plate with a main map and two locator insets credited itself three times — and because the badge has a minimum size while a frame does not, on a small inset the badge came out bigger than the frame holding it. The sheet's own foot credit is unchanged, and a map on its own page still carries its badge exactly as before.
+
+## 0.10.7 — 2026-09-28
+
+### Fixed
+- **A print sheet now shows the current version of the map it points at.** Restyle the map, reopen the sheet, and the frame could still draw the old one — the sheet was serving the copy it had fetched the first time. It looked exactly like the restyle not having worked. Sheets that seemed to render correctly only after you opened the map first were this: opening a map saves its camera, which rewrote the file and cleared the stale copy by accident.
+
+## 0.10.6 — 2026-09-28
+
+### Added
+- **A print sheet's map frame can now name more than one place to get its picture from, and shows the first that actually works.** Send someone a sheet you made in an app, and the frame could come out blank — a white box ringed by a perfectly correct legend, scale bar and title — because the map it points at only resolves inside that app. Nothing errored, so nothing told you. Give the frame a second source and it falls through to a georeferenced picture instead:
+
+  ```html
+  <om-frame id="main" x="15" y="41" w="255" h="155" center="[-96, 38]" zoom="3.25">
+    <om-source src="../maps/map-abc.html"></om-source>
+    <om-source src="captures/main@2x.png"
+               corners="[[-126,50],[-66,50],[-66,23],[-126,23]]" crs="EPSG:5070"></om-source>
+  </om-frame>
+  ```
+
+  Sources are tried in the order you write them. `src=` on the frame still works exactly as before and counts as the first one, so no existing sheet needs editing. Whether a source counts as working is deliberately generous: if anything drew — a basemap, or any layer with data in it — the frame keeps it. A sheet whose fifth layer is missing is a sheet with a missing layer, not a reason to show an old picture instead.
+- **The frame tells you which source it settled on**, so an editor can say "showing a capture" rather than leaving you to guess: a `data-om-carto-source` attribute and an `om-frame-source` event. The scale bar, north arrow and graticule re-place themselves against whichever source won.
+- **`hasDrawableContent()` on `<om-map>`** — did this map draw anything at all? Useful anywhere you need to tell "finished loading" from "finished loading and there is nothing there", which a map cannot otherwise report.
+
+### Notes
+- A picture source carries its own `corners` (and `crs`), because if it is what you are seeing then the live map never loaded and there is nothing else to take the coordinates from. Validation asks for them.
+- A source's kind comes from its file extension — `.html` is a map, an image extension is a picture. Anything else is a validation error that names both, rather than a guess.
+- A saved sheet renders where it sits; it is not portable. Picture paths are relative, so moving the file alone breaks them, the same way it already breaks a relative `src=`. Exporting is what produces a file you can send anywhere.
+
 ## 0.10.5 — 2026-09-25
 
 ### Changed

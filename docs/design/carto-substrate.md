@@ -949,6 +949,18 @@ Two other designs are in flight against this codebase — **layer extensions**
 They were written independently and they touch this one in six places. Recording the
 interactions here so none of them is discovered by a failing gate.
 
+### 13.0 Frame sources — `frame-sources.md`
+
+Written later, and it touches §7 in one place. `freeze()` converts a live frame to a
+static one and stamps `corners` + `crs`; that georef contract is reused there for a
+RASTER SOURCE on a frame that is still live, rather than a second contract being
+invented. Freeze remains the only way a frame stops being live.
+
+The motivating failure is worth recording here because it is invisible from this
+document: a sheet's live `src` resolves outside the host app and the map it names then
+draws nothing, because its layers are on a host-local protocol. The failure is silent,
+so anything hung off an error path never fires.
+
 ### 13.1 The rasterise trigger is a post-process pass, by type
 
 The sharpest one, and it has a wrong answer on each side.

@@ -22,8 +22,8 @@ to PDF at true page size via CSS `@page` and exports PNG/JPEG at print DPI throu
 <html>
 <head>
   <meta charset="utf-8">
-  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.10.5/dist/cartograph.standalone.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.10.5/dist/cartograph.css">
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.10.9/dist/cartograph.standalone.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.10.9/dist/cartograph.css">
 </head>
 <body>
 <om-cartograph cartograph-id="cg-lot-12" format="cartograph/2" size="A4" theme="minimal"
@@ -78,7 +78,8 @@ The authoritative attribute lists (with editor IntelliSense) are generated from
 | Element | Purpose | Status |
 |---|---|---|
 | `<om-cartograph>` | Page root: `cartograph-id`, `format="cartograph/2"`, `size` (A5–A0/Letter/Legal) or `width`/`height` (mm), `orientation`, `theme`, `title`, `attribution`; print controls `bleed`, `crop-marks`, `safe-zone`, `dpi`, `flatten`, `color-profile`; `cvd`; `allow-url-actions` | implemented |
-| `<om-frame>` | A placed map. `mode="static"`: a georeferenced `<img>` child placed by `crs` + `corners`. `mode="live"` (the default): mounts `<om-map>` from `src=` or an inline child with the frame's own `center/zoom/bearing/pitch`; `overview-of` draws another frame's footprint | implemented |
+| `<om-frame>` | A placed map. `mode="static"`: a georeferenced `<img>` child placed by `crs` + `corners`. `mode="live"` (the default): mounts `<om-map>` from `src=`, an `<om-source>` child or an inline child with the frame's own `center/zoom/bearing/pitch`; `overview-of` draws another frame's footprint | implemented |
+| `<om-source>` | One place a frame's picture may come from — `src` (a map document `.html`, or a capture image), plus `corners`/`crs`/`crs-def` for a capture. A frame tries its sources in document order and shows the first that renders | implemented |
 | `<om-text>` | Text block — `kind` (title/text/attribution), `font-size` (pt), `weight`, `align`, `font`, `color`, `bg`; body may use `{{tokens}}` | implemented |
 | `<om-scalebar>` | Scale bar — `for`, `units` (metric/imperial/nautical), `segments`, `segment-length`, `kind` (single/double/line/ticks) | implemented |
 | `<om-north>` | North indicator — `for`, `kind` (arrow/rose). Direction is derived from the frame's georeference | implemented |
@@ -86,7 +87,7 @@ The authoritative attribute lists (with editor IntelliSense) are generated from
 | `<om-image>` | Logo or photo — `src`, `fit` (contain/cover/fill) | implemented |
 | `<om-legend>` / `<om-legend-row>` | Derived legend — `for`, `title`, `columns`, `derived`; rows computed from the frame's layers, never stored. Children are overrides (`layer`, `match`, `label`, `hide`, `order`, `color`, `shape`), or literal rows when `derived="false"` | implemented |
 | `<om-graticule>` | Coordinate grid — `for`, `crs`, `interval`/`-x`/`-y`, `kind` (solid/cross/markers), `labels`, `format` (`dms`). Geographic by default; a projected `crs` draws that projection's grid | implemented |
-| `<om-atlas>` | One page per feature — `for`, `layer`, `filter`, `sort`, `filename`, `page-name`. Frames follow with `atlas-fit="feature"` + `atlas-margin` | implemented |
+| `<om-atlas>` | One page per feature — `for`, `layer`, `filter`, `sort`, `filename`, `page-name`. Frames follow with `atlas-fit="feature"` + `atlas-margin` (a FRACTION of the feature's extent, default 0.15 — not millimetres; the validator warns above 2, and when the margin is set without `atlas-fit`) | implemented |
 
 ## Georeferencing
 
@@ -157,6 +158,51 @@ A live frame mounts the real map runtime with the FRAME's own camera:
 - Frames expose `ready` (settling on success *or* failure) and fire `om-frame-ready` /
   `om-frame-error`; a failed frame shows a visible inline placeholder rather than an empty
   box, which on a printed page is indistinguishable from a design choice.
+
+## Ordered sources
+
+`src=` names one place the picture comes from and assumes it works. That holds in the app
+that wrote the sheet and essentially nowhere else: a relative path into a host's storage
+and a host-local protocol for the layer data are both app-local, so the same file opened
+elsewhere mounts a map with zero drawable layers and *reports success*. The frame looks
+like a blank box surrounded by correct furniture.
+
+A frame can therefore declare several sources and show the first that **renders**:
+
+```html
+<om-frame id="main" x="15" y="41" w="255" h="155" center="[-96, 38]" zoom="3.25">
+  <om-source src="../maps/map-abc.html"></om-source>
+  <om-source src="captures/main@2x.png"
+             corners="[[-126,50],[-66,50],[-66,23],[-126,23]]" crs="EPSG:5070"></om-source>
+</om-frame>
+```
+
+- **`src=` on the frame is shorthand** for the first `<om-source src=>`, so every existing
+  document keeps working and the common case stays one line. Writing both is fine: the
+  frame's `src=` is tried first, then each `<om-source>` in document order. An inline
+  `<om-map>` child always outranks both — the author put the map *in* the frame.
+- **One attribute, `src`, for both kinds.** The kind is read from the extension (`.html`
+  is a map document; `.png`/`.jpg`/`.jpeg`/`.webp`/`.avif`/`.gif`/`.svg` is a capture).
+  An unrecognised extension is a validation error naming both, never a silent guess.
+- **"Rendered" means one drawable thing**, checked after the map settles: a basemap, or
+  rows on any layer, or a tile template. Deliberately not "every layer loaded" — a sheet
+  whose fifth layer 404s is degraded, not failed, and swapping it for a stale capture
+  would be worse than showing it.
+- **A capture carries its own `corners` (and `crs`)**, because when the capture is what
+  gets shown the live map did not load and its projection is unknowable. The corners are
+  required on a capture source and are what furniture is placed against.
+- **The frame says which source it settled on** — `data-om-carto-source="<index>"` plus an
+  `om-frame-source` event (`{ id, index, kind, src }`). A capture shown silently is its own
+  trap: an editor should be able to report "showing a capture". `om-frame-view` fires too,
+  so the graticule, scale bar and north arrow re-place against the new georeference.
+- A source that fails by drawing nothing costs a full settle before the next is tried (up
+  to the existing 20 s timeout). That is paid once, on a stored file; in the app the first
+  source succeeds and the mechanism costs nothing.
+
+**A stored sheet is renderable in place, not portable.** Capture paths are relative, so
+moving the file alone breaks them exactly as it already breaks a relative `src=`. Export is
+what produces a file that survives being sent to someone — it inlines the map and embeds
+the rasters.
 
 ### Export and print resolution
 
@@ -254,6 +300,25 @@ by `atlas-margin`), re-resolves `{{atlas.<field>}}` tokens, re-derives every sca
 scale genuinely changes per page, so a bar sized for one sheet would lie on the next — and
 fires `om-atlas-page`. The page element exposes `cartographEl.atlas` with `count`, `index`,
 `current`, `seek(i)`, `next()`, `filenames()` and `pageName(i)`.
+
+### Turning the pages
+
+A reader can page an atlas anywhere the runtime runs — a plain browser, an embedding
+app's preview, an exported standalone file — not only where a host has built controls:
+
+- **Keyboard.** `←`/`→`, `PageUp`/`PageDown`, `Home`, `End`, whenever focus is not in a
+  form field.
+- **An on-sheet pager**, `‹ 3 / 49 · Alabama ›`, drawn at the sheet's foot when an atlas
+  has pages. It is **screen-only**: never printed (`@media print`), never in a PNG or
+  JPEG (the exporter skips anything marked `data-om-carto-screen-only`), and stripped by
+  a host before the document is saved. `pager="none"` on `<om-atlas>` removes it, for a
+  host that draws its own.
+- **A host protocol**, for an app that shows the sheet in a cross-origin iframe and so
+  cannot reach `seek()` itself. On every page change the runtime posts to its parent
+  window `{ source: "onlymap-cartograph", type: "atlas-page", index, count, name }`, and
+  it accepts `{ source: "onlymap-cartograph-host", type: "atlas-seek", index }` back. The
+  index is 0-based, like `seek(i)`. Any window can post the seek; the worst it can do is
+  turn a page.
 
 Three rules make an unattended N-page export trustworthy:
 
@@ -376,7 +441,16 @@ positions; live-frame internals stay hidden. This mirrors `src/fallback.css`, in
 On the free plan every cartograph carries a small foot credit — "Built with
 OnlyMap by NIKA · free for non-commercial use" — injected at the page's
 bottom-left. It is part of the free license's attribution condition, so it is
-included in print and PNG export. Two ways it lifts:
+included in print and PNG export.
+
+**One credit per sheet, not per frame.** A map mounted inside an `<om-frame>`
+does not carry the corner badge a standalone map does: the sheet is the
+published artefact and credits the whole page once. Otherwise a plate with a
+main map and two locator insets would credit itself three times, and since the
+badge has a minimum size while a frame does not, on a small inset the badge
+came out larger than the frame holding it.
+
+Two ways the sheet's credit lifts:
 
 - **Author your own credit.** Any `<om-text>` whose text mentions OnlyMap
   (e.g. `rendered with @nika-js/onlymap/cartograph` in an attribution line)

@@ -3994,6 +3994,34 @@
       ]
     },
     {
+      "name": "om-source",
+      "description": "One place a frame's picture may come from. A frame tries its sources in order and takes the first that renders — so a sheet can name its live map AND a capture of it, and still show a map when the live one cannot load (opened outside the app that wrote it, for instance). The kind is read from the extension: .html is a map document, an image extension is a capture.",
+      "attributes": [
+        {
+          "name": "src",
+          "description": "Map document (.html) or capture image (.png/.jpg/.webp/.avif/.gif/.svg). Relative paths resolve against the sheet's own folder."
+        },
+        {
+          "name": "corners",
+          "description": "A capture's four corner coordinates as lon/lat pairs, order tl/tr/br/bl — the georeference that was true when it was taken, so furniture is right even if the live map never loaded."
+        },
+        {
+          "name": "crs",
+          "description": "A capture's CRS (e.g. EPSG:5070). Defaults to EPSG:3857."
+        },
+        {
+          "name": "crs-def",
+          "description": "Proj string (\"+proj=…\") for a CRS the library doesn't bundle."
+        }
+      ],
+      "references": [
+        {
+          "name": "Cartograph reference",
+          "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/docs/cartograph.md"
+        }
+      ]
+    },
+    {
       "name": "om-atlas",
       "description": "Page-series generator: iterates the features of a layer in a frame — one page per feature, per-page camera refit (om-frame atlas-fit), {{atlas.<field>}} tokens, N-page print and N-file export.",
       "attributes": [
@@ -4024,6 +4052,18 @@
         {
           "name": "page-name",
           "description": "Page label pattern shown in editors and PDF bookmarks."
+        },
+        {
+          "name": "pager",
+          "description": "The on-screen page control (‹ 3 / 49 · name ›) the atlas draws for a reader. Screen-only: never printed or exported. Arrow keys, PageUp/PageDown, Home and End page too. \"none\" removes the control for a host that draws its own.",
+          "values": [
+            {
+              "name": "auto"
+            },
+            {
+              "name": "none"
+            }
+          ]
         }
       ],
       "references": [
