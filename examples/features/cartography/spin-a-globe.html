@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<!--
+  A globe: projection="globe" on <om-map>.
+
+  Zoomed out, the Earth is a sphere you can spin; zoom in and it becomes an
+  ordinary flat map, with nothing to switch. It is the right view for things
+  that span the planet — flight routes, global datasets, the poles — which a
+  flat Web Mercator map stretches out of shape (Greenland the size of Africa,
+  Antarctica a smear along the bottom).
+
+  Everything else stays the same: layers are written exactly as for a flat
+  map, the data is longitude/latitude, and center/zoom mean what they always
+  did. MapLibre draws the sphere, so a globe needs a basemap — here the
+  keyless satellite imagery.
+
+  On the page:
+  - World cities from Natural Earth, sized by population. Hover one.
+  - Great-circle routes from London. On a flat map a great circle bends
+    north and looks like a detour; on the globe it is plainly the shortest
+    way round.
+  - City names as <om-overlay> elements. A name on the far side of the planet
+    hides instead of floating over the near side.
+  - Buttons that switch to the flat map and back (the set-projection action,
+    live — no reload), fly between places, and change the basemap. The globe
+    survives a basemap switch.
+
+  Preview: a globe is drawn flat-on and north-up, and a few layer types
+  (heatmaps and other screen-space aggregations, text and icon layers, arcs)
+  cannot draw on it yet — validation says so, with a fix. Labels go in
+  overlays, as here, or come from the basemap's own style; routes are paths.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Spin a globe</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.11.11/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.11.11/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; background: #04060b; }
+    om-map {
+      display: block; height: 100vh; background: radial-gradient(circle at 50% 45%, #0c1630 0%, #04060b 70%);
+      --om-widget-bg: rgba(10, 14, 22, .9);
+      --om-widget-fg: #eef2f8;
+      --om-widget-muted: #8a93a6;
+      --om-widget-border: #222b3a;
+      --om-widget-hover-bg: #172031;
+    }
+    .name {
+      font: 600 12px/1 system-ui, sans-serif; color: #fff; letter-spacing: .02em;
+      padding: 3px 7px; border-radius: 999px; background: rgba(4, 6, 11, .72);
+      border: 1px solid rgba(255, 255, 255, .18); white-space: nowrap;
+      transform: translate(-50%, calc(-100% - 10px)); pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map id="globe" projection="globe" basemap="satellite" center="[-20, 30]" zoom="1.6">
+
+    <!-- ROUTES. The shortest way between two places on a sphere is a great
+         circle. Each route is a path through points along one (the data file
+         carries them), so the same layer is right on the globe and on the flat
+         map — where a great circle bends north and looks like a detour. -->
+    <om-layer id="routes" type="PathLayer" data="../../data/london-great-circles.json"
+              label="Great circles from London" color="#fbbf24"
+              get-path="$path" get-color="[251, 191, 36, 230]"
+              get-width="2.5" width-units="pixels" pickable></om-layer>
+
+    <!-- CITIES. Population is in millions. -->
+    <om-layer id="cities" type="ScatterplotLayer" data="../../data/world-cities.json"
+              label="World cities" color="#38bdf8"
+              get-position="[$lon, $lat]"
+              get-radius="scale($population, sqrt, [2.5, 11], domain=[0.1, 36])" radius-units="pixels"
+              get-fill-color="[56, 189, 248, 220]" stroked get-line-color="[4, 6, 11]"
+              line-width-min-pixels="1" pickable></om-layer>
+
+    <!-- NAMES. Overlays, not a TextLayer: an overlay on the far side of the
+         globe hides, and text layers do not draw on a globe yet. -->
+    <om-overlay anchor="[-0.1278, 51.5074]"><div class="name">London</div></om-overlay>
+    <om-overlay anchor="[139.7495, 35.687]"><div class="name">Tokyo</div></om-overlay>
+    <om-overlay anchor="[-73.982, 40.7519]"><div class="name">New York</div></om-overlay>
+    <om-overlay anchor="[-46.627, -23.5567]"><div class="name">São Paulo</div></om-overlay>
+    <om-overlay anchor="[72.855, 19.0189]"><div class="name">Mumbai</div></om-overlay>
+    <om-overlay anchor="[31.248, 30.0519]"><div class="name">Cairo</div></om-overlay>
+    <om-overlay anchor="[151.2093, -33.8688]"><div class="name">Sydney</div></om-overlay>
+
+    <om-widget position="top-left">
+      <!-- A widget's content lives in its own shadow root, so its styles go
+           inside it; the page's stylesheet does not reach in. -->
+      <style>
+        .panel { background: rgba(10, 14, 22, .9); color: #eef2f8; border: 1px solid #222b3a;
+                 border-radius: 10px; padding: 11px 13px; font: 13px/1.45 system-ui, sans-serif; max-width: 250px; }
+        .panel b { color: #fbbf24; }
+        .panel .row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+        .panel button { font: inherit; font-size: 12.5px; padding: 5px 10px; border-radius: 7px; cursor: pointer;
+                        background: #172031; color: #eef2f8; border: 1px solid #2c374a; }
+        .panel button:hover { background: #22304a; }
+        .panel button[aria-pressed="true"] { background: #fbbf24; color: #10131a; border-color: #fbbf24; }
+      </style>
+      <div class="panel">
+        <b>A globe.</b> Drag to spin, scroll to zoom in until it turns into a flat map.
+        <div class="row" role="group" aria-label="Projection">
+          <button data-projection="globe" aria-pressed="true">Globe</button>
+          <button data-projection="mercator" aria-pressed="false">Flat map</button>
+        </div>
+        <div class="row" role="group" aria-label="Fly to">
+          <button data-fly="[-0.13, 51.5, 4]">London</button>
+          <button data-fly="[139.75, 35.69, 4]">Tokyo</button>
+          <button data-fly="[0, -82, 1.8]">Antarctica</button>
+          <button data-fly="[-20, 30, 1.6]">Whole world</button>
+        </div>
+      </div>
+    </om-widget>
+
+    <om-widget type="basemap-switcher" position="top-right" options="satellite positron dark-matter"></om-widget>
+    <om-widget type="legend" position="bottom-right"></om-widget>
+    <om-widget type="attribution" position="bottom-start" text="Cities: Natural Earth"></om-widget>
+
+    <om-behavior on="hover" layer="cities" action="show-tooltip" template="#city-tip"></om-behavior>
+    <om-behavior on="hover" layer="routes" action="show-tooltip" template="#route-tip"></om-behavior>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch; color: #eef2f8">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+  </om-map>
+
+  <template id="city-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#0a0e16; color:#eef2f8;
+                border:1px solid #222b3a; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>{{name}}</b><br /><span style="color:#8a93a6">{{country}} · {{population}} million</span>
+    </div>
+  </template>
+
+  <template id="route-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#0a0e16; color:#eef2f8;
+                border:1px solid #222b3a; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>London → {{to}}</b><br /><span style="color:#8a93a6">{{km}} km by great circle</span>
+    </div>
+  </template>
+
+  <script type="module">
+    const map = document.getElementById("globe");
+    // The widget's own HTML moves into its shadow root when it mounts, so
+    // its buttons are found and wired there.
+    await map.ready;
+    const panel = map.querySelector("om-widget[position='top-left']").shadowRoot;
+
+    // set-projection writes the attribute, like set-basemap: undoable, and
+    // a story step can use it too.
+    const projectionButtons = panel.querySelectorAll("[data-projection]");
+    for (const button of projectionButtons) {
+      button.addEventListener("click", () => {
+        map.emit("set-projection", { projection: button.dataset.projection });
+        for (const b of projectionButtons) b.setAttribute("aria-pressed", String(b === button));
+      });
+    }
+    for (const button of panel.querySelectorAll("[data-fly]")) {
+      const [lng, lat, zoom] = JSON.parse(button.dataset.fly);
+      button.addEventListener("click", () => map.flyTo([lng, lat], zoom, { duration: 2500, curve: true }));
+    }
+  </script>
+
+</body>
+</html>

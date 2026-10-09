@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<!--
+  `filter-field` names a numeric column and `filter-range` is the window kept.
+  Rows outside it are dropped in the shader — the data is never re-parsed, no
+  array is rebuilt, and nothing is uploaded again. That is why a slider over
+  twenty thousand points stays smooth where a JavaScript filter would not.
+
+  A filter is a plain prop rather than an accessor, so moving it never
+  triggers deck.gl's updateTriggers path. Reach for it whenever the reader's
+  question is "show me only the ones where…".
+
+  Three independent questions at once, two kinds of filter: `filter-fields`
+  (plural) is a JSON array of up to 4 numeric {field, range} dimensions,
+  AND'd together — a station has to be inside every window to stay on
+  screen. `filter-category` is a SEPARATE mechanism (a discrete keep-list
+  test, not a range) and combines with the numeric ones the same way — a
+  station also has to be an unchecked-off fuel type. One `<om-widget
+  type="filter">` per dimension either way, each dragging/checking its own
+  slot without touching the others' current value (the filter-layer action
+  merges, it doesn't replace).
+
+  The map: 21,337 power stations worldwide, every one rated 10 MW or more.
+  Drag the capacity slider to watch the small stations fall away and the
+  fleet's real backbone appear; drag the commissioning-year slider to watch
+  it age backward; uncheck a fuel to make that color vanish everywhere at
+  once — and watch the panel agree with all three at once, because it reads
+  the same filters the shader is applying.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Filter on the GPU</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.6/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.6/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #11141b;
+      --om-widget-fg: #f4f7fc;
+      --om-widget-muted: #8a93a5;
+      --om-widget-border: #252c38;
+      --om-widget-hover-bg: #1c222b;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[8, 34]" zoom="2.1" basemap="dark-matter">
+
+    <!-- Each dimension's range/keep-list is a STARTING window, not a hard
+         limit — author it wide and let each widget clamp/seed from the
+         values actually present. filter-category-fields is the multi-
+         dimension categorical surface (mirrors filter-fields' shape, one
+         {field, categories} entry per dimension) — here just one dimension,
+         so the single filter-category/filter-categories pair works the same
+         way filter-field/filter-range does for one numeric dimension.
+
+         A ternary chain on get-fill-color is what the legend reads back to
+         build its key, so the palette is written once, here. -->
+    <om-layer id="stations" type="ScatterplotLayer"
+              data="../../data/global-power-plants.csv"
+              label="Power stations" color="#fbbf24"
+              get-position="[$lon, $lat]"
+              get-fill-color="$fuel == 'Nuclear' ? '#22d3ee'
+                            : $fuel == 'Coal' ? '#f43f5e'
+                            : $fuel == 'Gas' ? '#fbbf24'
+                            : $fuel == 'Hydro' ? '#4ade80'
+                            : $fuel == 'Wind' ? '#a78bfa'
+                            : $fuel == 'Solar' ? '#fde68a'
+                            : '#7c8798'"
+              get-radius="scale($capacity_mw, sqrt, [1.6, 26], domain=[10, 22500])"
+              radius-units="pixels" opacity="0.86" pickable
+              filter-fields='[{"field":"capacity_mw","range":[10,22500]},{"field":"year","range":[1900,2020]}]'
+              filter-category="fuel" filter-categories='["Nuclear","Coal","Gas","Hydro","Wind","Solar"]'></om-layer>
+
+    <!-- Each widget emits filter-layer with its OWN field — the action merges
+         the value into that one slot of the layer's filter-fields/
+         filter-category-fields, leaving every other dimension exactly where
+         it was, so the MANIFEST stays the source of truth and an undo, a
+         story step or a behavior moving any one filter re-syncs the
+         matching widget. Keep every filter on a map the same kind: a filter
+         here and a hand-rolled control elsewhere will disagree.
+
+         Same widget type either way — "filter" auto-renders sliders for a
+         numeric field, checkboxes for a categorical one (the layer's own
+         filter-category says which "fuel" is), so nothing here declares the
+         UI mode explicitly. -->
+    <om-widget type="filter" layer="stations" field="capacity_mw" title="Capacity (MW)"
+               watch="layers data:stations" position="top-right"></om-widget>
+    <om-widget type="filter" layer="stations" field="year" title="Commissioned"
+               watch="layers data:stations" position="top-right"></om-widget>
+    <om-widget type="filter" layer="stations" field="fuel" title="Fuel"
+               watch="layers data:stations" position="top-right"></om-widget>
+
+    <!-- The legend is a separate concern from the fuel filter above — it's
+         the COLOR key (which color renders which fuel), not a control; the
+         filter checkboxes don't show swatches, so both together tell the
+         full story. -->
+    <om-widget type="legend" title="Fuel colors" position="top-right"></om-widget>
+
+    <!-- ctx.stats reads the SAME declarative filter the shader is applying, so
+         a count here can never drift from what is drawn. Pass
+         { filtered: false } for a total that holds still while the slider
+         moves — this panel shows both, side by side. Watch `layers`: moving
+         the window changes filter-range, not the underlying data. -->
+    <om-widget position="top-left" watch="layers data:stations">
+      <style>
+        .panel { width: 232px; box-sizing: border-box; background: rgba(17,20,27,.92); color: #eef2f8;
+                 border: 1px solid #252c38; border-radius: 9px; padding: 11px 14px;
+                 font: 12px/1.5 system-ui, sans-serif; }
+        .panel h3 { margin: 0 0 8px; font: 650 13px system-ui, sans-serif; color: #fbbf24; }
+        .row { display: flex; justify-content: space-between; gap: 14px; margin: 3px 0; color: #8a93a5; }
+        .row b { color: #f4f7fc; font-variant-numeric: tabular-nums; }
+      </style>
+      <section class="panel" aria-live="polite">
+        <h3>Inside the window</h3>
+        <div class="row"><span>Stations shown</span><b id="shown">—</b></div>
+        <div class="row"><span>Of all stations</span><b id="total">—</b></div>
+        <div class="row"><span>Capacity shown</span><b id="gw">—</b></div>
+        <div class="row"><span>Largest</span><b id="max">—</b></div>
+      </section>
+      <script type="om/widget">
+        this.watch = ["layers", "data:stations"];
+        this.render = (ctx) => {
+          const kept = ctx.stats("stations", "capacity_mw");
+          const all = ctx.stats("stations", "capacity_mw", { filtered: false });
+          if (!all.count) return;
+          this.$("#shown").textContent = kept.count.toLocaleString();
+          this.$("#total").textContent = all.count.toLocaleString();
+          this.$("#gw").textContent = kept.count ? ((kept.mean * kept.count) / 1000).toFixed(0) + " GW" : "—";
+          this.$("#max").textContent = kept.count ? kept.max.toLocaleString() + " MW" : "—";
+        };
+      </script>
+    </om-widget>
+
+    <om-behavior on="hover" layer="stations" action="show-tooltip" template="#station-tip"></om-behavior>
+
+    <om-widget type="attribution"
+               text="Power stations © World Resources Institute, Global Power Plant Database v1.3, CC BY 4.0"
+               position="bottom-start"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <template id="station-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#11141b; color:#f4f7fc;
+                border:1px solid #252c38; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>{{name}}</b><br />
+      <span style="color:#8a93a5">{{capacity_mw}} MW · {{fuel}} · {{country}}</span>
+    </div>
+  </template>
+
+</body>
+</html>

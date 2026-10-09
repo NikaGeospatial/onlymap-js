@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="128" viewBox="0 0 256 128">
+  <!-- Two-icon atlas for IconLayer: "pin" at x=0, "star" at x=128, 128x128
+       each. Drawn solid white so mask:true in the icon-mapping lets get-color
+       tint them per feature. Keep icons solid — a transparent cut-out is not
+       pickable.
+
+       The pin's tip is at y=118 and the star's base at y=106; each icon
+       declares that as its anchorY, so both sit on the coordinate and leave
+       the same room for a label underneath. -->
+  <path fill="#ffffff"
+        d="M64 16 C38 16 18 36 18 62 C18 92 64 118 64 118 C64 118 110 92 110 62 C110 36 90 16 64 16 Z" />
+  <path fill="#ffffff"
+        d="M192 12 L204.9 46.2 L241.5 47.9 L212.9 70.8 L222.6 106.1 L192 86 L161.4 106.1 L171.1 70.8 L142.5 47.9 L179.1 46.2 Z" />
+</svg>

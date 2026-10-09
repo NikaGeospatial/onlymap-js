@@ -1,0 +1,47 @@
+[
+ {
+  "from": "Changi Airport",
+  "to": "Marina Bay",
+  "from_lon": 103.9915,
+  "from_lat": 1.3644,
+  "to_lon": 103.8607,
+  "to_lat": 1.2834,
+  "trips": 14200
+ },
+ {
+  "from": "Jurong East",
+  "to": "Raffles Place",
+  "from_lon": 103.742,
+  "from_lat": 1.333,
+  "to_lon": 103.8514,
+  "to_lat": 1.2839,
+  "trips": 21800
+ },
+ {
+  "from": "Woodlands",
+  "to": "Orchard",
+  "from_lon": 103.7865,
+  "from_lat": 1.436,
+  "to_lon": 103.8324,
+  "to_lat": 1.3048,
+  "trips": 17500
+ },
+ {
+  "from": "Tampines",
+  "to": "one-north",
+  "from_lon": 103.945,
+  "from_lat": 1.3496,
+  "to_lon": 103.787,
+  "to_lat": 1.299,
+  "trips": 9300
+ },
+ {
+  "from": "HarbourFront",
+  "to": "Ang Mo Kio",
+  "from_lon": 103.822,
+  "from_lat": 1.2653,
+  "to_lon": 103.849,
+  "to_lat": 1.37,
+  "trips": 6100
+ }
+]

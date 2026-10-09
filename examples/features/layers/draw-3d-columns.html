@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<!--
+  ColumnLayer stands one solid column on each point and takes its height from
+  the data. Reach for it when a place has a QUANTITY attached and the reader's
+  job is to compare quantities — it is a bar chart that keeps its geography.
+
+  The map: every power station in Europe rated 300 MW or more, from the World
+  Resources Institute's global database. Height is installed capacity, colour
+  is the fuel. France reads as a wall of nuclear, Norway as hydro, the Rhine
+  and the Po as gas. Drag with the right mouse button, or hold Shift and drag,
+  to rotate — the third dimension is the whole point.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Draw 3D columns</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.3/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.3/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #12151c;
+      --om-widget-fg: #f4f6fa;
+      --om-widget-muted: #8d95a6;
+      --om-widget-border: #272d38;
+      --om-widget-hover-bg: #1e232c;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[9.5, 48.6]" zoom="4.3" pitch="55" bearing="-14" basemap="dark-matter">
+
+    <!-- get-elevation reads the value and elevation-scale turns it into metres
+         of height, so the scale always needs tuning to the data — 45 here
+         means a 1,000 MW station stands 45 km tall, which is what reads at
+         continental zoom. Without `extruded` you get flat discs on the ground.
+
+         radius is in METRES like every deck.gl radius, so a column keeps its
+         footprint as you zoom rather than growing on screen.
+
+         disk-resolution is how many sides a column has: 4 gives squares, 6
+         hexagons, and the default 20 reads as round. GridCellLayer is the
+         square-cell sibling of this layer — the same props, with cell-size in
+         place of radius, for data that is already binned to a grid.
+
+         filter-field and filter-range cut rows on the GPU. The data runs down
+         to 10 MW, and a 300 MW floor is what keeps a continent readable —
+         widen the range to bring the smaller stations back.
+
+         A chain of equality tests colours by fuel, and the legend reads that
+         chain back to build its key, so the palette is written once, here.
+
+         `pickable` is what lets the hover behavior below find a column at all.
+         Leave it off and the tooltip never fires.
+
+         Columns take the scene lighting like any other extruded geometry, so
+         `<om-map lighting="daylight">` gives them a sun and cast shading. -->
+
+    <om-layer id="stations" type="ColumnLayer"
+              data="../../data/global-power-plants.csv"
+              label="Power stations, 300 MW and up" color="#fb923c"
+              filter-field="capacity_mw" filter-range="[300, 25000]"
+              get-position="[$lon, $lat]"
+              get-elevation="$capacity_mw"
+              elevation-scale="45"
+              radius="7000"
+              disk-resolution="16"
+              extruded
+              get-fill-color="$fuel == 'Nuclear' ? '#22d3ee'
+                            : $fuel == 'Coal' ? '#f43f5e'
+                            : $fuel == 'Gas' ? '#fbbf24'
+                            : $fuel == 'Hydro' ? '#4ade80'
+                            : '#94a3b8'"
+              opacity="0.88"
+              pickable></om-layer>
+
+    <om-widget type="legend" title="Fuel" position="top-right"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: rgba(18,21,28,.88); color: #e6eaf2; padding: 10px 14px;
+                 border-radius: 8px; font-size: 13px; max-width: 250px; line-height: 1.45; }
+        .panel b { color: #fbbf24; }
+      </style>
+      <div class="panel">
+        <b>Europe's big power stations.</b> Height is installed capacity, from
+        300 MW to the 5.5 GW of Gravelines. Hover a column for the station.
+      </div>
+    </om-widget>
+
+    <om-widget type="attribution"
+               text="Power stations © World Resources Institute, Global Power Plant Database v1.3, CC BY 4.0"
+               position="bottom-start"></om-widget>
+
+    <om-behavior on="hover" layer="stations" action="show-tooltip" template="#station-tip"></om-behavior>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <template id="station-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#12151c; color:#f4f6fa;
+                border:1px solid #272d38; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>{{name}}</b><br />
+      {{capacity_mw}} MW · {{fuel}} · {{country}}
+    </div>
+  </template>
+
+</body>
+</html>

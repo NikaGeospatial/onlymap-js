@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<!--
+  Data in a national grid, on any map — and a map in that grid, with imagery.
+
+  Survey offices, councils and national mapping agencies publish in their own
+  grid: eastings and northings in metres, not longitude and latitude. Britain
+  uses the British National Grid (EPSG:27700), Singapore SVY21, every US state
+  its own State Plane zone. Hand those numbers to a web map and the features
+  land in the ocean off West Africa, silently.
+
+  Here the SAME three files feed two maps:
+
+  - britain.shp — Britain's coastline as a shapefile in British National
+    Grid. Its .prj sidecar names the grid, so the layer needs nothing at all.
+  - towns.csv — 46 towns as plain easting/northing columns. A CSV cannot say
+    what grid it is in, so the layer declares it: crs="EPSG:27700".
+  - graticule.geojson — ordinary longitude/latitude lines, for reference.
+
+  LEFT: an ordinary Web Mercator map with basemap="satellite". The grid data
+  is converted to longitude/latitude as it loads and lands on the imagery.
+
+  RIGHT: the map itself drawn in British National Grid — crs="EPSG:27700" on
+  <om-map>. Grid north is straight up, so the meridians lean: they converge on
+  the true pole, and the lean grows away from 2°W, the grid's central meridian.
+  A MapLibre basemap cannot draw in this plane, so the same Sentinel-2 imagery
+  comes in as an image TileLayer, which is warped tile by tile into the grid.
+  Its credit is ours to show, so an attribution widget shows it.
+
+  Pan or zoom either map and the other follows: the camera stays in longitude,
+  latitude and zoom on both, whatever plane the map draws in.
+
+  Data: Natural Earth (public domain), converted to British National Grid with
+  GDAL. Imagery: Sentinel-2 cloudless 2016 by EOX IT Services GmbH, CC BY 4.0.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Map data in a national grid</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.11.11/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.11.11/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; background: #0b0f14; color: #e9eef6;
+                 font: 14px/1.5 system-ui, sans-serif; }
+    /* A column: the header takes what it needs, the maps take the rest. */
+    body { display: flex; flex-direction: column; }
+    header { padding: 12px 18px; border-bottom: 1px solid #1f2733; }
+    header h1 { margin: 0 0 2px; font-size: 17px; letter-spacing: -.01em; }
+    header p { margin: 0; color: #8f99ab; max-width: 110ch; }
+    header code { color: #7dd3fc; font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .pair { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr;
+            gap: 2px; background: #1f2733; }
+    om-map {
+      display: block; height: 100%; min-height: 0;
+      --om-widget-bg: #0f1319;
+      --om-widget-fg: #f2f5fa;
+      --om-widget-muted: #8891a3;
+      --om-widget-border: #242c38;
+      --om-widget-hover-bg: #1a212b;
+    }
+    /* !important and the .pair scope: the dev server's chrome forces every
+       om-map to a full viewport height, which here would run under the header. */
+    .pair om-map { height: 100% !important; }
+    om-map[crs] { background: #0b1a2a; }
+    @media (max-width: 820px) {
+      body { height: auto; }
+      .pair { grid-template-columns: 1fr; flex: none; }
+      .pair om-map { height: 62vh !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Map data in a national grid</h1>
+    <p>The same files on two maps. Left: Web Mercator, with the grid data converted as it loads.
+       Right: the map drawn in British National Grid (<code>crs="EPSG:27700"</code>), satellite imagery warped into it.
+       Pan either one; the other follows. Hover a town for its grid reference.</p>
+  </header>
+
+  <div class="pair">
+
+    <!-- LEFT — Web Mercator. Nothing about the map changes for grid data;
+         only the layers say what they are in, and the shapefile does not even
+         need to, because its .prj does. -->
+    <om-map id="mercator" center="[-3.2, 54.7]" zoom="4.9" basemap="satellite">
+
+      <om-layer id="graticule" type="GeoJsonLayer" data="../../data/gb-grid/graticule.geojson"
+                label="Longitude/latitude (GeoJSON)" color="#cbd5e1"
+                stroked get-line-color="[226, 232, 240, 90]"
+                get-line-width="1" line-width-units="pixels"></om-layer>
+
+      <!-- SHAPEFILE IN A GRID. The .prj beside the .shp names British
+           National Grid, so this is an ordinary layer — no crs needed. -->
+      <om-layer id="coast" type="GeoJsonLayer" data="../../data/gb-grid/britain.shp"
+                label="Coastline (shapefile + .prj)" color="#fde68a"
+                stroked filled="false" get-line-color="[253, 230, 138, 235]"
+                get-line-width="1.6" line-width-units="pixels"></om-layer>
+
+      <!-- CSV IN A GRID. Plain easting/northing columns carry no CRS, so the
+           layer declares it. get-position reads the columns exactly as it
+           would read longitude/latitude. -->
+      <om-layer id="towns" type="ScatterplotLayer" data="../../data/gb-grid/towns.csv"
+                crs="EPSG:27700" label="Towns (CSV, eastings/northings)" color="#f97316"
+                get-position="[$easting, $northing]"
+                get-radius="scale($population, sqrt, [3, 13], domain=[60000, 8600000])"
+                radius-units="pixels" get-fill-color="[249, 115, 22, 230]"
+                stroked get-line-color="[15, 19, 25]" line-width-min-pixels="1" pickable></om-layer>
+
+      <om-widget position="top-left">
+        <div style="background:rgba(15,19,25,.88); border:1px solid #242c38; border-radius:8px;
+                    padding:8px 11px; font:12.5px/1.45 system-ui, sans-serif; max-width:230px">
+          <b style="color:#fde68a">Web Mercator</b><br />
+          <span style="color:#8891a3">Grid data converted to longitude/latitude as it loads.</span>
+        </div>
+      </om-widget>
+      <om-widget type="legend" title="Same three files" position="top-right"></om-widget>
+      <om-widget type="scale-bar" position="bottom-right"></om-widget>
+      <om-widget type="attribution" position="bottom-start"
+                 text="Coastline and towns: Natural Earth"></om-widget>
+
+      <om-behavior on="hover" layer="towns" action="show-tooltip" template="#town-tip"></om-behavior>
+    </om-map>
+
+    <!-- RIGHT — the map in British National Grid. The layers are the same
+         markup as on the left. What changes is the map: crs puts the whole
+         renderer in the grid's plane, and the satellite imagery arrives as a
+         layer instead of a basemap. -->
+    <om-map id="grid" crs="EPSG:27700" center="[-3.2, 54.7]" zoom="4.9" basemap="none">
+
+      <!-- IMAGERY ON A PROJECTED MAP. An image TileLayer — the same tiles
+           basemap="satellite" uses — is re-indexed from the grid's own
+           geography and each Web Mercator tile is warped into the plane.
+           basemap="satellite" itself would be a validation error here, and
+           that error's fix is exactly this layer plus the credit below. -->
+      <om-layer id="imagery" type="TileLayer" tile-size="256" max-zoom="14"
+                data="https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg"></om-layer>
+
+      <om-layer id="graticule" type="GeoJsonLayer" data="../../data/gb-grid/graticule.geojson"
+                label="Longitude/latitude (GeoJSON)" color="#cbd5e1"
+                stroked get-line-color="[226, 232, 240, 90]"
+                get-line-width="1" line-width-units="pixels"></om-layer>
+
+      <om-layer id="coast" type="GeoJsonLayer" data="../../data/gb-grid/britain.shp"
+                label="Coastline (shapefile + .prj)" color="#fde68a"
+                stroked filled="false" get-line-color="[253, 230, 138, 235]"
+                get-line-width="1.6" line-width-units="pixels"></om-layer>
+
+      <om-layer id="towns" type="ScatterplotLayer" data="../../data/gb-grid/towns.csv"
+                crs="EPSG:27700" label="Towns (CSV, eastings/northings)" color="#f97316"
+                get-position="[$easting, $northing]"
+                get-radius="scale($population, sqrt, [3, 13], domain=[60000, 8600000])"
+                radius-units="pixels" get-fill-color="[249, 115, 22, 230]"
+                stroked get-line-color="[15, 19, 25]" line-width-min-pixels="1" pickable></om-layer>
+
+      <om-widget position="top-left">
+        <div style="background:rgba(15,19,25,.88); border:1px solid #242c38; border-radius:8px;
+                    padding:8px 11px; font:12.5px/1.45 system-ui, sans-serif; max-width:230px">
+          <b style="color:#fde68a">British National Grid</b><br />
+          <span style="color:#8891a3">Grid north is up, so the meridians lean toward the pole. The imagery is warped into the grid.</span>
+        </div>
+      </om-widget>
+      <om-widget type="scale-bar" position="bottom-right"></om-widget>
+      <!-- The map credits only the basemaps it picks. These tiles were named
+           in a layer, so crediting them is the page's job. -->
+      <om-widget type="attribution" position="bottom-start"
+                 text="Imagery: Sentinel-2 cloudless by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2016 &amp; 2017) · Coastline and towns: Natural Earth"></om-widget>
+
+      <om-behavior on="hover" layer="towns" action="show-tooltip" template="#town-tip"></om-behavior>
+    </om-map>
+
+  </div>
+
+  <template id="town-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#0f1319; color:#f2f5fa;
+                border:1px solid #242c38; box-shadow:0 3px 12px rgba(0,0,0,.55);
+                font:12px/1.45 system-ui, sans-serif;">
+      <b>{{name}}</b><br />
+      <span style="color:#8891a3">E {{easting}} · N {{northing}}<br />population {{population}}</span>
+    </div>
+  </template>
+
+  <script type="module">
+    // Keep the two cameras together. Both speak longitude, latitude and zoom —
+    // the grid map included — so one map's camera is the other's, unchanged.
+    // Only a user's gesture is forwarded: the follower's own move reports as
+    // "programmatic", which is what stops the two from echoing forever.
+    const mercator = document.getElementById("mercator");
+    const grid = document.getElementById("grid");
+    function follow(leader, follower) {
+      leader.addEventListener("om-view-changed", (e) => {
+        if (e.detail.origin !== "user") return;
+        follower.flyTo([e.detail.longitude, e.detail.latitude], e.detail.zoom, { duration: 0 });
+      });
+    }
+    follow(mercator, grid);
+    follow(grid, mercator);
+  </script>
+
+</body>
+</html>
