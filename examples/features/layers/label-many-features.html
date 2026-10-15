@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<!--
+  PopupLayer example — a label on EVERY feature, not on twenty of them. The
+  badges are drawn on the GPU with the rest of the scene, so counts that would
+  overwhelm DOM overlays stay smooth.
+
+  The map: a month of USGS earthquakes across the Ring of Fire. Every quake is
+  a dot on a magnitude heat ramp; the 182 above magnitude 5 also carry a badge,
+  because badging all 1,960 is unreadable. Click a badge for the full record —
+  place name, date and all — in an overlay, which is where anything longer than
+  a few characters belongs.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Label many features</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <om-map center="[135, 4]" zoom="2.6" basemap="dark-matter">
+
+    <!-- The dots. One scale() call maps magnitude onto a heat ramp, and
+         because it lands on get-fill-color the legend derives the whole ramp
+         from this expression — the symbology is never written twice.
+         radius-units="pixels" keeps the dots readable; deck.gl measures radius
+         in metres by default. -->
+    <om-layer id="quakes" type="ScatterplotLayer"
+              data="../../data/usgs-earthquakes-month.geojson"
+              label="Magnitude" color="#f97316"
+              get-position="$geometry.coordinates"
+              get-fill-color="scale($mag, sequential,
+                                    ['#a3e635', '#facc15', '#fb923c', '#ef4444'],
+                                    domain=[2.5, 7.5])"
+              get-radius="scale($mag, sqrt, [1.5, 11], domain=[2.5, 7.5])"
+              radius-units="pixels"
+              opacity="0.8"></om-layer>
+
+    <!-- One badge per row, from the same accessors any layer takes. layout
+         picks the shape: "badge" sits the pill on the point, "pin-label"
+         floats it above, "card" grows a second line filled by get-subtext.
+
+         get-text must return a string, so build it in the expression — and
+         keep it SHORT. This is WebGL text: no wrapping, and a long label is a
+         wide quad lying across the map.
+
+         filter-field/filter-range runs on the GPU over the same rows, so
+         raising the floor to magnitude 5 drops two thirds of the badges
+         without touching the data or the dots underneath. -->
+    <om-layer id="quake-labels" type="PopupLayer"
+              data="../../data/usgs-earthquakes-month.geojson"
+              label="Magnitude 5 and up" color="#ef4444"
+              layout="pin-label"
+              get-position="$geometry.coordinates"
+              get-text="`${Math.round($mag * 10) / 10}`"
+              get-color="scale($mag, sequential, ['#ea580c', '#b91c1c'], domain=[5, 7.5])"
+              get-size="scale($mag, sqrt, [12, 19], domain=[5, 7.5])"
+              filter-field="mag" filter-range="[5, 7.5]"
+              pickable auto-highlight></om-layer>
+
+    <om-widget type="legend" title="Layers" interactive position="top-right"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <!-- Everything that will not fit in a badge. Badges pick and highlight
+         like any other layer, so an ordinary click behavior drives this:
+         anchor-from="selection" pins the card to whatever was clicked and
+         fills {{field}} from that row. An overlay is transparent to the cursor
+         until it holds a data-emit control — the close button — so a plain
+         popup never steals a click from the map. -->
+    <om-overlay id="quake-detail" anchor-from="selection" layer="quake-labels" visible="false">
+      <style>
+        .card { background: #0b1220; color: #e2e8f0; border: 1px solid #ef4444;
+                padding: 10px 14px; border-radius: 8px; max-width: 34ch;
+                box-shadow: 0 4px 20px rgba(0,0,0,.6); font-size: 13px; line-height: 1.5; }
+        .card dt { color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+        .card dd { margin: 0 0 6px; }
+        .card dd:last-child { margin-bottom: 0; }
+        .card .mag { color: #fb923c; font-size: 20px; font-weight: 700; }
+        .close { float: right; margin-left: 14px; color: #64748b; cursor: pointer; }
+      </style>
+      <dl class="card">
+        <span class="close" data-emit="hide-overlay" data-target="quake-detail">✕</span>
+        <dt>Magnitude</dt><dd class="mag">{{mag}}</dd>
+        <dt>Location</dt><dd>{{place}}</dd>
+        <dt>Date</dt><dd>{{date}}</dd>
+      </dl>
+    </om-overlay>
+    <!-- Two actions on one click: open the popup, highlight the picked row.
+         Behaviors stack, so wire as many to an event as it needs. -->
+    <om-behavior on="click" layer="quake-labels" action="show-overlay"
+                 target="quake-detail" anchor-offset="bottom-center"></om-behavior>
+    <om-behavior on="click" layer="quake-labels" action="highlight-feature"></om-behavior>
+
+    <om-widget position="top-left">
+      <style>
+        .note { background: rgba(11,18,32,.9); color: #e2e8f0; padding: 11px 14px;
+                border-radius: 8px; max-width: 262px; font-size: 13px; line-height: 1.45; }
+        .note dt { font-weight: 600; margin-top: 6px; color: #fb923c; }
+        .note dl { margin: 6px 0 0; }
+        .note dd { margin: 0 0 0 2px; color: #94a3b8; }
+      </style>
+      <div class="note">
+        1,960 earthquakes in one layer. The 182 above magnitude 5 carry a
+        badge. Click one for the full record.
+        <dl>
+          <dt>&lt;om-widget&gt;</dt><dd>a UI panel</dd>
+          <dt>&lt;om-overlay&gt;</dt><dd>rich HTML at one location</dd>
+          <dt>PopupLayer</dt><dd>labels on many features</dd>
+        </dl>
+      </div>
+    </om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

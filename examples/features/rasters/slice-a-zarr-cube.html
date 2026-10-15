@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<!--
+  Zarr stores an N-dimensional array as a directory of compressed chunks, so a
+  forecast cube of time × latitude × longitude is fetched a chunk at a time
+  instead of as one enormous file. Reach for it whenever the data has more axes
+  than a map has: forecast lead time, depth, ensemble member, band.
+
+  ZarrLayer draws ONE 2D slice. `variable` names the array and `select` fixes
+  every axis that is not the map. Write a new `select` and the layer re-slices
+  from the chunks it already has — stepping a forecast never reopens the store.
+
+  A GeoZarr store carries its own georeference. This one does not, so the
+  manifest supplies it: `bounds`, `crs`, and `spatial-dims` to say which two
+  axes are y and x. `min` and `max` pin the colour range across every step —
+  leave them off and each frame restretches to its own extremes, which makes a
+  warming trend look like no trend at all.
+
+  The map: ECMWF 2-metre temperature over Europe, eight forecast steps three
+  hours apart, looping. Watch the cold air over Scandinavia move.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Slice a Zarr cube</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.6.1/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.6.1/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+    #frame {
+      position: absolute; left: 12px; bottom: 12px; z-index: 5;
+      font: 600 13px/1.3 system-ui, sans-serif;
+      color: #fff; background: rgba(17, 24, 39, 0.72);
+      padding: 6px 10px; border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="frame">2 m temperature — lead +0 h</div>
+
+  <om-map center="[6, 50]" zoom="3.2" basemap="dark-matter">
+
+    <!-- The store is (lead_time, y, x), so `select` fixes lead_time and leaves
+         a 2D field to draw. `colormap` runs on the GPU, so a restretch is a
+         uniform update rather than a re-fetch. -->
+    <om-layer id="temp" type="ZarrLayer"
+              src="../../data/sample.zarr"
+              variable="temperature"
+              select="lead_time=0"
+              bounds="[-30, 25, 40, 72]"
+              crs="EPSG:4326"
+              spatial-dims="y x"
+              colormap="turbo"
+              min="-35"
+              max="40"
+              opacity="0.82"
+              label="2 m temperature (°C)"></om-layer>
+
+    <om-widget type="legend" position="top-end"></om-widget>
+
+    <om-widget type="attribution"
+               text="Forecast: ECMWF IFS ENS 2 m temperature (CC BY 4.0)"
+               position="bottom-end"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <!-- Stepping a Zarr axis has no declarative form — no action, behavior or
+       story step sets an arbitrary attribute — so this is one of the few
+       places a plain script earns its keep. It writes `select` and nothing
+       else; the layer does the re-slice. -->
+  <script type="module">
+    const map = document.querySelector("om-map");
+    const layer = document.querySelector("#temp");
+    const label = document.querySelector("#frame");
+    const FRAMES = 8;
+    const STEP_HOURS = 3; // the store is 3-hourly
+    await map.ready;
+    let t = 0;
+    setInterval(() => {
+      t = (t + 1) % FRAMES;
+      layer.setAttribute("select", `lead_time=${t}`);
+      label.textContent = `2 m temperature — lead +${t * STEP_HOURS} h`;
+    }, 900);
+  </script>
+
+</body>
+</html>

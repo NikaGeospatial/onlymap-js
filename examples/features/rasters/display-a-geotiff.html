@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<!--
+  A Cloud-Optimized GeoTIFF is an ordinary GeoTIFF laid out so a reader can
+  fetch only the part it needs. `<om-layer type="COGLayer">` points at the file
+  and pulls tiles by HTTP range request — no tiling job, no server, no
+  conversion step. Reach for it whenever the source is a real raster and you
+  want the VALUES, not a picture of them: elevation, temperature, reflectance,
+  model output.
+
+  min and max set the rescale window, colormap picks the ramp. Both are shader
+  uniforms, so restretching and recolouring repaint from the tiles already in
+  memory and nothing is refetched.
+
+  The map: 38 m elevation over the Grand Canyon, 577 m at the Colorado up to
+  2,807 m on the Kaibab Plateau. Recolour and restretch with the buttons at the
+  bottom left, and switch on the shaded relief in the legend.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Display a GeoTIFF</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.8/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.8/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #12141a;
+      --om-widget-fg: #f2f4f8;
+      --om-widget-muted: #8a90a0;
+      --om-widget-border: #262a34;
+      --om-widget-hover-bg: #1b1f28;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-112.17, 36.2]" zoom="9.6" basemap="dark-matter">
+
+    <!-- The STYLED path: min, max, colormap or nodata present, so the layer
+         hands raw values to the GPU and colours them there.
+
+         min and max are the values that land at the ends of the ramp. Set them
+         to the range you want to READ, not to the file's full range —
+         everything outside clamps, which is what makes a narrow window pull
+         detail out of flat ground.
+
+         nodata is tested before the rescale, on the raw datum, so give it the
+         file's own sentinel rather than a rescaled one. Those pixels go
+         transparent instead of colouring as an extreme.
+
+         colormap applies to a SINGLE-band source only — there is nothing to
+         look up once a file carries its own colours. -->
+    <om-layer id="elevation" type="COGLayer" label="Elevation (m)"
+              src="../../data/grand-canyon-dem.tif"
+              min="550" max="2850" colormap="viridis" nodata="-9999"
+              opacity="0.95"></om-layer>
+
+    <!-- The UNSTYLED path: none of those four attributes, so the layer renders
+         the file untouched. That is what an 8-bit RGB COG wants — aerial
+         imagery, a satellite composite, or a relief map like this one, already
+         coloured upstream. Switch it on in the legend. -->
+    <om-layer id="relief" type="COGLayer" label="Shaded relief (RGB)"
+              src="../../data/grand-canyon-relief.tif" visible="false"></om-layer>
+
+    <!-- The legend reads its ramp and end labels off min, max and colormap, so
+         it re-derives whenever the buttons change them. -->
+    <om-widget type="legend" title="Layers" position="top-right" interactive></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+
+    <!-- Writing an attribute on the layer element IS the edit: the manifest is
+         the state, so a button that calls setAttribute goes into history and
+         undoes with Cmd/Ctrl-Z exactly like a hand edit. Build the control to
+         suit the page — the map still moves through the manifest. -->
+    <om-widget position="bottom-left">
+      <style>
+        .panel { background: rgba(18,20,26,.92); color: #e8ebf2; padding: 10px 13px; border-radius: 8px;
+                 font: 12px/1.5 system-ui, sans-serif; max-width: 290px; }
+        .panel strong { color: #7ee0c2; }
+        .panel div { margin-top: 6px; }
+        .panel button { font: 12px system-ui, sans-serif; padding: 4px 9px; border: 1px solid #2f3542;
+                        border-radius: 6px; background: #1b1f28; color: #e8ebf2; cursor: pointer; margin: 0 4px 0 0; }
+        .panel button:hover { background: #262c38; }
+      </style>
+      <div class="panel">
+        <strong>Live restretch — uniforms, not refetches</strong>
+        <div>
+          <button data-cm="viridis">viridis</button>
+          <button data-cm="terrain">terrain</button>
+          <button data-cm="rdbu">rdbu</button>
+        </div>
+        <div>
+          <button data-range="550,2850">full range</button>
+          <button data-range="1400,2100">plateau stretch</button>
+        </div>
+      </div>
+      <script type="om/widget">
+        this.watch = [];
+        this.render = () => {
+          const layer = this.closest("om-map").querySelector("#elevation");
+          for (const b of this.$$("button[data-cm]")) b.onclick = () => layer.setAttribute("colormap", b.dataset.cm);
+          for (const b of this.$$("button[data-range]")) b.onclick = () => {
+            const [min, max] = b.dataset.range.split(",");
+            layer.setAttribute("min", min);
+            layer.setAttribute("max", max);
+          };
+        };
+      </script>
+    </om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

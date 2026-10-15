@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<!--
+  BIM — load, browse, coordinate. Load a model to pick, browse and isolate parts
+  of it; load a second and the clash panel wakes up to compare any two. Nothing
+  is uploaded and nothing is written to disk.
+
+  ONE drop zone, not one per discipline: `federate` accepts several models into a
+  single scene, co-registered as they load — the FIRST sets the shared origin and
+  every later one reuses it, because discipline exports of one building routinely
+  declare IfcSite coordinates kilometres apart. An unrelated building dropped on
+  top of a sample therefore lands at the sample's origin; remove the sample first
+  (×) and the next model resolves its own.
+
+  OFFLINE: `npm run vendor:web-ifc public/vendor/web-ifc`, then
+  wasm-path="/vendor/web-ifc/" on the loader, basemap="none" and telemetry="off"
+  on <om-map>.
+
+  Models: buildingSMART Community Sample-Test-Files (CC-BY 4.0). Both sit at
+  their own IfcSite coordinates — an authoring tool's default project location,
+  not a survey — so the clinic overlaps real Boston streets. The Samples panel
+  says so for every model that lands this way.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Inspect a BIM model</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.6.1/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.6.1/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #14171c;
+      --om-widget-fg: #f2f5f8;
+      --om-widget-muted: #808b99;
+      --om-widget-border: #262c34;
+      --om-widget-hover-bg: #1e242c;
+      --om-widget-accent: #ff8a3d;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- `terrain` is authored, never inferred: a model carrying real elevation
+       (IfcMapConversion + OrthogonalHeight) on a map with no terrain is a
+       validation error. `off` is the honest answer here — no sample declares an
+       OrthogonalHeight, so they sit at ellipsoidal zero and a DEM would rise
+       through them. Use `terrain="mapterhorn"` for models that carry elevation.
+
+       `validate="silent"` runs validation but fires `om-validation-error`
+       instead of drawing the built-in badge, so a page can render the entries
+       itself — the Samples panel below does. Plain `validate` gives the badge. -->
+  <om-map center="[-71.06088722277778, 42.3598175]" zoom="19.6" pitch="58" bearing="30"
+          basemap="dark-matter" lighting="studio" terrain="off" validate="silent">
+
+    <!-- When the model is fixed and known ahead of time, none of the machinery
+         below is needed. ONE element is the whole map:
+
+         <om-layer id="clinic" type="BIMLayer"
+                   src="../../data/ifc-clinic/Clinic_Architectural.ifc"
+                   label="Medical-Dental Clinic — architectural (IFC 2x3)"
+                   feature-filter-field="ifcClass"
+                   ghost-opacity="0.15"
+                   pickable></om-layer>
+
+         BIMLayer runs the .ifc through the same in-browser parse, adds its own
+         outline overlay and applies the file's georeference. No loader, no
+         script. Everything else on this page exists only because the VISITOR
+         picks the file, which is a different problem. -->
+
+    <!-- The only way models get onto this map. Parsing happens in this browser,
+         each model on its own layer with its own toggle. -->
+    <om-widget type="ifc-loader" layer="model" position="top-start" federate
+               title="Models" label="Add model(s)"></om-widget>
+
+    <!-- Sample models, plus the placement notices. A widget with no `type` and
+         an inline `om/widget` script is the hook for UI the built-ins do not
+         cover; `layers` re-runs render whenever a layer appears or goes.
+         Write data paths with DOUBLE quotes — the public-mirror build rewrites
+         them by plain string replace, and only matches the quoted form. -->
+    <om-widget id="samples" position="top-start" order="2">
+      <style>
+        /* Custom widgets get no panel of their own, and a slot lets them grow —
+           so draw the panel and give it a width. */
+        .box { box-sizing: border-box; width: 232px; display: grid; gap: 6px;
+               padding: 12px 14px; border-radius: 8px; background: var(--om-widget-bg);
+               border: 1px solid var(--om-widget-border);
+               box-shadow: 0 10px 28px rgba(0, 0, 0, .28); }
+        .box h4 { margin: 0; font: 600 11px/1 system-ui; letter-spacing: .06em;
+                  text-transform: uppercase; color: var(--om-widget-muted); }
+        .box select, .box button { width: 100%; box-sizing: border-box; font: 12px system-ui;
+                  padding: 4px 6px; border-radius: 5px; background: var(--om-widget-hover-bg);
+                  color: var(--om-widget-fg); border: 1px solid var(--om-widget-border); }
+        .box button { cursor: pointer; }
+        .box button:disabled { opacity: .55; cursor: default; }
+        .note { font: 11px/1.35 system-ui; color: var(--om-widget-accent);
+                border-left: 2px solid var(--om-widget-accent); padding-left: 7px;
+                overflow-wrap: anywhere; }
+      </style>
+      <div class="box">
+        <h4>Samples</h4>
+        <select id="pick">
+          <option value="../../data/ifc-clinic/Clinic_Architectural.ifc" data-name="Clinic_Architectural.ifc">Medical-Dental Clinic — 2,626 elements</option>
+          <option value="../../data/ifc-duplex/Duplex_A_20110907.ifc" data-name="Duplex_A_20110907.ifc">Duplex Apartment — a second model to clash</option>
+        </select>
+        <button id="load" type="button">Load sample</button>
+        <div id="notes"></div>
+      </div>
+      <script type="om/widget">
+        this.watch = ["layers"];
+        this.render = () => {
+          const map = this.closest("om-map");
+          const loader = map.querySelector('om-widget[type="ifc-loader"]');
+          // Return without marking ready if the loader has not built its panel
+          // yet, so a later render retries instead of wiring to nothing.
+          const input = loader?.shadowRoot?.querySelector('input[type="file"]');
+          if (!input) return;
+          // Wire once; every later render only re-reads the loader's list, which
+          // is how the button notices a model removed with ×.
+          if (this.state.ready) return void this.state.sync();
+          this.state.ready = true;
+
+          // Feeding the loader's own file input takes the identical path a
+          // dropped file takes — same parse, same federation, same row in
+          // Models, same blob URLs released on ×.
+          const button = this.$("#load");
+          // Ask the loader what it holds rather than tracking it here; a local
+          // set goes stale the moment a row is removed.
+          const alreadyLoaded = (name) =>
+            (loader.state.loaded ?? []).some((entry) => entry.name === name.replace(/\.ifc$/i, ""));
+          const load = async (url, name) => {
+            if (alreadyLoaded(name)) return;
+            button.disabled = true;
+            const bytes = await (await fetch(url)).arrayBuffer();
+            const data = new DataTransfer();
+            data.items.add(new File([bytes], name));
+            input.files = data.files;
+            input.dispatchEvent(new Event("change"));
+            button.disabled = false;
+          };
+          const chosen = () => this.$("#pick").selectedOptions[0];
+          const syncButton = () => {
+            const loaded = alreadyLoaded(chosen().dataset.name);
+            button.disabled = loaded;
+            button.textContent = loaded ? "Already loaded" : "Load sample";
+          };
+          this.state.sync = syncButton;
+          button.addEventListener("click", () => void load(chosen().value, chosen().dataset.name).then(syncButton));
+          this.$("#pick").addEventListener("change", syncButton);
+
+          // Show only warnings whose layer is still on the map. The map keeps
+          // every runtime warning it has raised, so filtering on the DOM is what
+          // stops a removed model's warning outliving it.
+          const notes = this.$("#notes");
+          map.addEventListener("om-validation-error", (event) => {
+            const live = event.detail.warnings.filter((entry) => {
+              const id = String(entry.element).split("#")[1];
+              return id && map.querySelector(`om-layer[id="${id}"]`);
+            });
+            notes.replaceChildren(...live.map((entry) => {
+              const row = document.createElement("div");
+              row.className = "note";
+              row.textContent = entry.message;
+              return row;
+            }));
+          });
+
+          // Not behind `map.ready`: that resolves with the basemap adapter, so a
+          // slow or blocked tile host would leave the page with no model at all.
+          void load("../../data/ifc-clinic/Clinic_Architectural.ifc", "Clinic_Architectural.ifc").then(syncButton);
+        };
+      </script>
+    </om-widget>
+
+    <!-- No `layer=` on the panels below, so they follow whichever model is
+         selected in the browser's own picker. -->
+    <om-widget type="ifc-browser" position="top-end" order="1" rows="7"
+               fields="ifcClass material container spatialPath typePath"
+               scale-fields="netVolume"></om-widget>
+
+    <!-- Dormant until a second model arrives. `tolerance` is metres of real
+         interpenetration before a pair counts — 0 reports every overlap, higher
+         values ignore the millimetre noise ordinary modelling leaves behind. -->
+    <om-widget type="ifc-clash" position="top-end" order="2"
+               title="Clashes" tolerance="0" rows="8"></om-widget>
+
+    <om-widget type="feature-inspector" position="bottom-start"
+               title="Element" fields="ifcClass material container netVolume"></om-widget>
+
+    <om-widget type="zoom-controls" position="bottom-end"></om-widget>
+
+    <om-widget type="attribution"
+               text="Sample models: buildingSMART Community Sample-Test-Files (CC BY 4.0). Models are parsed locally with web-ifc (MPL-2.0)."
+               position="bottom-center"></om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>
