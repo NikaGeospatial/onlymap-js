@@ -22,8 +22,8 @@ to PDF at true page size via CSS `@page` and exports PNG/JPEG at print DPI throu
 <html>
 <head>
   <meta charset="utf-8">
-  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.10.9/dist/cartograph.standalone.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.10.9/dist/cartograph.css">
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.11.7/dist/cartograph.standalone.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.11.7/dist/cartograph.css">
 </head>
 <body>
 <om-cartograph cartograph-id="cg-lot-12" format="cartograph/2" size="A4" theme="minimal"
@@ -69,6 +69,12 @@ to PDF at true page size via CSS `@page` and exports PNG/JPEG at print DPI throu
   `dark`, `sepia`, `blueprint`, `minimal`); a user theme is a `<style>` block overriding the
   same properties. Furniture reads its **computed** colour, so an exported PNG matches the
   screen without a second theme table.
+- **Overrides are attributes.** The page takes `bg`, `color` and `font`; a legend takes `bg`,
+  `color`, `stroke`, `font-size` (pt) and `padding` (mm); the scale bar, north indicator and
+  graticule take `color`; text and shapes have always had theirs. Each writes the same
+  `--om-carto-*` property the theme sets, scoped to that element, so the override reaches the
+  SVG it draws, its computed style and the export alike. Nothing else is styleable: an
+  attribute outside these lists is a validator warning, not a quiet no-op.
 
 ## Elements
 
@@ -77,16 +83,16 @@ The authoritative attribute lists (with editor IntelliSense) are generated from
 
 | Element | Purpose | Status |
 |---|---|---|
-| `<om-cartograph>` | Page root: `cartograph-id`, `format="cartograph/2"`, `size` (A5–A0/Letter/Legal) or `width`/`height` (mm), `orientation`, `theme`, `title`, `attribution`; print controls `bleed`, `crop-marks`, `safe-zone`, `dpi`, `flatten`, `color-profile`; `cvd`; `allow-url-actions` | implemented |
-| `<om-frame>` | A placed map. `mode="static"`: a georeferenced `<img>` child placed by `crs` + `corners`. `mode="live"` (the default): mounts `<om-map>` from `src=`, an `<om-source>` child or an inline child with the frame's own `center/zoom/bearing/pitch`; `overview-of` draws another frame's footprint | implemented |
-| `<om-source>` | One place a frame's picture may come from — `src` (a map document `.html`, or a capture image), plus `corners`/`crs`/`crs-def` for a capture. A frame tries its sources in document order and shows the first that renders | implemented |
+| `<om-cartograph>` | Page root: `cartograph-id`, `format="cartograph/2"`, `size` (A5–A0/Letter/Legal) or `width`/`height` (mm), `orientation`, `theme` plus its per-page overrides `bg`, `color`, `font`, `title`, `attribution`; print controls `bleed`, `crop-marks`, `safe-zone`, `dpi`, `flatten`, `color-profile`; `cvd`; `allow-url-actions` | implemented |
+| `<om-frame>` | A placed map. `mode="static"`: a georeferenced `<img>` child placed by `crs` + `corners`. `mode="live"` (the default): mounts `<om-map>` from `src=`, an `<om-source>` child or an inline child with the frame's own `center/zoom/bearing/pitch`; `overview-of` draws another frame's footprint; `attribution` (static frames) carries the basemap's provider credit as text | implemented |
+| `<om-source>` | One place a frame's picture may come from — `src` (a map document `.html`, or a capture image), plus `corners`/`crs`/`crs-def` and `attribution` for a capture. A frame tries its sources in document order and shows the first that renders | implemented |
 | `<om-text>` | Text block — `kind` (title/text/attribution), `font-size` (pt), `weight`, `align`, `font`, `color`, `bg`; body may use `{{tokens}}` | implemented |
-| `<om-scalebar>` | Scale bar — `for`, `units` (metric/imperial/nautical), `segments`, `segment-length`, `kind` (single/double/line/ticks) | implemented |
-| `<om-north>` | North indicator — `for`, `kind` (arrow/rose). Direction is derived from the frame's georeference | implemented |
+| `<om-scalebar>` | Scale bar — `for`, `units` (metric/imperial/nautical), `segments`, `segment-length`, `kind` (single/double/line/ticks), `color` | implemented |
+| `<om-north>` | North indicator — `for`, `kind` (arrow/rose), `color`. Direction is derived from the frame's georeference | implemented |
 | `<om-shape>` | `kind` (rect/ellipse/line/arrow), `fill`, `fill-opacity`, `stroke`, `stroke-width`, `radius` | implemented |
 | `<om-image>` | Logo or photo — `src`, `fit` (contain/cover/fill) | implemented |
-| `<om-legend>` / `<om-legend-row>` | Derived legend — `for`, `title`, `columns`, `derived`; rows computed from the frame's layers, never stored. Children are overrides (`layer`, `match`, `label`, `hide`, `order`, `color`, `shape`), or literal rows when `derived="false"` | implemented |
-| `<om-graticule>` | Coordinate grid — `for`, `crs`, `interval`/`-x`/`-y`, `kind` (solid/cross/markers), `labels`, `format` (`dms`). Geographic by default; a projected `crs` draws that projection's grid | implemented |
+| `<om-legend>` / `<om-legend-row>` | Derived legend — `for`, `title`, `columns`, `derived`, and the panel's `bg`, `color`, `stroke`, `font-size` (pt), `padding` (mm); rows computed from the frame's layers, never stored. Children are overrides (`layer`, `match`, `label`, `hide`, `order`, `color`, `shape`), or literal rows when `derived="false"` | implemented |
+| `<om-graticule>` | Coordinate grid — `for`, `crs`, `interval`/`-x`/`-y`, `kind` (solid/cross/markers), `labels`, `format` (`dms`), `color`. Geographic by default; a projected `crs` draws that projection's grid | implemented |
 | `<om-atlas>` | One page per feature — `for`, `layer`, `filter`, `sort`, `filename`, `page-name`. Frames follow with `atlas-fit="feature"` + `atlas-margin` (a FRACTION of the feature's extent, default 0.15 — not millimetres; the validator warns above 2, and when the margin is set without `atlas-fit`) | implemented |
 
 ## Georeferencing
@@ -467,6 +473,35 @@ deployment. The attribute is read from the page element itself, so a
 static-only sheet honours it with no runtime loaded, and the canvas
 exporter prints whatever the element says, so a PNG can never disagree
 with the screen.
+
+## Basemap attribution
+
+Tile providers such as OpenStreetMap and CARTO require credit wherever their
+maps appear. On a standalone map that is MapLibre's attribution control in the
+corner. On a sheet it moves off the maps and onto the page, the same way the
+badge does: a map inside an `<om-frame>` draws no attribution control, and the
+sheet prints every frame's providers **once**, at the page's bottom-right (the
+credit has bottom-left). A plate with three frames on the same basemap credits
+OpenStreetMap once, and no inset loses a corner of its map to a credit.
+
+- **Static frames keep their credit.** `freeze()` records the providers in the
+  frame's `attribution` attribute — `attribution="© OpenStreetMap contributors · © CARTO"`
+  — so a frozen or exported sheet credits its tiles with no runtime loaded.
+  Write the attribute yourself for a placed raster whose tiles need credit.
+- **So do fallback captures.** A capture `<om-source>` takes the same
+  `attribution`, and the sheet prints it while that capture is what the frame
+  shows. A capture is only shown when the live map did not load, so it cannot
+  be asked — record the credit when the capture is taken, as you record its
+  `corners`. The live map's own credit applies only while the map is showing.
+- **Credit them yourself, and the line steps aside.** A provider already named
+  in any `<om-text>` (case, `©` and `(c)` ignored) is left out of the page's
+  line; when every provider is covered, the line disappears.
+- **Print and export match the screen.** The line is drawn by the canvas
+  exporter from the element's own text, like the credit.
+
+From a script, `mapEl.attributions()` returns a map's providers as plain text,
+and the bubbling `om-attributions-changed` event fires when a basemap style
+loads (and when a frame freezes) — what the page listens to.
 
 Telemetry: a live frame's map beacon includes `cartograph` in its feature
 census — same endpoint, nothing new sent. Static-only pages load no runtime

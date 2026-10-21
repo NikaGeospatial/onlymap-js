@@ -16,8 +16,8 @@ Vite/npm project:
 Static CDN page (raw-file CDNs only — unpkg/jsDelivr; never esm.sh or another rebundling CDN, which duplicates the WebGL runtime and breaks layer shaders):
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.10.9/dist/onlymapjs.css">
-<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.10.9"></script>
+<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.11.7/dist/onlymapjs.css">
+<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.11.7"></script>
 ```
 
 Always include `onlymapjs.css` — it carries the MapLibre basemap styles and the no-JS fallback rules (`<om-fallback>` / default banner). For the fallback to work in script-disabled previews it must load without JavaScript: a real `<link rel="stylesheet">` or inlined `<style>` on no-build pages (a bundler-emitted stylesheet is fine in npm projects).
@@ -61,7 +61,7 @@ Common attributes:
   - `type="buffer" distance="0.9mm" repeat="5" fade` — bands around a shape, outermost first, each carrying `_band` and `_bandOpacity` (read it: `get-fill-color="[125,155,173, $_bandOpacity * 165]"`). N bands are N thresholds of ONE signed distance field, so five cost what one costs and the output cannot self-intersect. An ORNAMENT with a measured half-cell bound (0.042 mm at 300 dpi), NOT an analytic setback — for a distance somebody will act on, point at PostGIS/turf.
   - `type="contour" src="terrarium" bounds="[w,s,e,n]" interval="100m" zoom="10"` — isolines marched off a DEM (not deck's `ContourLayer`, which contours point DENSITY). It SOURCES geometry onto a layer with no data; its extent is DECLARED rather than taken from the camera, because a transform runs once at ingest. Each line carries `elevation` and `index` (true every fifth line — the cartographer's heavier contour). The interval is a ground height; `interval="2mm"` is an error.
   - Millimetre knobs need `reference-scale` on the map (or a cartograph frame, which supplies its own); without one they are a validation error naming the fix. Ground units need none. Columnar layers are out of scope and say so.
-- A LABEL THAT FOLLOWS ITS LINE is `<om-layer type="TextOnPathLayer" get-path="$path" get-text="$name">` — a river's name along the river, a range's along the range. deck has no such layer; this is a composite over `TextLayer` emitting one instance per glyph, each rotated to the local tangent.
+- A LABEL THAT FOLLOWS ITS LINE is `<om-layer type="TextOnPathLayer" get-path="$path" get-text="$name">` — a river's name along the river, a range's along the range. deck has no such layer; this is a composite over `TextLayer` emitting one instance per glyph, each rotated to the local tangent. `pickable` makes it clickable, and a pick reports the label's row (not a glyph), so `{{field}}` popups and tooltips work (0.11.6+).
   - `get-path` and `get-text` are both REQUIRED — either alone is silently inert, and the validator says so.
   - `get-path` must resolve to a LIST OF COORDINATES, and which expression does that depends on the data's shape. On GEOJSON write `get-path="d.geometry.coordinates"` — a `$field` compiles to `properties.<field>`, so `$geometry` hands the layer the geometry OBJECT and every label is silently dropped (measured: 0 glyphs against 11). A `$field` is correct only when the rows are FLAT and carry the list themselves, as in `get-path="$path"` over `[{"name":"Mississippi","path":[[lng,lat], …]}]`. The validator errors when the data is inline and provably GeoJSON, and warns when the data is a URL, because the shape cannot be known before it loads.
   - WHERE the name sits is a SEARCH, not a constant: `placement="auto"` (the default) scans the line for the straightest reach the name fits on. Pinning it to the midpoint put labels on whatever the line happened to be doing there, which on real hydrography is usually a bend — measured on Natural Earth rivers at continental scale, the Colorado turned 151 degrees between adjacent glyphs and the Columbia spread 292. Auto brought all eleven under 45. Use `start`/`middle`/`end` when a name belongs somewhere specific, such as a river's mouth; they are honoured even where the reach is poor.
@@ -86,9 +86,13 @@ Common attributes:
 - `widgets-dim="off"` disables collision-dim — by default a widget slot dims (`--om-widget-opacity-dimmed`, 0.35) while an open `<om-overlay>` popup covers it, rather than the popup dodging (attribution/toggle slots never dim).
 - `headless width="800" height="600"` for test harness use
 
-Events: `om-map-ready` (boot complete; `await mapEl.ready` is the promise twin), `om-validation-error`, `om-view-changed` — fires once the camera settles after a move (debounced; `detail = {longitude, latitude, zoom, pitch, bearing}`), the hook for persisting the camera — `om-map-point` (`detail = {coordinate: [lng,lat]|null, kind: "click"|"hover"}` — every click/hover map coordinate, including empty-map clicks; the hook for custom capture tools the built-in draw widget doesn't cover), and `om-tileset-load` (`detail = {layerId, tileset}` — a `Tile3DLayer`'s live deck `Tileset3D`, for tools needing the real tileset such as region export). `MapController` mirrors these as `onViewChange` / `onMapPoint` / `onTilesetLoad` options.
+Events: `om-map-ready` (boot complete; `await mapEl.ready` is the promise twin), `om-validation-error`, `om-view-changed` — fires once the camera settles after a move (debounced; `detail = {longitude, latitude, zoom, pitch, bearing}`), the hook for persisting the camera — `om-map-point` (`detail = {coordinate: [lng,lat]|null, kind: "click"|"hover"}` — every click/hover map coordinate, including empty-map clicks; the hook for custom capture tools the built-in draw widget doesn't cover), and `om-tileset-load` (`detail = {layerId, tileset}` — a `Tile3DLayer`'s live deck `Tileset3D`, for tools needing the real tileset such as region export). `om-attributions-changed` bubbles when a basemap style loads; `mapEl.attributions()` then returns its providers as plain text. `MapController` mirrors these as `onViewChange` / `onMapPoint` / `onTilesetLoad` options.
 
 `await mapEl.snapshot()` (also on `MapController`) returns a canvas-only PNG dataURL of the scene — basemap + layers composited at device pixels (`{as: "blob"}` for files; `type`/`quality` for jpeg/webp). DOM widgets, overlays, and the provider attribution are NOT in the pixels: exports must render credits themselves. Await `ready` first; headless maps reject.
+
+Programmatic picking (0.11.5+, also on `MapController`): `mapEl.pickAt([x, y], { radius?, layers? })` returns the `Selection` under a screen pixel (CSS px from the map's top-left; 4px search radius by default) or `null`; `mapEl.pickRect({ x, y, width, height }, { layers?, maxObjects? })` returns every `Selection` inside a rectangle, front to back, at most 100 by default, each with `coordinate: null` (deck reports no per-object position for a rectangle; raster layers are not sampled); `mapEl.unproject([x, y])` and `mapEl.project([lng, lat])` convert between pixels and `[lng, lat]`. All are queries — they leave `ctx.selection`, `om-map-point` and `<om-behavior>`s alone. They see only `pickable` layers unless the `pickMode` PROPERTY is `"all"`, which makes every layer pickable for every pick path (hover, click and `pick-cursor` included) until set back to `"authored"`. It is a property, not an attribute: it never reaches the document, undo history, or a save — arm it for a picker tool instead of writing `pickable`.
+
+Reading the map without editing it (0.11.7+), for host tools such as an assistant's picker: `mapEl.diagnostics = true` (a PROPERTY) makes the map dispatch `om-validation-error` with `{ valid, errors, warnings }` after every reconcile — the same entries `validate` shows, each with a `fix` — but draws no panel and writes nothing; `mapEl.getDiagnostics()` returns the latest result (`null` while off and no `validate` is authored). Legend rows, sub-legends and layer-switcher rows carry `data-layer="<layer id>"` in the widget's shadow root. An `<om-overlay>`'s `templateSource` returns its authored template with `{{fields}}` intact; its rendered content has them filled in.
 
 Example:
 
@@ -167,6 +171,46 @@ One `<om-widget type="filter">` per dimension — each moves its own field's ran
 ## Zoom visibility (any layer type)
 
 `visible-zoom-range="[8, 14]"` — scale-dependent visibility, the QGIS/ArcGIS/Mapbox everyday pattern: the layer renders only at min ≤ zoom < max (min inclusive, max exclusive — the minzoom/maxzoom convention). Universal: valid on every layer type, unlike the tile-only `visible-min-zoom`/`visible-max-zoom` deck props. Composes with `visible` (both must allow); a zoom-hidden layer stays a full scene member — legend, layer-switcher, and `ctx` still list it. Malformed values are ignored with a warning (`validate` reports them structurally).
+
+## Clustering (`ScatterplotLayer`, `GeoJsonLayer` with Point features, `IconLayer`)
+
+`cluster="true"` merges points that would overlap on screen into count bubbles that split apart as the reader zooms in. A TOGGLE on the point layer, never a separate layer type: the layer keeps its id, data, its own `get-*` symbology for the points that stand alone at the current zoom, its picks, behaviors and actions.
+
+```html
+<om-layer id="plants" type="ScatterplotLayer" data="./plants.csv"
+          get-position="[$lon, $lat]" color="#2563eb" radius="4" radius-units="pixels"
+          cluster="true"
+          cluster-radius="50" cluster-max-zoom="16" cluster-min-points="2"   <!-- the defaults, MapLibre's names -->
+          cluster-properties="sum:capacity_mw,mode:fuel"
+          get-cluster-radius="scale($count / $count_max, sqrt, [12, 36], domain=[0, 1])"   <!-- the default -->
+          get-cluster-fill-color="$mode_fuel == 'Hydro' ? '#0ea5e9' : '#64748b'"
+          pickable></om-layer>
+```
+
+| Attribute | Meaning |
+|---|---|
+| `cluster` | `"true"` turns clustering on. |
+| `cluster-radius` | Cluster radius in screen pixels (default 50). |
+| `cluster-max-zoom` | The last zoom at which clusters still form (default 16); past it every point stands alone. |
+| `cluster-min-points` | Fewest points that make a cluster (default 2). |
+| `cluster-properties` | `"op:field,…"` with op `sum` `min` `max` `mean` `mode` `first` → `$op_field` on every bubble (`$sum_capacity_mw`, `$mode_fuel`, `$first_photo`), beside `$count`. `mode` is the commonest value — the way to colour a bubble by category; `first` (0.11.2) is the earliest member's value in data order, any type — the way to pick a representative photo or name. |
+| `cluster-click` | `expand` (default: a click flies to the zoom where the bubble splits) or `none`. |
+| `cluster-label` | `"false"` drops the count text. |
+| `cluster-label-position` | Where the count sits (0.11.2): `center` (default), `top`, `bottom`, `left`, `right`, `top-left`, `top-right`, `bottom-left`, `bottom-right` — a corner moves it off a photo thumbnail onto the rim. |
+| `cluster-label-background` / `cluster-label-color` / `cluster-label-size` | A pill behind the count (any colour; absent = a thin dark halo on the text), its text colour (default white), its font size in px (default 12). `cluster-label-position="top-right" cluster-label-background="#111827"` is the badge over an image. |
+| `get-cluster-radius` | Bubble radius in px — an expression over the cluster fields. |
+| `get-cluster-fill-color` / `get-cluster-line-color` | Bubble fill/outline. Default fill: the layer's own `color`, else blue; outline white. |
+| `get-cluster-label` | Bubble text (default `$count_abbreviated`, e.g. `1.2k`). |
+| `get-cluster-icon` | An IMAGE on the bubble (0.11.2). A URL (`$first_photo`) draws as a circular thumbnail, cover-fit, ringed in the bubble's fill; a name draws a glyph from `cluster-icon-atlas` (or an `IconLayer` host's own atlas). Images need CORS (same-origin, or `Access-Control-Allow-Origin`); a bubble whose image is loading or failed stays a circle. |
+| `cluster-icon-atlas` / `cluster-icon-mapping` | The glyph sheet for names from `get-cluster-icon`, as `icon-atlas`/`icon-mapping` on IconLayer. |
+
+Cluster fields available to `get-cluster-*`: `$count`, `$count_abbreviated`, `$count_total` (all points), `$zoom`, the aggregates, and — for scaling — `$count_max` and `$<aggregate>_max` / `_min`: the largest/smallest value among ALL clusters at the bubble's own zoom. Divide by them, as the default radius does, and a size or colour ramp stays meaningful at every zoom (a literal `domain=[2, 1000]` is right at z3 and collapses every bubble at z11). `scale()` domains must be literals, so this normalisation is the way to get a zoom-adaptive ramp.
+
+Picks: a bubble pick's object carries `cluster: true`, `cluster_id`, `count`, `position` and the aggregates — `<om-overlay>` templates read `{{count}}` / `{{sum_capacity_mw}}`; a standalone point picks as itself. Give each kind its own behavior with `pick="point"` / `pick="cluster"` on `<om-behavior>` (a point's click card, a bubble's hover tooltip) — without it one card would open, half-empty, for both. `map.clusterLeaves(layerId, clusterId, limit?)` returns the rows inside a bubble. Action `expand-cluster` (payload: a pick, or `{layer, clusterId}`) flies to the split zoom, eased over 600 ms — the default click already does this. A runtime on/off switch is `set-layer-attribute` `{ layer, name: "cluster", value: "true"|"false" }` from a widget button; `ctx.layers[i].cluster` reports the current state.
+
+Zoom bands ("bubbles far out, icons close in"): two layers over the same file, each with its own `visible-zoom-range` — the clustered `ScatterplotLayer` on `[0, 12]` with `cluster-max-zoom="11"` (so nothing is still bubbled at the hand-over) and an `IconLayer` on `[12, 24]`. The URL is fetched once; each layer needs its own id, `label`, and behaviors. Hard cut at the boundary, not a cross-fade.
+
+Rules: Point data only — a `GeoJsonLayer` with any line or polygon feature refuses to cluster (structured error; give those features their own layer). `cluster-*` on any other layer type is a validation error. Not applied on a projected (`crs=`) sheet (renders unclustered, warns once). Row caps count the raw rows, not the bubbles.
 
 Attribute-contract tooling: the package also ships `onlymapjs.attributes.json` — a machine-readable per-layer-type attribute list generated from the same registry the runtime validates against. CI checks that emit `<om-layer>` markup should validate attributes per `type=` against it, NOT against the editor IntelliSense file (`onlymapjs.html-data.json`), which is a flat per-tag union and cannot express "valid on TileLayer, not GeoJsonLayer". An attribute is accepted on a type iff it appears in the contract's `universal` list or `layers[<type>]`.
 
@@ -647,6 +691,7 @@ Templates:
 - `{{field}}` HTML-escaped interpolation.
 - `{{{field}}}` raw HTML; avoid unless trusted.
 - `{{z}}` — the pick's elevation in meters, present only when a `pickable="3d"` layer ran the depth pass for it (see `<om-layer>`'s `pickable` above). Absent, not `0`, otherwise.
+- **Image or link tokens → wrap the content in a `<template>` child** (0.11.2): `<om-overlay …><template><img src="{{photo}}"></template></om-overlay>`. A `<template>` is inert, so the browser never requests the literal `{{photo}}` at page load the way it does for live light-DOM children. Tokens are blanked until the first pick fills them (an empty `src` is not fetched), and the tooltip path does the same.
 
 Example:
 
@@ -691,9 +736,11 @@ A separate lazy entry (`import "@nika-js/onlymap/cartograph"`; CDN: `https://unp
 
 - A live frame georeferences whatever its map shows. Zoomed out past the whole world, the map wraps inside the frame like any web map — the graticule labels each copy by where it is on the globe, and the scale bar measures its own row — and the frame never limits or rewrites the camera. Once the map inside a frame settles after a pan, rotate or tilt, the frame's georeference follows the map's own view: north arrow, scale bar, graticule, locator inset and `{{frame.<id>.scale}}` describe what is on screen, and freezing captures that view. `max-pitch` and `min-zoom` on `<om-map>` are author-set controls (a kiosk map that should stay upright or within an area); nothing sets them for you.
 - `<om-legend for>` derives rows from the live map's own symbology (classified breaks included); literal rows via `derived="false"` + `<om-legend-row>` children.
+- Styling is a short list of attributes, each the theme's own `--om-carto-*` property scoped to the element: the page takes `bg`, `color`, `font` (beside `theme=`); a legend takes `bg`, `color`, `stroke`, `font-size` (pt), `padding` (mm); `<om-scalebar>`, `<om-north>` and `<om-graticule>` take `color`; `<om-text>` has `color`/`bg`/`font`/`font-size`/`weight`/`align`, `<om-shape>` has `fill`/`stroke`. There is no `background=`, `border=` or `padding=` anywhere else — the validator names each as unknown.
 - `<om-atlas for="<frame-id>" layer="<layer-id>">` renders one page per feature sequentially and exports a ZIP. Frames follow with `atlas-fit="feature"` (without it every page shows the same view). `atlas-margin` is a FRACTION of the feature's extent (default 0.15, useful range 0.1–0.3) — the one spatial number here that is NOT millimetres; `atlas-margin="10"` pads each side by ten feature-widths and shows every page as a speck — the validator warns on any margin above 2, and on a margin set without `atlas-fit="feature"`, which does nothing. Readers page with the arrow keys / PageUp / PageDown / Home / End or the on-sheet pager (screen-only, never printed or exported; `pager="none"` on `<om-atlas>` removes it); a cross-origin host gets `atlas-page` messages posted to its window and can post `{source:"onlymap-cartograph-host", type:"atlas-seek", index}` back.
 - Output: `page.print()` / `?print=1` (PDF at page size), `renderCartograph(page, {dpi})` / `?export=png&dpi=300` (PNG). Press attributes: `bleed`, `crop-marks`, `safe-zone` (screen-only), `flatten`. `cvd="deuteranopia|…"` simulates colour-vision deficiency; `lintLegendColours()` flags collapsing palettes.
 - Free plan injects a small foot credit — suppressed by an authored `om-text` crediting OnlyMap or a paid key on a live frame's map.
+- Basemap attribution is printed ONCE by the sheet, bottom-right — a framed map shows no attribution control. Do not add per-frame credits or hand-copy the provider list; `freeze()` records it on the frame (`attribution="© OpenStreetMap contributors · © CARTO"`); a capture `<om-source>` takes the same attribute and is credited while it is the source shown. A provider your own `om-text` already names is left out of the auto line.
 - Deep reference: `docs/cartograph.md`.
 
 ### `<om-fallback>`
@@ -726,6 +773,13 @@ Declarative event to action binding.
 
 Events: `click`, `hover`, `drag`, `load`, `data-loaded`.
 
+`pick="point"` / `pick="cluster"` — on a `cluster="true"` layer, fire only for standalone points or only for count bubbles (absent = both). A template cannot branch, so this is how a point gets its card and a bubble its own tooltip:
+
+```html
+<om-behavior on="click" layer="plants" pick="point"   action="show-overlay" target="detail"></om-behavior>
+<om-behavior on="hover" layer="plants" pick="cluster" action="show-tooltip" template="#bubble-tip"></om-behavior>
+```
+
 Common built-in actions:
 
 - `show-overlay`, `hide-overlay`
@@ -733,6 +787,8 @@ Common built-in actions:
 - `toggle-layer`
 - `set-effect` — payload `{ preset }` (a preset name, or `"none"` to remove it); optional `<op>-<param>` knob overrides, e.g. `{ preset: "vintage", "grain-amount": 0.02 }`. Writes one `<om-effect preset>` child, so it is undoable; NOT story-rewindable yet (rewind restores `<om-map>` attributes, this adds an element). A hand-composed op chain is left alone.
 - `set-pickable` — payload `{ layer, pickable: true|false|"3d" }`; writes/removes the layer's `pickable` attribute at runtime (turns popups/tooltips/hover behaviors on or off per layer — the viewer-facing popup toggle), story-capturable and undoable
+- `set-layer-attribute` — payload `{ layer, name, value }`; writes ANY `<om-layer>` attribute at runtime by its kebab-case name (`{ layer: "plants", name: "cluster", value: "true" }`, `{ name: "radius", value: 8 }`); `value: null` (or `remove: true`) removes it. The generic twin of a React prop change — live, story-capturable and undoable like `toggle-layer`. The one refusal is `name: "id"`.
+- `expand-cluster` — payload: a cluster pick (`{ feature, layer }`) or `{ layer, clusterId }`, optional `duration`; flies to the zoom where the bubble splits (eased 600 ms by default). The default click on a bubble already does this (`cluster-click="expand"`); the action is for `cluster-click="none"` layers and hosts.
 - `highlight-feature` — sets the layer's `highlighted-id`; style the selection with `highlight-color="[220, 38, 38, 255]"` (or hex) on the `<om-layer>` — a constant color, not a `get-*` accessor
 - `zoom-to-feature`
 - `filter-layer`

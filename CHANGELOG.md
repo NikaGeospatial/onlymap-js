@@ -8,6 +8,79 @@ Note: npm collapsed a few closely-spaced releases — the GPX/FlatGeobuf (0.5.4)
 and GeoParquet (0.5.5) work shipped to npm together as **0.5.6**, so npm's
 version list jumps 0.5.3 → 0.5.6. Each logical version is listed here regardless.
 
+## 0.11.7 — 2026-10-05
+
+### Added
+- **Tools can read what a map says is wrong with it, without changing the map.** Set `mapEl.diagnostics = true` and the map reports its problems — each with a suggested fix — as `om-validation-error` events, with no error panel and nothing written into the page; `mapEl.getDiagnostics()` returns the latest. An editor that saves its live page no longer has to add `validate` to get them.
+- **Legend and layer-switcher rows say which layer they describe**, as `data-layer="<layer id>"`, so a click on a legend entry can be traced to its layer even when the row is not interactive.
+- **A popup's template is readable as written**: `templateSource` on `<om-overlay>` returns it with its `{{fields}}` intact, so a tool can tell which fields a popup shows.
+
+## 0.11.6 — 2026-10-02
+
+### Fixed
+- **Curved labels can be clicked, and a click tells you which one.** `pickable` now works on a `TextOnPathLayer`, and clicking or hovering a label reports the river or road it names, with all its fields — so a `{{name}}` popup shows the right text instead of coming up blank. Before, the layer rejected `pickable`, and a pick landed on a single letter of the label rather than the feature behind it.
+
+## 0.11.5 — 2026-10-02
+
+### Added
+- **Ask the map what is under the pointer, without editing it.** `mapEl.pickAt([x, y])` returns the feature at a screen point and `mapEl.pickRect({x, y, width, height})` every feature inside a box, so a tool can build box-select or tell an assistant which feature you mean. They don't change the selection or set off your behaviours and tooltips.
+- **A picker can reach every layer for as long as it is open.** Set `mapEl.pickMode = "all"` while your tool is active, and layers you never made `pickable` answer too. Nothing is written into your map, so there is nothing to undo or save.
+- **`mapEl.unproject([x, y])`** turns a screen point into a longitude and latitude, and `mapEl.project([lng, lat])` goes the other way. All of these are on `MapController` as well.
+
+### Fixed
+- **Popups now appear on maps in a projected coordinate system (`crs=`), including projected frames on a print sheet.** Every `<om-overlay>`, including click popups, was hidden there because the map's flat camera was mistaken for one looking away from the point.
+- **Clicking a feature on a projected map reports its longitude and latitude.** The click used to report the map's internal metres, so `zoom-to-feature` and anything else reading the clicked position went to the wrong place.
+
+## 0.11.4 — 2026-10-01
+
+### Fixed
+- **A fallback capture is credited on the sheet.** When a frame falls back to its saved capture because the live map didn't load, the sheet now credits that capture's basemap providers instead of printing none. A capture `<om-source>` takes the same `attribution` attribute as a frozen frame; record it when you take the capture, alongside its `corners`.
+
+## 0.11.3 — 2026-10-01
+
+### Changed
+- **Basemap credits on a print sheet move off the maps and into a corner of the page.** A map inside a cartograph frame no longer shows its own OpenStreetMap / CARTO attribution; the sheet credits every provider once, at the bottom-right, the same way it already carries the OnlyMap credit instead of a badge per frame. Three frames on one basemap now print one credit, and small insets keep their whole picture.
+
+### Added
+- **Frozen frames keep their basemap credit.** Freezing a frame records its providers in a new `attribution` attribute on `<om-frame>`, so a static or exported sheet still credits its tiles with nothing loaded. You can set the attribute yourself on a placed image whose tiles need credit.
+- **A provider you already credit is not printed twice.** If your own attribution text names OpenStreetMap or CARTO, the sheet leaves that provider out of its line.
+- **`mapEl.attributions()`** returns a map's basemap providers as plain text, and the `om-attributions-changed` event fires when they change — for exports and print layouts that render credits themselves.
+
+## 0.11.2 — 2026-10-01
+
+### Added
+- **The count on a cluster bubble can be moved and given a backing.** `cluster-label-position="top-right"` (or any edge or corner) moves the number onto the bubble's rim, off a photo; `cluster-label-background="#111827"` draws a pill behind it; `cluster-label-color` and `cluster-label-size` set its text colour and size. `cluster-label="false"` still hides it. The default is unchanged — centred, white, with a thin dark halo.
+
+## 0.11.1 — 2026-09-30
+
+### Added
+- **A cluster bubble can carry an image.** `get-cluster-icon="$first_photo"` draws the image as a circular thumbnail, cropped to the bubble and ringed in the bubble's colour — the photo of the first place in the cluster, say. A name instead of a URL draws a glyph from `cluster-icon-atlas` / `cluster-icon-mapping` (or the layer's own icon atlas). Images must be same-origin or served with CORS headers, as any image a map draws must; a bubble whose image is still loading, or could not load, stays a plain circle.
+- **`first:` joins the aggregates.** `cluster-properties="first:photo"` puts the earliest member's value (in data order, any type — a URL, a name) on every bubble as `$first_photo`, beside `sum`, `min`, `max`, `mean` and `mode`.
+
+### Changed
+- Cluster count labels now have a thin dark halo, so they read over a light bubble or a photo.
+
+### Fixed
+- **An `<img src="{{photo}}">` in a popup no longer requests the literal `{{photo}}`.** Overlay and tooltip templates are blanked until a pick fills them instead of being written raw, so the bogus request (a 404 in the console on every card) and the momentary flash of `{{token}}` text are gone. For an overlay authored as light-DOM children the browser had already parsed the image before any script ran — wrap such content in a `<template>` child, which is now the recommended form for any card carrying an image or link.
+
+## 0.11.0 — 2026-09-30
+
+### Added
+- **Points that pile up can now be clustered with one attribute.** `cluster="true"` on a `ScatterplotLayer`, a `GeoJsonLayer` of Point features or an `IconLayer` merges the points that would overlap on screen into count bubbles that split apart as the reader zooms in. It is a toggle, not a different layer type: the layer keeps its id, its data, its own colours and sizes for the points that stand alone, its popups and its actions. `cluster-radius`, `cluster-max-zoom` and `cluster-min-points` use the names MapLibre users already know.
+- **Bubbles can say more than a count.** `cluster-properties="sum:capacity_mw,mode:fuel"` carries totals, extremes, means or the commonest category onto each bubble, and `get-cluster-radius`, `get-cluster-fill-color`, `get-cluster-line-color` and `get-cluster-label` style the bubbles with the same expressions the rest of the map uses — a bubble coloured by the fuel most of its plants burn, sized by their combined capacity.
+- **Bubble sizes stay meaningful at every zoom.** Every bubble knows the largest cluster at the current zoom (`$count_max`, and `$sum_x_max` for each aggregate), so the default size keeps the biggest bubble at 36 px whether the reader is looking at a continent or a county, and a custom size or colour ramp can do the same.
+- **A click on a bubble flies to where it splits**, eased, with `cluster-click="none"` to opt out and an `expand-cluster` action to wire it by hand. Hovering or clicking a bubble picks it like any feature — `{{count}}` and the aggregates work in overlays — and `pick="cluster"` / `pick="point"` on `<om-behavior>` gives bubbles and single points their own cards. `map.clusterLeaves(layerId, clusterId)` lists the points inside a bubble. The legend explains the bubbles with a row of its own.
+- **Any layer attribute can be changed at runtime from a widget** with the `set-layer-attribute` action (`{ layer, name, value }`) — the switch behind an on/off button for clustering, or anything else; live, story-capturable and undoable like the other layer actions.
+- **A new example**, *Cluster points*: twenty thousand power plants, a clustering on/off button, bubbles coloured by fuel, a hover summary per bubble, and icons taking over from the circles past z12 with `visible-zoom-range`.
+
+### Changed
+- **The package ships its user guides only.** Working design notes under `docs/design/` were included in earlier tarballs by accident; they are internal planning documents, not documentation, and no longer ship. Nothing that was documented has moved.
+
+## 0.10.10 — 2026-09-29
+
+### Added
+- **A print sheet's colours can now be set attribute by attribute, not only by theme.** The page takes `bg`, `color` and `font`; a legend takes `bg`, `color`, `stroke`, `font-size` and `padding`; the scale bar, north indicator and graticule take `color` — beside the `color`/`bg` text and `fill`/`stroke` shapes always had. Until now a sheet had five themes and a `<style>` block, and an author who wrote `background=` on the page got a warning and no change. Each override is the theme's own property scoped to that element, so the sheet on screen, the printed page and the exported image agree.
+
 ## 0.10.9 — 2026-09-29
 
 ### Added

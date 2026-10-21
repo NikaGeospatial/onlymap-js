@@ -906,6 +906,78 @@
           "description": "Accessor for deck.gl getPixelOffset — expression language: $field, scale(), formatDate(), arithmetic. Valid on: IconLayer, ScatterplotLayer, TextLayer."
         },
         {
+          "name": "cluster",
+          "description": "Set \"true\" to merge points that would overlap on screen into count bubbles that split apart as the reader zooms in. The layer keeps its data, symbology, picking and actions; a click on a bubble zooms to where it splits (cluster-click). Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "cluster-radius",
+          "description": "Cluster radius in screen pixels — points closer than this merge (default 50, MapLibre's). Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "cluster-max-zoom",
+          "description": "The last zoom at which clusters still form (default 16); past it every point stands alone. Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "cluster-min-points",
+          "description": "Fewest points that make a cluster (default 2). Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "cluster-properties",
+          "description": "Aggregates carried onto each cluster: \"sum:mag,max:mag,mean:depth,mode:type\" → $sum_mag, $max_mag, $mean_depth, $mode_type in get-cluster-* expressions, beside $count. Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "cluster-click",
+          "description": "What a click on a bubble does: \"expand\" (default — fly to the zoom where it splits) or \"none\". Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "cluster-label",
+          "description": "Set \"false\" to drop the count text on bubbles. Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "cluster-label-position",
+          "description": "Where the count sits: \"center\" (default) or an edge/corner — \"top-right\" moves it off a photo thumbnail. Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "cluster-label-background",
+          "description": "A pill behind the count (any CSS colour or [r,g,b,a]) so it reads over an image. Absent = a thin dark halo on the text instead. Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "cluster-label-color",
+          "description": "The count's text colour (default white). Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "cluster-label-size",
+          "description": "The count's font size in pixels (default 12). Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "get-cluster-radius",
+          "description": "Bubble radius in pixels — an expression over $count, $count_max (the largest cluster at this zoom), $count_total, $zoom and the cluster-properties aggregates. Default: scale($count / $count_max, sqrt, [12, 36], domain=[0, 1]). Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "get-cluster-fill-color",
+          "description": "Bubble fill — an expression over the same cluster fields (e.g. scale($mean_depth, sequential, ['#fc0', '#60a'], domain=[0, 300])). Default: the layer's own color, else blue. Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "get-cluster-line-color",
+          "description": "Bubble outline colour (default white). Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "get-cluster-label",
+          "description": "The bubble's text (default $count_abbreviated, e.g. 1.2k). Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "get-cluster-icon",
+          "description": "An image on the bubble: an expression yielding a URL (drawn as a circular thumbnail ringed in the bubble's fill — e.g. $first_photo with cluster-properties=\"first:photo\") or a glyph name from cluster-icon-atlas. Images need CORS. Absent = a plain circle. Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "cluster-icon-atlas",
+          "description": "Sprite sheet URL for glyph NAMES returned by get-cluster-icon (an IconLayer host's own icon-atlas is used when this is absent). Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
+          "name": "cluster-icon-mapping",
+          "description": "JSON mapping of glyph names to atlas rectangles, as icon-mapping on IconLayer. Valid on: GeoJsonLayer, IconLayer, ScatterplotLayer."
+        },
+        {
           "name": "get-point-radius",
           "description": "Accessor for deck.gl getPointRadius — expression language: $field, scale(), formatDate(), arithmetic. Valid on: GeoJsonLayer, MVTLayer."
         },
@@ -2229,6 +2301,18 @@
           "description": "Only picks on this layer trigger the behavior."
         },
         {
+          "name": "pick",
+          "description": "On a clustered layer (cluster=\"true\"): \"point\" fires only for standalone points, \"cluster\" only for count bubbles. Absent = both.",
+          "values": [
+            {
+              "name": "point"
+            },
+            {
+              "name": "cluster"
+            }
+          ]
+        },
+        {
           "name": "action",
           "description": "Action to dispatch.",
           "values": [
@@ -2237,6 +2321,12 @@
             },
             {
               "name": "set-pickable"
+            },
+            {
+              "name": "set-layer-attribute"
+            },
+            {
+              "name": "expand-cluster"
             },
             {
               "name": "zoom-in"
@@ -2850,6 +2940,12 @@
               "name": "set-pickable"
             },
             {
+              "name": "set-layer-attribute"
+            },
+            {
+              "name": "expand-cluster"
+            },
+            {
               "name": "zoom-in"
             },
             {
@@ -3124,7 +3220,7 @@
         },
         {
           "name": "theme",
-          "description": "Built-in visual theme — CSS custom properties (--om-carto-*) every element reads; override with a <style> block.",
+          "description": "Built-in visual theme — CSS custom properties (--om-carto-*) every element reads; override with a <style> block, or per property with bg=, color= and font= here and on each element.",
           "values": [
             {
               "name": "default"
@@ -3142,6 +3238,18 @@
               "name": "minimal"
             }
           ]
+        },
+        {
+          "name": "bg",
+          "description": "Page ground colour — overrides the theme's --om-carto-bg. Any CSS colour; the export paints the same colour."
+        },
+        {
+          "name": "color",
+          "description": "Page ink — the default text colour every element inherits (theme's --om-carto-ink). Titles keep their own theme ink; set color= on the <om-text> to change one."
+        },
+        {
+          "name": "font",
+          "description": "Page font family — overrides the theme's --om-carto-font for text, scale bar and graticule labels."
         },
         {
           "name": "title",
@@ -3313,6 +3421,10 @@
           "description": "Static frames: the raster's four corner coordinates as lon/lat pairs, order tl/tr/br/bl — computed by the producer, so placement never needs proj4."
         },
         {
+          "name": "attribution",
+          "description": "Static frames: the basemap's attribution as plain text, entries separated by \" · \" — the sheet prints it in a corner of the page, since the picture carries no attribution of its own. freeze() writes it; set it by hand for a placed raster whose tiles need credit."
+        },
+        {
           "name": "crs-def",
           "description": "Proj string (\"+proj=…\") for a CRS the library doesn't bundle — used by projected graticules."
         },
@@ -3419,6 +3531,26 @@
               "name": "false"
             }
           ]
+        },
+        {
+          "name": "bg",
+          "description": "Panel background colour (theme's legend background when absent)."
+        },
+        {
+          "name": "color",
+          "description": "Heading and row ink (theme's legend ink when absent)."
+        },
+        {
+          "name": "stroke",
+          "description": "Panel border colour (theme's legend border when absent)."
+        },
+        {
+          "name": "font-size",
+          "description": "Row text size in points (default ≈7.4pt). The heading follows it."
+        },
+        {
+          "name": "padding",
+          "description": "Inner padding in mm (default 2)."
         }
       ],
       "references": [
@@ -3563,6 +3695,10 @@
               "name": "ticks"
             }
           ]
+        },
+        {
+          "name": "color",
+          "description": "Bar and label ink (theme's scale-bar ink when absent)."
         }
       ],
       "references": [
@@ -3627,6 +3763,10 @@
               "name": "rose"
             }
           ]
+        },
+        {
+          "name": "color",
+          "description": "Indicator ink (theme's compass ink when absent)."
         }
       ],
       "references": [
@@ -3733,6 +3873,10 @@
         {
           "name": "format",
           "description": "Coordinate label format (e.g. dms, decimal)."
+        },
+        {
+          "name": "color",
+          "description": "Line and label ink (theme's graticule ink when absent)."
         }
       ],
       "references": [
@@ -4012,6 +4156,10 @@
         {
           "name": "crs-def",
           "description": "Proj string (\"+proj=…\") for a CRS the library doesn't bundle."
+        },
+        {
+          "name": "attribution",
+          "description": "A capture's basemap credit as plain text, entries separated by \" · \" — printed in the sheet's corner while this capture is what the frame shows. A capture is shown because the live map did not load, so it cannot be asked; record the credit when the capture is taken."
         }
       ],
       "references": [

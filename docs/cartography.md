@@ -203,6 +203,7 @@ label convention there is, and deck has no layer for it.
 | `offset` | perpendicular pixels; positive sits to the **left** of the line's direction |
 | `placement` | `start`, `middle` (default) or `end` along the line |
 | `max-labels` | ceiling on emitted glyphs |
+| `pickable` | clickable like any layer: a click or hover reports the **row** the label spells, so a `{{name}}` popup shows that river's fields (0.11.6) |
 
 **It reads left to right whichever way the line was drawn.** A path's direction
 is an accident of how the data was digitised, and a label following a
