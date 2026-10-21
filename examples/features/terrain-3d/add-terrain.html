@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<!--
+  Terrain raises the map itself. `terrain="terrarium"` points at the keyless
+  AWS elevation tiles, and every geographic layer DRAPES onto the surface —
+  the meadow polygons bend with the valley floor and the markers ride along,
+  with nothing declared on the layers themselves. Terrain replaces the
+  basemap while it is active; terrain-texture names imagery to lay over it.
+
+  The map: Yosemite Valley at 1.3× exaggeration. The buttons flip terrain
+  off, on and up to 2.5× through the set-terrain action — attribute writes,
+  so Cmd/Ctrl-Z walks them back. Switch it off and watch the valley fall
+  flat.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Add terrain</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-119.57, 37.73]" zoom="11" pitch="60" bearing="-25"
+          terrain="terrarium" terrain-exaggeration="1.3">
+
+    <om-layer id="meadows" type="GeoJsonLayer" label="Valley meadows" color="#2e8b57"
+                filled stroked get-fill-color="'#2e8b5788'" get-line-color="'#1d5c39'"
+                line-width-min-pixels="2" pickable>
+      <script type="application/json">
+        { "type": "FeatureCollection", "features": [
+          { "type": "Feature", "properties": { "name": "El Capitan Meadow" },
+            "geometry": { "type": "Polygon", "coordinates": [[[-119.605, 37.722], [-119.590, 37.720], [-119.588, 37.727], [-119.603, 37.729], [-119.605, 37.722]]] } },
+          { "type": "Feature", "properties": { "name": "Ahwahnee Meadow" },
+            "geometry": { "type": "Polygon", "coordinates": [[[-119.578, 37.742], [-119.566, 37.740], [-119.564, 37.747], [-119.576, 37.749], [-119.578, 37.742]]] } }
+        ] }
+      </script>
+    </om-layer>
+
+    <om-layer id="camps" type="ScatterplotLayer" label="Trailheads" color="#c0392b"
+                get-position="[$lon, $lat]" radius="6" radius-units="pixels"
+                stroked get-line-color="'#ffffff'" pickable>
+      <script type="application/json">
+        [
+          { "name": "Yosemite Falls", "lon": -119.596, "lat": 37.7455 },
+          { "name": "Mirror Lake",    "lon": -119.549, "lat": 37.7405 },
+          { "name": "Glacier Point",  "lon": -119.573, "lat": 37.7280 }
+        ]
+      </script>
+    </om-layer>
+
+    <om-widget position="top-right">
+      <div style="display:flex; flex-direction:column; gap:4px; background:#fff; padding:8px; border-radius:6px; font:12px system-ui;">
+        <b>Terrain</b>
+        <button data-emit="set-terrain" data-terrain="terrarium">Terrarium DEM</button>
+        <button data-emit="set-terrain" data-terrain="terrarium" data-exaggeration="2.5">Exaggerated 2.5×</button>
+        <button data-emit="set-terrain" data-terrain="off">Off (flat)</button>
+      </div>
+    </om-widget>
+
+    <om-widget type="legend" position="bottom-right"></om-widget>
+    <om-behavior on="hover" action="show-tooltip" template="#terrain-tooltip"></om-behavior>
+
+  </om-map>
+
+  <template id="terrain-tooltip">
+    <div style="background:#222; color:#fff; padding:4px 8px; border-radius:4px; font:12px system-ui, sans-serif;">
+      <b>{{name}}</b>
+    </div>
+  </template>
+
+</body>
+</html>

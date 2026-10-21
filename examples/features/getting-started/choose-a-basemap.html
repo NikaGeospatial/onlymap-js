@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<!--
+  Every way to pick a basemap: free presets, a keyed provider, "none" for the
+  standalone deck.gl canvas, and your own style via registerBasemap. The
+  attribute is live — switching keeps the camera and the layers.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Choose a basemap</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+
+  <script type="module">
+    import { OmMap } from "https://unpkg.com/@nika-js/onlymap@0.5.2/dist/onlymap.standalone.js";
+
+    // Your own style, by URL or inline object. Register before the manifest
+    // mounts so the name resolves on first paint.
+    OmMap.registerBasemap("openfreemap-fiord", {
+      style: "https://tiles.openfreemap.org/styles/fiord",
+      attribution: "© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors",
+    });
+
+    // The maptiler-* presets need a key. It is publishable and origin-restricted,
+    // so basemap-key="..." in markup is fine too — unlike real credentials.
+    // OmMap.configureBasemap({ maptilerKey: "YOUR_MAPTILER_KEY" });
+  </script>
+</head>
+<body>
+
+  <!-- basemap takes a keyless preset (liberty/bright/positron from OpenFreeMap,
+       dark-matter/voyager from CARTO, osm), a style URL, a name you registered,
+       or "none". With a basemap the map owns the camera; with "none" deck.gl
+       does. Layers, widgets and picking behave the same either way. -->
+  <om-map center="[-122.42, 37.77]" zoom="12" basemap="positron">
+
+    <om-layer id="regions" type="GeoJsonLayer"
+                data="../../data/regions.geojson"
+                label="SF neighborhoods" color="#3388ff"
+                filled stroked pickable
+                get-line-color="[20,20,20]"
+                line-width-min-pixels="2"></om-layer>
+
+    <om-layer id="bikes" type="ScatterplotLayer"
+                data="../../data/bikes.json"
+                label="Bike racks (radius ~ size)" color="#e6550d"
+                get-position="[$lon, $lat]"
+                get-radius="scale($size, sqrt, [3, 30], domain=[0, 100])"
+                radius-units="pixels" pickable></om-layer>
+
+    <om-widget type="legend" title="Layers" interactive position="top-right"></om-widget>
+
+    <!-- The switcher just writes the basemap attribute, so a switch is an
+         ordinary manifest edit: undoable, and replayable from a story step. -->
+    <om-widget type="basemap-switcher" position="top-right"
+                 options="positron liberty bright dark-matter voyager osm openfreemap-fiord none"
+                 style="margin-top: 120px;"></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+    <om-widget type="scale-bar" position="bottom-left"></om-widget>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: #fff; padding: 10px 14px; border-radius: 8px;
+                 box-shadow: 0 2px 10px rgba(0,0,0,.15); font-size: 13px; max-width: 250px; }
+        .panel code { background: #f1f5f9; padding: 1px 4px; border-radius: 3px; }
+      </style>
+      <div class="panel">
+        <strong>Pick a basemap on the right</strong><br />
+        Layers and the camera survive every switch.<br /><br />
+        <code>openfreemap-fiord</code> is registered in this page's script;
+        <code>none</code> drops to the standalone canvas.
+      </div>
+    </om-widget>
+
+  </om-map>
+
+</body>
+</html>

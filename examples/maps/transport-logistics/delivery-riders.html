@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<!--
+  A small delivery fleet: three riders, each moving along a REAL street
+  route toward their own destination. The composition rule this page
+  demonstrates: the Tracking layer renders ONE entity per layer, so a
+  fleet is one <om-layer type="Tracking"> per rider — and that composes
+  cleanly, because the glide interpolation (interpolate-ms) is keyed
+  per-layer, so three riders interpolate independently at once. Each
+  rider's Route layer shows the path they're following, in the same color.
+
+  There is no "tracking provider" to register: a rider's position feed is
+  ordinary layer DATA. A real deployment points `data` at a wss:// stream
+  or a polled endpoint (see docs/live-data.md); this page simulates the
+  feed in script by replacing each layer's inline JSON child per tick —
+  a childList mutation, which om-map's MutationObserver watches
+  (mutating the old script's textContent in place would never reconcile).
+
+  Street geometry comes through the PROVIDER surface: the routes author
+  only origin/destination + provider="osrm", a ~15-line adapter over
+  OSRM's keyless public demo server (light use — fine for a demo, not
+  production; the adapter itself falls back to a straight line if OSRM
+  is unreachable, so the fleet still moves). The simulation never fetches
+  anything: it reads each resolved route's coordinates from the map's
+  om-route-resolved event — the same surface any app would use to get a
+  provider-computed route's geometry/distance/duration back. No `follow`
+  camera on any rider: with several entities the camera frames the fleet.
+
+  Beyond ~a handful of riders, drop to one IconLayer over a keyed stream
+  (the AIS shipping example's pattern) with transition="get-position"
+  for the glide — hundreds of entities in one layer.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Delivery Riders</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.6.11/dist/onlymapjs.css" />
+  <script type="module">
+    import { OmMap } from "https://unpkg.com/@nika-js/onlymap@0.6.11/dist/onlymap.standalone.js";
+
+    // The routing provider — the one place that knows about OSRM. Falls
+    // back to a straight line between the endpoints when the demo server is
+    // unreachable, so the page degrades instead of breaking.
+    OmMap.registerRoutingProvider("osrm", {
+      async computeRoute({ waypoints, profile }, opts) {
+        const line = (coords) => ({
+          geometry: { type: "LineString", coordinates: coords },
+          distanceMeters: NaN, durationSec: NaN,
+        });
+        try {
+          const coords = waypoints.map((w) => `${w.lng},${w.lat}`).join(";");
+          const res = await fetch(
+            `https://router.project-osrm.org/route/v1/${profile ?? "driving"}/${coords}?geometries=geojson&overview=full`,
+            { signal: opts?.signal },
+          );
+          const json = await res.json();
+          if (json.code !== "Ok" || !json.routes?.[0]) throw new Error(json.code ?? "no route");
+          const r = json.routes[0];
+          return {
+            geometry: r.geometry, distanceMeters: r.distance, durationSec: r.duration,
+            legs: r.legs.map((l) => ({ distanceMeters: l.distance, durationSec: l.duration })),
+          };
+        } catch (err) {
+          if (err instanceof Error && err.name === "AbortError") throw err;
+          return line(waypoints.map((w) => [w.lng, w.lat]));
+        }
+      },
+    });
+  </script>
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.6.11/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #11141b;
+      --om-widget-fg: #f4f7fc;
+      --om-widget-muted: #8a93a5;
+      --om-widget-border: #252c38;
+      --om-widget-hover-bg: #1c222b;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[-122.426, 37.777]" zoom="13" basemap="dark-matter">
+
+    <!-- One Route + one Tracking layer per rider, matched by color. Each
+         route authors only origin + destination — the "osrm" RoutingProvider
+         (registered in the module script above) computes the street
+         geometry, and the rider simulation reads it back from the map's
+         om-route-resolved event rather than fetching anything itself.
+         Destination pins come with the Route free.
+
+         tail="dim" + progress-from is the OPERATOR view (spec: tail modes):
+         the traveled portion darkens behind each rider while current
+         position -> destination keeps the live color, split per frame at
+         the marker's interpolated position. A client-facing page would use
+         tail="none" instead — only what's left of the trip renders (see the
+         Routing & Tracking basics example). -->
+    <om-layer id="route-amber" type="Route" color="#f59e0b" casing-color="#1c1917"
+              tail="dim" progress-from="rider-amber" provider="osrm"
+              origin="[-122.4034,37.7756]" destination="[-122.4531,37.7702]"></om-layer>
+    <om-layer id="route-cyan" type="Route" color="#22d3ee" casing-color="#0c1a1e"
+              tail="dim" progress-from="rider-cyan" provider="osrm"
+              origin="[-122.4104,37.8025]" destination="[-122.4213,37.7588]"></om-layer>
+    <om-layer id="route-violet" type="Route" color="#a78bfa" casing-color="#171528"
+              tail="dim" progress-from="rider-violet" provider="osrm"
+              origin="[-122.4462,37.7996]" destination="[-122.3971,37.7898]"></om-layer>
+
+    <om-layer id="rider-amber" type="Tracking" get-position="[$lng,$lat]" icon="motorcycle" size="36" color="#f59e0b" interpolate-ms="1400">
+      <script type="application/json">[{"lng": -122.4034, "lat": 37.7756, "bearing": 0}]</script>
+    </om-layer>
+    <om-layer id="rider-cyan" type="Tracking" get-position="[$lng,$lat]" icon="motorcycle" size="36" color="#22d3ee" interpolate-ms="1400">
+      <script type="application/json">[{"lng": -122.4104, "lat": 37.8025, "bearing": 0}]</script>
+    </om-layer>
+    <om-layer id="rider-violet" type="Tracking" get-position="[$lng,$lat]" icon="motorcycle" size="36" color="#a78bfa" interpolate-ms="1400">
+      <script type="application/json">[{"lng": -122.4462, "lat": 37.7996, "bearing": 0}]</script>
+    </om-layer>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { width: 252px; background: rgba(17,20,27,.92); color: #eef2f8;
+                 border: 1px solid #252c38; border-radius: 9px; padding: 12px 14px;
+                 font: 13px/1.5 system-ui, sans-serif; }
+        .panel h3 { margin: 0 0 6px; font: 650 14px system-ui, sans-serif; color: #22d3ee; }
+        .panel p { margin: 0 0 8px; color: #8a93a5; }
+        .rider { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+        .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+        .rider span { flex: 1; color: #8a93a5; }
+        .bar { flex: 2; height: 5px; border-radius: 3px; background: #252c38; overflow: hidden; }
+        .bar i { display: block; height: 100%; width: 0%; border-radius: 3px; }
+      </style>
+      <section class="panel" aria-live="polite">
+        <h3>Delivery Riders</h3>
+        <p>Three riders on <code>icon="motorcycle"</code> markers, one <code>Tracking</code> layer each, gliding independently. The dimmed tail behind each rider is <code>tail="dim"</code> — the operator view of a trip.</p>
+        <div class="rider"><i class="dot" style="background:#f59e0b"></i><span>Amber</span><div class="bar"><i id="p-amber" style="background:#f59e0b"></i></div></div>
+        <div class="rider"><i class="dot" style="background:#22d3ee"></i><span>Cyan</span><div class="bar"><i id="p-cyan" style="background:#22d3ee"></i></div></div>
+        <div class="rider"><i class="dot" style="background:#a78bfa"></i><span>Violet</span><div class="bar"><i id="p-violet" style="background:#a78bfa"></i></div></div>
+      </section>
+      <script type="om/widget">
+        // Progress bars fed by the simulation's DOM events (the
+        // dynamic-chart precedent) — rider progress is simulation state,
+        // not layer data, so no ctx token applies.
+        this.watch = [];
+        document.addEventListener("rider-progress", (e) => {
+          const { rider, t } = e.detail;
+          const bar = this.$("#p-" + rider);
+          if (bar) bar.style.width = Math.round(t * 100) + "%";
+        });
+      </script>
+    </om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <script type="module">
+    // Three trips across San Francisco (SoMa → Sunset, North Beach →
+    // Mission, Marina → Embarcadero). The Route layers resolve their own
+    // geometry through the "osrm" provider; this script only LISTENS —
+    // om-route-resolved hands back each resolved route's coordinates, and
+    // the riders then walk them at constant ground speed, emitting a fix
+    // (position + bearing) every TICK_MS as a fresh inline-JSON child on
+    // that rider's Tracking layer. interpolate-ms glides the marker
+    // between fixes.
+    const TICK_MS = 1500;
+    const SPEED_MPS = 110; // demo-fast "e-bike"
+
+    const metersBetween = ([lng1, lat1], [lng2, lat2]) => {
+      const R = 6371000, toR = Math.PI / 180;
+      const dLat = (lat2 - lat1) * toR, dLng = (lng2 - lng1) * toR;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * toR) * Math.cos(lat2 * toR) * Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+    };
+    const bearingBetween = ([lng1, lat1], [lng2, lat2]) => {
+      const toR = Math.PI / 180;
+      const y = Math.sin((lng2 - lng1) * toR) * Math.cos(lat2 * toR);
+      const x = Math.cos(lat1 * toR) * Math.sin(lat2 * toR) - Math.sin(lat1 * toR) * Math.cos(lat2 * toR) * Math.cos((lng2 - lng1) * toR);
+      return (Math.atan2(y, x) / toR + 360) % 360;
+    };
+
+    /** Position + segment bearing at `meters` along the path. */
+    function along(coords, cum, meters) {
+      let i = 1;
+      while (i < cum.length - 1 && cum[i] < meters) i++;
+      const span = cum[i] - cum[i - 1] || 1;
+      const t = Math.min(1, Math.max(0, (meters - cum[i - 1]) / span));
+      const [ax, ay] = coords[i - 1], [bx, by] = coords[i];
+      return { position: [ax + (bx - ax) * t, ay + (by - ay) * t], bearing: bearingBetween(coords[i - 1], coords[i]) };
+    }
+
+    function drive(riderId, coords) {
+      const cum = [0];
+      for (let i = 1; i < coords.length; i++) cum.push(cum[i - 1] + metersBetween(coords[i - 1], coords[i]));
+      const total = cum[cum.length - 1];
+      const layerEl = document.getElementById(`rider-${riderId}`);
+      let travelled = 0;
+      const tick = () => {
+        const { position, bearing } = along(coords, cum, travelled);
+        layerEl.querySelector('script[type="application/json"]')?.remove();
+        const next = document.createElement("script");
+        next.type = "application/json";
+        next.textContent = JSON.stringify([{ lng: position[0], lat: position[1], bearing }]);
+        layerEl.appendChild(next);
+        document.dispatchEvent(new CustomEvent("rider-progress", { detail: { rider: riderId, t: Math.min(1, travelled / total) } }));
+        if (travelled >= total) { setTimeout(() => { travelled = 0; loop(); }, 4000); return; } // delivered — pause, run it again
+        travelled = Math.min(total, travelled + SPEED_MPS * (TICK_MS / 1000));
+        setTimeout(tick, TICK_MS);
+      };
+      const loop = () => tick();
+      loop();
+    }
+
+    // The provider surface hands the resolved geometry back — one event
+    // per route layer, no page-side fetch, no correlation bookkeeping.
+    const started = new Set();
+    document.querySelector("om-map").addEventListener("om-route-resolved", (e) => {
+      const { layerId, route } = e.detail;
+      const riderId = layerId.replace(/^route-/, "");
+      if (started.has(riderId) || !route.geometry || !document.getElementById(`rider-${riderId}`)) return;
+      started.add(riderId);
+      drive(riderId, route.geometry.coordinates);
+    });
+  </script>
+
+</body>
+</html>

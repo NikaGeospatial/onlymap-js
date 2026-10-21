@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<!--
+  This page is a normal OnlyMapJS map. What makes it worth reading is the
+  source panel under it: everything an agent needs to write one of these is
+  three files it can fetch, and one call that tells it whether it got it right.
+
+  An agent already knows deck.gl, which is the problem — it will reach for JS
+  accessor functions, camelCase props and self-closing tags, none of which
+  exist here. `llms.txt` is the delta from those priors, and
+  `onlymapjs.html-data.json` is the attribute list it should stop guessing at.
+
+  The map: 243 world cities sized by population in millions. Small on purpose — copy it and give
+  your agent something short to change.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Build with an AI agent</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.6.1/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.6.1/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #1e1223;
+      --om-widget-fg: #f7ece6;
+      --om-widget-muted: #a5919b;
+      --om-widget-border: #3a2a44;
+      --om-widget-hover-bg: #271733;
+      --om-widget-accent: #eba941;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map center="[10, 30]" zoom="1.7" basemap="dark-matter">
+
+    <om-layer id="cities" type="ScatterplotLayer"
+              data="../../data/world-cities.json"
+              label="Cities by population"
+              get-position="[$lon, $lat]"
+              get-fill-color="scale($population, sequential, ['#7dd3fc', '#eba941', '#f43f5e'], domain=[0, 36])"
+              get-radius="scale($population, sqrt, [3, 20], domain=[0, 36])"
+              radius-units="pixels"
+              opacity="0.85"
+              pickable></om-layer>
+
+    <!-- Every om-widget is its own style scope, so a class defined in one does
+         NOT reach the next. Give each slot widget the CSS it needs. -->
+    <om-widget position="top-start">
+      <style>
+        .card { background: var(--om-widget-bg); color: var(--om-widget-fg);
+                border: 1px solid var(--om-widget-border); border-radius: 12px;
+                padding: 16px 18px; max-width: 340px; line-height: 1.5;
+                font: 13px system-ui, sans-serif; box-shadow: 0 6px 24px rgba(0,0,0,.55); }
+        .card h2 { font-size: 17px; margin: 0 0 8px; letter-spacing: -.01em; }
+        .card p { margin: 0 0 10px; color: #d9cbd4; }
+        .card p:last-child { margin: 0; }
+        .card b { color: #eba941; }
+        .card code { display: block; background: #110a13; border: 1px solid var(--om-widget-border);
+                     border-radius: 6px; padding: 7px 9px; margin-top: 6px;
+                     font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+                     color: #e8dbe4; word-break: break-word; }
+        .card code.inline { display: inline; padding: 1px 5px; margin: 0; }
+      </style>
+      <div class="card">
+        <h2>Already works with your AI agent.</h2>
+        <p>No plugin, no config, no setup. Hit <b>Copy for your agent</b> on any
+           example, paste it into Claude Code, Codex, Cursor or zcode, and start
+           chatting. You will have the map you want in five minutes.</p>
+        <p>The button hands over a brief pointing at <code class="inline">llms.txt</code>
+           — the delta from what your agent already assumes — plus the full
+           attribute schema, so it stops guessing.</p>
+        <p>Something bigger? Install the skill once:
+           <code>npx -y skills add NikaGeospatial/onlymap-js --skill onlymapjs \
+  --agent claude-code --agent codex --agent cursor --agent zcode</code></p>
+      </div>
+    </om-widget>
+
+    <om-widget position="bottom-start">
+      <style>
+        .card { background: var(--om-widget-bg); color: var(--om-widget-fg);
+                border: 1px solid var(--om-widget-border); border-radius: 12px;
+                padding: 16px 18px; max-width: 340px; line-height: 1.5;
+                font: 13px system-ui, sans-serif; box-shadow: 0 6px 24px rgba(0,0,0,.55); }
+        .card h2 { font-size: 17px; margin: 0 0 8px; letter-spacing: -.01em; }
+        .card p { margin: 0 0 10px; color: #d9cbd4; }
+        .card p:last-child { margin: 0; }
+        .card b { color: #eba941; }
+        .card code { display: block; background: #110a13; border: 1px solid var(--om-widget-border);
+                     border-radius: 6px; padding: 7px 9px; margin-top: 6px;
+                     font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+                     color: #e8dbe4; word-break: break-word; }
+        .card code.inline { display: inline; padding: 1px 5px; margin: 0; }
+      </style>
+      <div class="card">
+        <h2>And it checks its own work.</h2>
+        <p><code class="inline">OmMap.validate(html)</code> hands the agent
+           structured errors, each carrying the fix.
+           <code class="inline">OmMap.snapshotIR(html)</code> shows what the
+           manifest really resolves to, with no GPU involved.</p>
+        <p>Agents guess with other map libraries. Here they can verify.</p>
+      </div>
+    </om-widget>
+
+    <om-widget type="zoom-controls" position="bottom-end"></om-widget>
+
+    <om-behavior on="hover" layer="cities" action="show-tooltip" template="#city-tip"></om-behavior>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+  <template id="city-tip">
+    <div style="padding:5px 9px; border-radius:6px; background:#1e1223; color:#f7ece6;
+                border:1px solid #3a2a44; font:12px system-ui, sans-serif;">
+      <b>{{name}}</b> — {{population}} m
+    </div>
+  </template>
+
+</body>
+</html>
