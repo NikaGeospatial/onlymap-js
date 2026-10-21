@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<!--
+  Dive into Monterey Canyon. The view opens looking up the canyon to where it
+  starts, at Moss Landing on the coast. Scroll in and the camera DESCENDS
+  toward the seafloor under the crosshair — below sea level, down the canyon
+  walls — and stops 15 m above the ground.
+
+  Everything a dive needs is markup:
+  - camera-target="terrain": the camera orbits the ground under the view
+    centre, not the point at sea level beneath it, so zooming in goes down.
+  - camera-clearance="15": the eye never comes closer to the ground than that,
+    however you scroll, drag or fly.
+  - Two <om-terrain> sources, ranked in terrain="survey, regional": a ~10 m
+    multibeam survey of the canyon wins inside its extent, a ~150 m regional
+    grid fills out to the horizon — one surface, no flicker where they meet.
+  - terrain-tint="slope depth": sediment on the flats, rock on the walls, by
+    the ground's TRUE slope (the 2× exaggeration divided out) — and darker
+    and bluer the deeper it lies, so the seabed reads as under water even
+    with the sea surface switched off. The land is left to its imagery.
+  - terrain-texture with terrain-texture-mask="land": satellite imagery on the
+    land only — the coast keeps its fields and towns, the seabed stays bare
+    for the tint, cut at the DEM's own sea level. The regional grid's
+    texture-max-zoom="13" drapes that imagery as sharp as over the survey,
+    though its heights stop at zoom 10.
+  - sea-surface: a translucent plane at sea level, so you can see the water
+    you are under — land rises through it, the canyon lies beneath it, and
+    once the camera dives you look up at it. The checkbox on the gauge
+    removes the attribute (and puts it back) to compare.
+  - The gauge is map.getCamera() — the seafloor depth under the crosshair, the
+    camera's height and its clearance, in true metres — read every frame.
+
+  Data: NOAA NCEI DEM Global Mosaic — the Monterey Bay multibeam surveys by
+  CSUMB, MBARI and USGS — cut to the canyon. Public domain; credited on the
+  map, as your own tiles must be. Imagery: Sentinel-2 cloudless 2016 by EOX
+  IT Services GmbH, CC BY 4.0.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OnlyMapJS — Dive the seafloor</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; background: #0b1a2a; }
+    /* The overlays sit in the map's box, not the window's: a page that frames
+       the map (a header, a sidebar) moves them with it, and the crosshair stays
+       on the view centre the gauge reads. */
+    .stage { position: relative; height: 100%; overflow: hidden; }
+    om-map { display: block; height: 100%; background: linear-gradient(to bottom, #0e1f33 0%, #2c4a66 55%, #6d8aa3 100%); }
+    .crosshair { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; pointer-events: none;
+      background: linear-gradient(#fffd, #fffd) center / 2px 100% no-repeat, linear-gradient(#fffd, #fffd) center / 100% 2px no-repeat; }
+    .gauge { position: absolute; z-index: 1; left: 12px; top: 12px; width: 220px; padding: 12px 14px; border-radius: 10px;
+      background: rgba(4, 22, 40, 0.85); color: #d8f1ff; font-variant-numeric: tabular-nums; }
+    .gauge .label { font-size: 11px; color: #7fa5bf; }
+    .gauge .depth { font-size: 28px; font-weight: 600; margin: 2px 0 6px; }
+    .gauge .row { display: flex; justify-content: space-between; font-size: 12px; margin-top: 6px; }
+    .gauge label { display: flex; gap: 6px; align-items: center; font-size: 12px; margin-top: 10px; padding-top: 8px; border-top: 1px solid #ffffff1f; cursor: pointer; }
+    .credit { position: absolute; right: 12px; bottom: 34px; font-size: 10px; color: #7fa5bf; background: rgba(4, 22, 40, 0.75); padding: 3px 7px; border-radius: 4px; }
+    .credit a { color: inherit; }
+  </style>
+</head>
+<body>
+<div class="stage">
+
+  <om-map center="[-121.97, 36.76]" zoom="11.6" pitch="66" bearing="75"
+          terrain="survey, regional" terrain-exaggeration="2" terrain-tint="slope depth"
+          terrain-texture="https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg"
+          terrain-texture-mask="land" sea-surface="rgba(47, 127, 193, 0.28)"
+          camera-target="terrain" camera-clearance="15" max-pitch="85">
+
+    <om-terrain id="survey" src="../../data/monterey-canyon/survey/{z}/{x}/{y}.webp" decoder="terrarium"
+                extent="[-122.25, 36.5304, -121.78, 36.8996]" min-zoom="8" max-zoom="13"></om-terrain>
+    <om-terrain id="regional" src="../../data/monterey-canyon/regional/{z}/{x}/{y}.webp" decoder="terrarium"
+                extent="[-123.4048, 35.9, -120.8952, 37.6]" min-zoom="5" max-zoom="10" texture-max-zoom="13"></om-terrain>
+
+    <om-widget type="zoom-controls" position="center-end"></om-widget>
+  </om-map>
+
+  <div class="crosshair"></div>
+  <div class="gauge">
+    <div class="label" id="kind">Seafloor at ＋</div>
+    <div class="depth"><span id="depth">—</span> m</div>
+    <div class="row"><span>Camera</span><span id="camera">—</span></div>
+    <div class="row"><span>Above the ground</span><span id="clearance">—</span></div>
+    <label><input type="checkbox" id="sea" checked /> Sea surface</label>
+  </div>
+  <div class="credit">Bathymetry: <a href="https://www.ncei.noaa.gov/maps/grid-extract/" target="_blank" rel="noopener">NOAA NCEI</a> (multibeam: CSUMB, MBARI, USGS) · Imagery: <a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless 2016 by EOX</a> (modified Copernicus Sentinel data 2016 &amp; 2017)</div>
+</div>
+
+  <script type="module">
+    const map = document.querySelector("om-map");
+    await map.ready;
+    // The sea surface is one attribute: remove it to look without the water.
+    const sea = map.getAttribute("sea-surface");
+    document.getElementById("sea").addEventListener("change", (e) => {
+      if (e.target.checked) map.setAttribute("sea-surface", sea);
+      else map.removeAttribute("sea-surface");
+    });
+
+    const metres = (m) => Math.round(Math.abs(m)).toLocaleString();
+    (function gauge() {
+      const { altitude, targetElevation, clearance } = map.getCamera();
+      if (targetElevation !== null) {
+        document.getElementById("kind").textContent = targetElevation < 0 ? "Seafloor depth at ＋" : "Land at ＋";
+        document.getElementById("depth").textContent = (targetElevation < 0 ? "−" : "+") + metres(targetElevation);
+      }
+      if (altitude !== null) document.getElementById("camera").textContent = `${metres(altitude)} m ${altitude < 0 ? "below" : "above"} sea level`;
+      document.getElementById("clearance").textContent = clearance === null ? "—" : clearance < 30 ? "on the ground" : `${metres(clearance)} m`;
+      requestAnimationFrame(gauge);
+    })();
+  </script>
+
+</body>
+</html>

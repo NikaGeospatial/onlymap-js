@@ -8,6 +8,101 @@ Note: npm collapsed a few closely-spaced releases — the GPX/FlatGeobuf (0.5.4)
 and GeoParquet (0.5.5) work shipped to npm together as **0.5.6**, so npm's
 version list jumps 0.5.3 → 0.5.6. Each logical version is listed here regardless.
 
+## 0.13.2 — 2026-10-20
+
+### Added
+- **Dive below sea level.** `camera-target="terrain"` makes the camera orbit the ground under the view centre, so zooming in descends into a canyon or onto a seabed. `camera-clearance="15"` keeps the eye that many metres above the ground, for gestures, flights and the zoom buttons alike.
+- **`map.getCamera()`** reports the camera's `altitude`, the `targetElevation` under the view centre and the `clearance` above the ground, in true metres, for a depth or altitude gauge. `om-view-changed` carries the same three values.
+- **A keyless bathymetry preset:** `terrain="seascape"` draws the seafloor worldwide (GEBCO), with regional surveys up to zoom 14.
+- **Several DEMs on one map.** Rank `<om-terrain>` children in `terrain="survey, context"`: the first-ranked source wins inside its `extent`, and the ground is shared cleanly between them, with no z-fighting and no need to push one dataset down to hide it.
+- **Your own survey, with its gaps and datum.** `nodata="-32768"` turns a survey's empty cells into holes that show the next source, colour and height. `vertical-offset` corrects a datum difference between sources. On a single DEM they are `terrain-nodata` and `terrain-vertical-offset`.
+- **`npx onlymapjs inspect-terrain page.html`** (or `await map.inspectTerrain()`) reads your terrain tiles and tells you which `vertical-offset` and `nodata` to set.
+- **`npx onlymapjs dem-tiles survey.tif --out tiles`** turns a GeoTIFF DEM into terrain tiles and prints the `<om-terrain>` line to paste. It needs the `geotiff` package installed.
+- **Imagery sharper than the DEM:** `texture-max-zoom` keeps draping imagery at its own zoom over a coarser elevation grid.
+- **Seeing that it is under water:** `terrain-tint="depth"` shades the seabed by depth, `terrain-tint="slope"` colours ground by steepness, and `sea-surface` draws a translucent plane at sea level. `terrain-texture-mask="land"` keeps imagery on the land with the seabed bare, and `"sea"` does the reverse.
+- **Terrain presets credit their data** on the map, in `attributions()` and on cartograph sheets.
+- **A new example, *Dive the seafloor*:** Monterey Canyon, a survey over a regional grid, rebuilt in markup with no workarounds.
+
+### Changed
+- **`mapterhorn` no longer drapes satellite imagery.** Its imagery source now serves a watermark without a key.
+- **`getViewState()` returns only the five camera fields** (longitude, latitude, zoom, pitch, bearing). Internal renderer values no longer leak into it, the React adapter or snapshots.
+
+### Fixed
+- **Markers and 3D models over ground below sea level now stand on it.** They drew at sea level, because the terrain's height map could not hold a negative height.
+- **No more thin cracks between terrain tiles** where neighbouring tiles load at different zooms.
+- **Draped tiled layers no longer drop tiles over high ground.** They were culled as if the ground were at sea level.
+
+## 0.13.1 — 2026-10-16
+
+### Fixed
+- **A cartograph sheet now prints the basemap credit for every keyless preset.** A sheet whose live frame showed `dark-matter`, `positron`, `voyager`, `liberty` or `bright` printed no credit, and freezing the frame kept none, so exported and static sheets went out uncredited. Those presets carry their credit in each tile source's own metadata, which arrives after the style has loaded; the sheet now reads it from the loaded source and follows it when it arrives. Maps on their own were never affected.
+
+## 0.13.0 — 2026-10-15
+
+### Added
+- **Projected maps are drawn by the GPU.** On a `crs` in the Transverse Mercator/UTM, Albers, Lambert Conformal Conic or Lambert Azimuthal Equal Area families — British National Grid, any UTM zone, NZTM, SVY21, CONUS and Australian Albers, Lambert-93, LAEA Europe, and grids on other ellipsoids or prime meridians — every point is placed by the graphics card, within a quarter of a pixel of proj4, on real GPUs and in software rendering alike. Layers keep their longitude/latitude, so the map draws as fast as in Web Mercator. Other projections draw as before, on the CPU. `OmMap.configureCrs({ gpuProjection: false })` turns the GPU path off.
+- **`crs` is live.** Change it on a mounted map — the attribute, the `set-crs` action (`{ crs: "mercator" }` goes back), `MapController.setCrs`, or React's `crs` prop — and every layer re-projects in place with the camera where it was; a story step can switch the sheet's projection, and undo restores it. Between two GPU-drawn grids nothing is re-projected at all (polygon fills are triangulated again), and tiled layers keep the tiles they have. A `crs` that cannot resolve is reported and the map stays as it was.
+- **Vector tiles on any projected map.** `MVTLayer` now works under every `crs`: each tile is cut to its edge, projected and triangulated off the main thread, so panning costs what it does in Web Mercator and a tile never freezes the page as it arrives. A `crs` switch rebuilds cached tiles without fetching them again.
+- **A vector basemap on a projected map.** `basemap="positron"`, `"liberty"` or `"bright"` on any `crs` draws OpenFreeMap's vector tiles in the projection, in the preset's colours — land, water, parks, buildings, roads, rail, boundaries; no labels yet — credited automatically. Switching the preset recolours in place.
+- **`color-domain` on `ScreenGridLayer`** fixes the value range its colour scale spans, as the other aggregation layers already allowed; it also makes a busy map pan more smoothly, since the layer no longer re-reads its range from the GPU on every camera move.
+- **Two new examples:** *Switch the projection* (Singapore baselines measured in every plane against the WGS84 ellipsoid) and the *Projected map debugger* — every layer type on every projection family, with a readout of how each is drawn.
+
+### Changed
+- **A geographic `crs` (`EPSG:4326`, NAD83, ETRS89, a `+proj=longlat` definition) is a warning, not an error.** It draws as plate carrée — one scale in degrees on both axes, as QGIS or ArcGIS draw an unprojected layout — which is exactly what a cartograph copying such a layout needs; the warning names the longitude stretch at your centre latitude. It used to be refused outright, and only for three codes.
+- **Relief, image tiles and vector tiles on a projected map load only the tiles that meet the view.** Panning a projected map fetched and drew about two and a half times the tiles it showed.
+
+### Fixed
+- **A country straddling a projection's seam no longer draws as a wedge across the map.** On CONUS Albers, Russia reached across Hudson Bay and the Arctic; polygons and lines are now cut at the seam, for GeoJSON and for CSV rows with `get-polygon`/`get-path` alike, each piece keeping its properties.
+- **Polygons far from a projection's central meridian draw with solid fills** instead of fans of overlapping and missing triangles.
+- **Data past a projection's range no longer breaks a whole layer, and never draws a line across the gap.** A Transverse Mercator map with world data in it works in Firefox, where it failed with "invalid array length" (ContourLayer) and "source array is too long" (TripsLayer).
+- **Image tiles past a projection's range no longer throw** ("Illegal attribute generated for positions") when switching to some projections, and no longer draw the far side of the world folded over the near one.
+- **Scrolling a projected map with a vector basemap no longer logs "Picked non-existent layer".**
+- **A `crs` switch that fails leaves the map as it was** — including a map with a MapLibre basemap, which went blank — and keeps reporting its previous `crs`.
+- **A heatmap on a GPU-drawn projected map panned at 4 frames a second**; it draws at full speed again.
+- **The world-countries example data drew wedges over the Arctic** on every projection: islands were recorded as holes of one polygon. Repaired.
+
+## 0.12.1 — 2026-10-12
+
+### Fixed
+- **The library reports its own version correctly.** 0.12.0 identified itself as 0.11.11 — to anything that reads the runtime version, and in its usage reports — and its package shipped without the 0.12.0 changelog entry. Both are right in 0.12.1; nothing else changes.
+
+## 0.12.0 — 2026-10-09
+
+### Added
+- **Data in any coordinate system lands in the right place.** Files in a national grid, State Plane or UTM zone — eastings and northings in metres — are converted to longitude/latitude as they load, instead of drawing in the ocean. A file that names its own system needs nothing: a shapefile's `.prj`, a FlatGeobuf or GeoParquet header, or a GeoJSON `crs` member is read automatically. For a CSV, or to override the file, declare it on the layer: `<om-layer crs="EPSG:27700">`. Common grids and every UTM zone are built in; any other EPSG code is looked up at epsg.io once (`OmMap.configureCrs({ online: false })` turns that off). GeoParquet in a local grid now loads instead of being refused. Coordinates that cannot be degrees, with no system named, are reported rather than drawn somewhere wrong.
+- **Satellite and other image tiles on a projected map.** On a map drawn in a real projection (`crs="EPSG:27700"` on `<om-map>`), an image `TileLayer` (`…/{z}/{x}/{y}.png`, `.jpg`, `.webp`) is now warped into the projection and lands within a pixel of where it belongs — so a projected map can have a satellite or OpenStreetMap backdrop. `basemap="satellite"` itself stays a validation error there, and its fix is that imagery written as a layer, plus its credit line.
+- **A globe (preview).** `projection="globe"` on a map with a basemap draws the Earth as a sphere you can spin; zoom in and it becomes the ordinary flat map. Layers, data and the camera are written exactly as before, it switches live (the attribute, the `set-projection` action, `MapController.setProjection`, or React's `projection` prop), overlays on the far side hide, and a click in space reports no coordinate. A globe is drawn flat-on and north-up, and text, icon, arc and heatmap-style layers cannot draw on it yet — validation says so, with a fix.
+- **Two new examples:** map British National Grid data on a satellite map and on a map drawn in the grid itself, and spin a satellite globe with great-circle routes.
+
+### Fixed
+- **Relief on a projected map sits where it belongs.** It was drawn a few pixels south of its true position at low zoom.
+- **A mouse-wheel zoom on a map with a basemap now reports itself as the user's move.** `om-view-changed` said `"programmatic"` for it, so apps (and linked maps) that only follow user moves missed it.
+- **A fixed-position `<om-overlay>` on a map with a basemap shows as soon as the map loads**, instead of staying hidden until the first pan.
+- **The live validation report now includes the map's own checks** — basemap, projection and widget-placement problems on `<om-map>` itself appeared in the static validator but were left out of the on-page panel and `getDiagnostics()`.
+- **No more "renders nothing" warning for a widget that holds its own HTML.** An `<om-widget>` with no `type` but its own content renders that content; only an empty one is flagged.
+
+## 0.11.11 — 2026-10-08
+
+### Fixed
+- **The `osm` basemap now draws in a map opened from disk.** OpenStreetMap's tile server refuses requests it cannot tie to a website, and answers with an "Access blocked" picture tile that arrives as a normal 200 — so an exported map opened from a file showed a grid of them in Firefox, and in Chrome after a hard reload or with DevTools' cache disabled, while Safari was fine. Tile requests to OSM now carry the `X-Requested-With` header OSM's own guidance asks for in that situation, which its servers accept. Other tile servers are untouched.
+
+## 0.11.10 — 2026-10-07
+
+### Added
+- **A satellite basemap that needs no key.** `basemap="satellite"` shows cloud-free satellite imagery of the whole world, from EOX's Sentinel-2 cloudless mosaic (2016). It needs no account, and commercial use is allowed with the credit it shows automatically. The imagery is detailed to about zoom 13–14 (a city district) and soft beyond that; for street-level detail or recent imagery, `maptiler-satellite` (keyed) remains the option. It also appears in the basemap switcher.
+
+## 0.11.9 — 2026-10-05
+
+### Fixed
+- **A layer whose data can't be loaded now says so.** If a layer's `data` address fails (a typo, a missing file, a blocked request), the map reports it in its validation panel and diagnostics, with what to check, instead of quietly drawing nothing. The report clears once the data loads.
+- **Writing rows directly into `data=` is now flagged.** `data` is always an address; rows written there draw nothing. The validator now says so and points to the inline `<script type="application/json">` form.
+
+## 0.11.8 — 2026-10-05
+
+### Fixed
+- **A popup opened by a click stays open when you move the pointer away.** It used to close as soon as the pointer left the feature, and passing over another feature dragged it there. It now stays until you click somewhere else: another feature moves it, empty map closes it. Popups that already set `selection-type` behave exactly as before.
+- Fixed a click popup that could occasionally open invisible when the pointer moved in the same moment as the click; this affected popups with `selection-type="click"` too.
+
 ## 0.11.7 — 2026-10-05
 
 ### Added

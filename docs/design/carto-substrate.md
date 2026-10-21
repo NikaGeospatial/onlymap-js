@@ -88,10 +88,12 @@ for whole layers, and a **local origin**. The cartograph's georef keeps its inte
 and becomes a consumer.
 
 **Justifications.**
-- *Local origin is not optional.* Measured, fp32 resolves no better than **0.48 m** at
-  a 500 km easting and **5.7 m** at a 6 000 km northing, against **1.9 mm** two
+- *Local origin is not optional.* Measured, fp32 resolves no better than **0.03 m** at
+  a 500 km easting and **0.5 m** at a 6 000 km northing, against **0.12 mm** two
   kilometres from an origin — and fp32 is what reaches the screen, whatever the CPU
-  computed. #2 §0 called this jitter and predicted "whoever builds it will hit this in
+  computed. *(Corrected 2026-10-12: the first measurement's helper was defective and
+  reported 0.48 m / 5.7 m / 1.9 mm, an order of magnitude too coarse; see
+  `plane-precision.test.ts`. Half a metre is still nearly three pixels at zoom 18.)* #2 §0 called this jitter and predicted "whoever builds it will hit this in
   the first hour"; the numbers are worse than the word, since metres of error is
   geometry in the wrong place rather than shimmer. The plane holds `(x − x₀, y − y₀)`; the origin is the map's initial centre,
   fixed for the map's life, and is written into the frame georef so nothing downstream
@@ -583,7 +585,7 @@ Everything learned on the way here that a builder would otherwise rediscover.
 
 | # | Caveat | Decision |
 |---|---|---|
-| C1 | fp32 cannot resolve METRES at projected magnitudes — measured 0.48 m at a 500 km easting and **5.7 m** at a 6 000 km northing, against 1.9 mm at 2 km from an origin | local origin, fixed per map, written into georef. "Jitter" understated it: at a real northing this is geometry in the wrong place, not shimmer |
+| C1 | fp32 cannot resolve a projected magnitude finely enough — measured 0.03 m at a 500 km easting and **0.5 m** at a 6 000 km northing (corrected 2026-10-12 from a defective helper's 0.48 m / 5.7 m), against 0.12 mm at 2 km from an origin | local origin, fixed per map, written into georef. "Jitter" understated it: at a real northing this is geometry in the wrong place, not shimmer |
 | C2 | `FlyToInterpolator` is Mercator-only | plane view uses the existing `LinearInterpolator` branch |
 | C3 | `HillshadeLayer` samples Mercator `{z}/{x}/{y}` tiles, so **that layer** is Mercator-only | A limit on the keyless-global-tiles convenience, NOT on relief. `shading="hillshade"` on a raster is projection-independent already (§4a), so a projected sheet can carry relief from Phase 1. The warp (Phase 6) restores the keyless path; validation error with the fix meanwhile |
 | C3b | Relief frozen from a Mercator frame into a projected sheet is an **affine approximation** | Sound over a city, wrong over a continent — the Mercator↔target difference is not affine. Bound the interim workaround by extent, or use a DEM in the sheet's own CRS (§4a) |

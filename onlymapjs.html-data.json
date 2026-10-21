@@ -22,12 +22,78 @@
           "description": "Initial bearing in degrees."
         },
         {
+          "name": "camera-target",
+          "description": "What the camera orbits: \"sea-level\" (default) or \"terrain\" — the ground under the view centre, so zooming in descends toward it, below sea level over a seabed. Needs terrain; not on a projected (crs) map.",
+          "values": [
+            {
+              "name": "sea-level"
+            },
+            {
+              "name": "terrain"
+            }
+          ]
+        },
+        {
+          "name": "terrain-tint",
+          "description": "Colour the terrain by its shape — \"slope\", \"depth\", or both (\"slope depth\"). slope: by TRUE slope (exaggeration divided out), flat ground terrain-tint-flat, steep ground terrain-tint-steep, blended 15°–35°. depth: the seabed as if seen through water, terrain-tint-shallow at the coast fading to terrain-tint-deep by terrain-tint-max-depth (true metres, square-root ramp); land untouched. Applied before lighting, so it also tints a terrain-texture.",
+          "values": [
+            {
+              "name": "slope"
+            },
+            {
+              "name": "depth"
+            },
+            {
+              "name": "slope depth"
+            },
+            {
+              "name": "none"
+            }
+          ]
+        },
+        {
+          "name": "terrain-tint-flat",
+          "description": "terrain-tint=\"slope\": the colour of flat ground (default sediment, #d8c9a3)."
+        },
+        {
+          "name": "terrain-tint-steep",
+          "description": "terrain-tint=\"slope\": the colour of steep ground (default rock, #7d7266)."
+        },
+        {
+          "name": "terrain-tint-shallow",
+          "description": "terrain-tint=\"depth\": the tint just below sea level (default #c4e2e8)."
+        },
+        {
+          "name": "terrain-tint-deep",
+          "description": "terrain-tint=\"depth\": the colour the seabed fades to with depth (default #26426e)."
+        },
+        {
+          "name": "terrain-tint-max-depth",
+          "description": "terrain-tint=\"depth\": the TRUE depth in metres where the seabed is fully the deep colour (default 3000)."
+        },
+        {
+          "name": "sea-surface",
+          "description": "A translucent plane at sea level, as a CSS colour (no alpha = ~35%): the seabed shows through it, land above sea level hides it. Not with a MapLibre basemap or crs."
+        },
+        {
+          "name": "camera-clearance",
+          "description": "The closest the camera's eye may come to the ground beneath it, in true metres (exaggeration divided out): a zoom past it is held, by gestures, flights and the zoom buttons alike. Needs terrain. Absent = no floor."
+        },
+        {
           "name": "max-pitch",
           "description": "Cap how far the user can tilt, in degrees. Applied to the controller, so an over-tilt is refused rather than clamped back. Absent = the renderer's default (60)."
         },
         {
           "name": "min-zoom",
           "description": "Floor how far the user can zoom OUT. Applied to the controller, so a zoom-out past it is refused rather than clamped back. Absent = the renderer's default (0)."
+        },
+        {
+          "name": "crs",
+          "description": "Draw the WHOLE map in a real projection's plane — \"EPSG:5070\" (Albers), \"EPSG:27700\" (British National Grid), a UTM zone — instead of Web Mercator. Needs basemap=\"none\" (an image TileLayer gives it imagery). The authored camera stays geographic. Live: change it on a mounted map, or with the set-crs action; layers switch with no reload. On an <om-layer>, crs means what the DATA is in."
+        },
+        {
+          "name": "crs-def",
+          "description": "A +proj= definition for a CRS nothing bundles or registers, beside crs."
         },
         {
           "name": "reference-scale",
@@ -62,6 +128,9 @@
               "name": "osm"
             },
             {
+              "name": "satellite"
+            },
+            {
               "name": "maptiler-streets"
             },
             {
@@ -69,6 +138,18 @@
             },
             {
               "name": "maptiler-satellite"
+            }
+          ]
+        },
+        {
+          "name": "projection",
+          "description": "\"globe\" draws the Earth as a sphere you can spin, turning into a flat map as you zoom in (preview). Needs a basemap — MapLibre draws the sphere. Live: switch it on a mounted map, or with the set-projection action. Absent or \"mercator\" = the flat map. Not with crs, terrain, aggregation layers (heatmap, hexagon, grid, contour), or inside a cartograph frame.",
+          "values": [
+            {
+              "name": "globe"
+            },
+            {
+              "name": "mercator"
             }
           ]
         },
@@ -160,7 +241,7 @@
         },
         {
           "name": "terrain",
-          "description": "3D elevation surface: a registered terrain preset, a {z}/{x}/{y} DEM URL (needs terrain-decoder), or \"off\". Replaces an active basemap while on. Geographic layers drape by default (per-layer terrain attribute overrides).",
+          "description": "3D elevation surface: a registered terrain preset, a {z}/{x}/{y} DEM URL (needs terrain-decoder), or \"off\". Replaces an active basemap while on. Geographic layers drape by default (per-layer terrain attribute overrides). terrarium carries the seabed only to zoom 10 (the ocean decodes as 0 m above it): set terrain-max-zoom=\"10\" for a seafloor.",
           "values": [
             {
               "name": "off"
@@ -173,6 +254,9 @@
             },
             {
               "name": "mapterhorn"
+            },
+            {
+              "name": "seascape"
             }
           ]
         },
@@ -193,12 +277,39 @@
           "description": "Vertical relief multiplier, applied in the DEM decoder; 1 = true relief."
         },
         {
+          "name": "terrain-nodata",
+          "description": "The height a single DEM's tiles use where they have NO data (e.g. -32768): the mesh ends there instead of plunging to it. On <om-terrain> sources, nodata=\"…\"."
+        },
+        {
+          "name": "terrain-vertical-offset",
+          "description": "Metres added to every height of a single DEM, before exaggeration (a vertical datum difference). On <om-terrain> sources, vertical-offset=\"…\"."
+        },
+        {
+          "name": "terrain-texture-max-zoom",
+          "description": "The terrain-texture's own highest zoom when it is sharper than a single DEM: tiles subdivide for the imagery, heights rebuilt from the DEM's max zoom. On <om-terrain> sources, texture-max-zoom=\"…\"."
+        },
+        {
           "name": "terrain-max-zoom",
-          "description": "DEM tileset zoom cap — the provider's REAL limit (a too-high cap requests 404 tiles and blanks the terrain)."
+          "description": "DEM tileset zoom cap — the provider's REAL limit (a too-high cap requests 404 tiles and blanks the terrain). Also a source's useful limit: terrarium's seabed ends at 10."
         },
         {
           "name": "terrain-texture",
           "description": "Optional {z}/{x}/{y} imagery template draped over the surface (satellite, etc.)."
+        },
+        {
+          "name": "terrain-texture-mask",
+          "description": "Draw the terrain texture on one side of sea level only: \"land\" (imagery on the land, the seabed bare — tinted by terrain-tint if set) or \"sea\" (the reverse). Read from the DEM's own heights, every source's texture. Draped layers are never masked.",
+          "values": [
+            {
+              "name": "land"
+            },
+            {
+              "name": "sea"
+            },
+            {
+              "name": "none"
+            }
+          ]
         },
         {
           "name": "clip-box-min",
@@ -306,6 +417,78 @@
         {
           "name": "README",
           "url": "https://github.com/NikaGeospatial/onlymapjs/blob/main/README.md"
+        }
+      ]
+    },
+    {
+      "name": "om-terrain",
+      "description": "One DEM of a multi-source terrain: name several in the map's terrain attribute, first-ranked first (terrain=\"survey, context\"). Where extents overlap the first-ranked source alone draws — a sharp survey over a regional grid, no z-fighting, no doctored tiles.",
+      "attributes": [
+        {
+          "name": "id",
+          "description": "The name terrain=\"…\" ranks it by."
+        },
+        {
+          "name": "src",
+          "description": "A terrain preset (\"terrarium\") or a {z}/{x}/{y} DEM URL (needs decoder).",
+          "values": [
+            {
+              "name": "terrarium"
+            },
+            {
+              "name": "maptiler-terrain"
+            },
+            {
+              "name": "mapterhorn"
+            },
+            {
+              "name": "seascape"
+            }
+          ]
+        },
+        {
+          "name": "decoder",
+          "description": "DEM RGB decoder for a raw URL: \"terrarium\", \"mapbox-rgb\", or {rScaler,gScaler,bScaler,offset} JSON.",
+          "values": [
+            {
+              "name": "terrarium"
+            },
+            {
+              "name": "mapbox-rgb"
+            }
+          ]
+        },
+        {
+          "name": "extent",
+          "description": "[west, south, east, north] — where this source draws. Required on every source but the last-ranked, or it hides everything below it."
+        },
+        {
+          "name": "min-zoom",
+          "description": "Lowest zoom this source's tiles exist at."
+        },
+        {
+          "name": "max-zoom",
+          "description": "The source's real highest zoom (a too-high cap requests 404 tiles)."
+        },
+        {
+          "name": "texture",
+          "description": "{z}/{x}/{y} imagery draped on this source; the map's terrain-texture when absent."
+        },
+        {
+          "name": "mesh-max-error",
+          "description": "Mesh simplification tolerance in metres (default 0.5)."
+        },
+        {
+          "name": "nodata",
+          "description": "The height this source's tiles use where they have NO data (e.g. -32768): the mesh ends at the last measured cell instead of plunging to it, and the next-ranked source shows through the hole. With nodata, a source needs no extent to sit above others."
+        },
+        {
+          "name": "texture-max-zoom",
+          "description": "The texture's own highest zoom, when it is sharper than the DEM (e.g. 15 for EOX imagery over a z10 grid): tiles keep subdividing for their imagery, their heights rebuilt from the DEM's max-zoom — no new relief, sharp imagery."
+        },
+        {
+          "name": "vertical-offset",
+          "description": "Metres added to every height of this source, before exaggeration — a vertical datum difference between datasets (MLLW vs MSL), not a way to hide a bad join."
         }
       ]
     },
@@ -605,11 +788,19 @@
         },
         {
           "name": "data",
-          "description": "Data URL (JSON, GeoJSON, CSV/TSV, Arrow/GeoArrow IPC, Shapefile .shp, KML, GPX, FlatGeobuf .fgb, GeoParquet .parquet, CityJSON) or wss:// stream; omit for inline <script type=\"application/json\">."
+          "description": "Data URL (JSON, GeoJSON, CSV/TSV, Arrow/GeoArrow IPC, Shapefile .shp, KML, GPX, FlatGeobuf .fgb, GeoParquet .parquet, CityJSON) or wss:// stream; omit for inline <script type=\"application/json\">. Always a URL: rows written into data= are fetched as a file and draw nothing (a validation error since 0.11.9), and a URL that fails to load is reported as a diagnostic."
         },
         {
           "name": "label",
           "description": "Human-readable name shown in the legend and layer list."
+        },
+        {
+          "name": "crs",
+          "description": "What the data's coordinates are in, e.g. \"EPSG:27700\" (British National Grid) or \"EPSG:3414\" (SVY21) — converted to longitude/latitude when the data loads. Overrides the file's own CRS (a shapefile .prj, a FlatGeobuf or GeoParquet header, a GeoJSON crs member); absent, the file decides. An unbundled EPSG code is looked up at epsg.io once (OmMap.configureCrs({ online: false }) turns that off)."
+        },
+        {
+          "name": "crs-def",
+          "description": "A +proj= definition for a CRS nothing bundles or registers, beside crs (or alone)."
         },
         {
           "name": "color",
@@ -1526,10 +1717,6 @@
           "description": "deck.gl select. Valid on: ZarrLayer."
         },
         {
-          "name": "crs",
-          "description": "deck.gl crs. Valid on: ZarrLayer."
-        },
-        {
           "name": "spatial-dims",
           "description": "deck.gl spatialDims. Valid on: ZarrLayer."
         },
@@ -1931,7 +2118,7 @@
         },
         {
           "name": "color-domain",
-          "description": "deck.gl colorDomain. Valid on: GridLayer, HeatmapLayer, HexagonLayer."
+          "description": "deck.gl colorDomain. Valid on: GridLayer, HeatmapLayer, HexagonLayer, ScreenGridLayer."
         },
         {
           "name": "color-range",
@@ -2238,7 +2425,7 @@
         },
         {
           "name": "selection-type",
-          "description": "Scope selection-anchored overlays to one pick type — \"click\" keeps a click-opened popup from following hover picks; \"hover\" is the mirror. Absent: every pick applies.",
+          "description": "Scope selection-anchored overlays to one pick type — \"click\" keeps a click-opened popup from following hover picks; \"hover\" is the mirror. Absent: a popup a click behavior opened behaves as \"click\" (0.11.8+); any other overlay reacts to every pick.",
           "values": [
             {
               "name": "click"
@@ -2414,6 +2601,12 @@
             },
             {
               "name": "set-basemap"
+            },
+            {
+              "name": "set-projection"
+            },
+            {
+              "name": "set-crs"
             },
             {
               "name": "set-effect"
@@ -3031,6 +3224,12 @@
             },
             {
               "name": "set-basemap"
+            },
+            {
+              "name": "set-projection"
+            },
+            {
+              "name": "set-crs"
             },
             {
               "name": "set-effect"

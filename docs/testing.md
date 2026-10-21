@@ -40,7 +40,8 @@ npm i -D vitest happy-dom @playwright/test
 // package.json
 "scripts": {
   "test": "vitest run",          // tiers 1–2: every commit
-  "test:e2e": "playwright test"  // tier 3: PR / nightly
+  "test:e2e": "playwright test",  // tier 3: PR / nightly
+  "test:e2e:release": "playwright test --grep-invert @slow"  // tier 3 minus tests titled "… @slow"
 }
 ```
 

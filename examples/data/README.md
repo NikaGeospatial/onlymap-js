@@ -10,12 +10,31 @@ carry the credit with it.
 
 ## Attribution
 
-**Natural Earth** — country outlines and populated places. Public domain.
+**Natural Earth** — country outlines and populated places, including the British
+National Grid copies under `gb-grid/` (converted with GDAL). Public domain.
+`london-great-circles.json` is computed, not sourced: great-circle paths from
+London to eleven Natural Earth cities, sampled every 1.5°.
+
+**geoBoundaries** — `singapore-region-countries.geojson` carries Singapore's
+outline from the geoBoundaries ADM0 release (simplified), which derives from
+the Urban Redevelopment Authority's planning boundaries; ODbL. The Johor and
+Riau coasts in the same file are Natural Earth 10m, cut to the region.
 
 **U.S. Geological Survey** — earthquake feeds. Public domain.
 
 **NOAA** — tropical cyclone tracks (IBTrACS) and the Storm Prediction Center
 tornado database. Public domain.
+
+**NOAA NCEI** — `monterey-canyon/`: the DEM Global Mosaic over Monterey Bay,
+whose ~10 m survey is the multibeam work of CSUMB, MBARI and USGS, with a
+~150 m regional grid around it; cut to the canyon, heights rounded to whole
+metres and stored as lossless Terrarium WebP by
+`dev/tools/bathymetry/cut-monterey.mjs`. The source tiles' 0.4.3 200 m
+pushes are undone there (the regional grid raised inside the survey's box, the
+survey given the regional grid's heights outside it), and the survey fades
+into the regional grid over its last 800 m so the two meet at one height.
+Public domain; the dive example credits NOAA NCEI and the survey institutions
+on the map.
 
 **NASA** — night-lights imagery from GIBS / VIIRS Black Marble. Public domain;
 NASA requests acknowledgement.

@@ -48,23 +48,123 @@ report lng/lat too, not plane metres, which matters because the measure tool
 feeds those points to geodesic formulas and a projected metre in a geodesic
 formula returns a confident wrong answer.
 
+### Data in a local grid — `crs` on a layer
+
+`crs` on `<om-map>` chooses the plane the MAP is drawn in. `crs` on an `<om-layer>` says
+what the layer's DATA is in, and the data is converted to longitude/latitude when it
+loads — so a British National Grid shapefile and an SVY21 CSV can sit on a Mercator map
+or on any projected one. A file that names its CRS needs nothing (a shapefile `.prj`, a
+FlatGeobuf or GeoParquet header, a legacy GeoJSON `crs` member); a declaration overrides
+the file:
+
+```html
+<om-map crs="EPSG:27700" basemap="none" center="[-2.5, 53.5]" zoom="5">
+  <om-layer id="sites" type="GeoJsonLayer" data="./sites-bng.shp"></om-layer>       <!-- .prj read -->
+  <om-layer id="wells" type="ScatterplotLayer" data="./wells.csv" crs="EPSG:27700"
+            get-position="[$easting, $northing]" radius-units="pixels" get-radius="5"></om-layer>
+</om-map>
+```
+
+The bundled table covers every WGS84, ETRS89, NAD83 and GDA UTM zone and the common
+national grids; any other EPSG code is fetched once from `https://epsg.io/<code>.proj4`
+(`OmMap.configureCrs({ online: false })` turns that off). Coordinates too large to be
+degrees with no CRS anywhere are a diagnostic, not a layer in the ocean. Datum shifts are
+the standard seven-parameter ones — good to a few metres; correction grids such as OSTN15
+are not shipped.
+
 ### What a projected map cannot do
 
 Each is a validation error with a fix, never a silent no-op:
 
 | Limit | Why | What to do instead |
 |---|---|---|
-| No MapLibre basemap | it is a second renderer with its own camera | `basemap="none"` — already required for print finishes and relief |
+| No MapLibre basemap — except `positron`, `liberty` and `bright` | it is a second renderer with its own camera | an OpenFreeMap preset (below), or `basemap="none"` plus an image `TileLayer` for a raster basemap |
+| No terrain or 3D tile layers (`TerrainLayer`, `Tile3DLayer`), and no `.pbf` `TileLayer` (use `MVTLayer`) | deck indexes their tiles from a Mercator viewport | image tiles, `HillshadeLayer` and `MVTLayer` are taught the plane (below) |
 | No `terrain` | the 3D surface and its tiles are Mercator throughout | drop it, or use Mercator |
+| No clip box (`clip-box-min`/`clip-box-max`) | its corners are placed with Mercator arithmetic, so on a plane it cuts every layer away | drop it, or use Mercator |
 | No `pitch` / `bearing` | the projected view is planimetric | a print sheet is planimetric; rotate the frame in the layout |
 | No H3 / S2 / geohash / quadkey layers | deck builds their geometry from a token, inside the layer | convert the cells to polygons and use a `GeoJsonLayer` |
-| CRS fixed for the map's life | re-ingesting on a switch is a remount | author two maps |
+
+**Most national grids are drawn by the GPU.** Transverse Mercator (British
+National Grid, NZTM, SVY21, every UTM zone), Albers (CONUS, Australia), Lambert
+Conformal Conic (Lambert-93) and Lambert Azimuthal Equal Area (LAEA Europe) are
+projected per vertex in the shader: the layers keep their longitude/latitude,
+and placement agrees with proj4js to a quarter of a pixel at any zoom. Other projections — the Swiss
+and Dutch oblique grids, for instance — draw on the CPU as before, as do the few
+layer types that bin points themselves (`HexagonLayer`, `GridLayer`,
+`ContourLayer`, `GreatCircleLayer`).
+`OmMap.configureCrs({ gpuProjection: false })` puts every projected map on the
+CPU path; set it before maps mount.
+
+**A geographic CRS as the sheet.** `crs="EPSG:4326"` (or any geographic system: NAD83,
+ETRS89, a `+proj=longlat` definition) draws as plate carrée — one scale in degrees on both
+axes, so a degree of longitude is drawn 1/cos(latitude) times its ground width. That is how a
+desktop GIS draws an unprojected layout, and a cartograph copying a QGIS or ArcGIS sheet in
+EPSG:4326 needs exactly that (0.0014 mm off the layout's corners at 60°N, where Web Mercator
+was 57 mm off). The validator says so as a warning, with the stretch at your `center`; for a
+map meant to be read at scale, use a projected CRS.
+
+**Across the seam.** A conic is a cone cut open along the meridian opposite its central
+one, and a Transverse Mercator wraps there too. A polygon or line that crosses that meridian
+(Russia on a CONUS map) is cut there before drawing, so it never reaches across the sheet;
+each piece keeps the feature's properties, so picks and popups are unchanged. The same holds
+for a polygon or path read from flat rows (`get-polygon="$polygon"` on a CSV): a row that
+crosses becomes one row per piece, each carrying every field of the original.
+
+**Vector tiles on any grid.** `MVTLayer` works on every projected map. Each tile
+is cut to its own edge, projected into the plane once and triangulated in a
+background worker, then drawn as plain plane coordinates — so panning a
+vector-tile layer costs what it does in Web Mercator, and a tile never blocks
+the page while it arrives. A live `crs` switch rebuilds the cached tiles for the
+new projection without fetching them again.
+
+**A vector basemap.** `basemap="positron"`, `"liberty"` or `"bright"`
+on a projected map renders OpenFreeMap's vector tiles — the same
+tiles those presets use in Web Mercator — in the plane, in each preset's own
+colours: land, water, land cover, parks, buildings, roads, rail and national and
+regional boundaries. No labels yet: text on a projected map would need live
+decluttering. The map credits OpenFreeMap, OpenMapTiles and OpenStreetMap itself,
+as it does for any basemap it picks. Switching `basemap` recolours it in place;
+switching `crs` keeps it, and dropping `crs` hands the preset back to MapLibre in
+Web Mercator.
+
+**`crs` is live.** Change it on a mounted map — the attribute, the `set-crs` action
+(`{ crs: "EPSG:27700" }`, or `{ crs: "mercator" }` for Web Mercator), `MapController.setCrs`,
+or React's `crs` prop — and every layer re-projects in place: no refetch, no reparse, no
+remount, and the camera stays where it was. A story step can switch the sheet's
+projection, and undo restores it. A CRS that cannot resolve is reported and the map
+stays as it was. Between two grids the GPU draws (above), a switch re-projects
+nothing: no layer is rebuilt, and tiled layers keep the tiles they have — only
+polygon fills are triangulated again, in the new plane, so their triangles tile
+the shape the shader will draw. Onto any
+other projection the layers are re-projected on the CPU — about a quarter of a
+second for a million line vertices on a real GPU; in a browser with no GPU, which
+emulates the drawing too, about 2 s for 100 000 and 18 s for a million.
 
 **Relief works.** Both routes: `shading="hillshade"` on a DEM of your own has no
 projection tie at all, and the global keyless `HillshadeLayer` re-indexes its
 Mercator tiles from the plane's own geography and draws them as subdivided
 warped meshes. Sub-pixel at practical subdivisions — measured at 0.40 output
 pixels for Albers at z=3, falling as 1/N².
+
+**Image tiles work too**, so a raster basemap is a layer. Any `TileLayer` whose
+`data` is an image template (`.png`, `.jpg`, `.jpeg`, `.webp`) is re-indexed and
+warped the same way, and lands where the sheet's projection puts it — measured
+within 0.7 px of `map.project()` on British National Grid and Albers sheets:
+
+```html
+<om-map crs="EPSG:27700" basemap="none" center="[-2.5, 54.5]" zoom="5">
+  <om-layer id="base" type="TileLayer" tile-size="256" max-zoom="14"
+            data="https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg"></om-layer>
+  <om-widget type="attribution" position="bottom-right"
+             text="Sentinel-2 cloudless by EOX IT Services GmbH (contains modified Copernicus Sentinel data 2016 &amp; 2017)"></om-widget>
+</om-map>
+```
+
+The basemap does not switch for you: `basemap="satellite"` on a projected map is
+still an error, and its fix is the preset's own tiles written as this layer.
+**The credit is yours to show.** The map credits only the basemaps it picks; tiles
+you name in a `TileLayer` are credited by you, as above.
 
 ### Which north does the sun mean?
 
@@ -79,6 +179,65 @@ plate the difference swings **34°** from one edge to the other.
 
 Inert on a Web Mercator map, where the two are the same direction, and the
 validator says so rather than letting you wonder.
+
+---
+
+## A globe — `projection="globe"` (preview)
+
+```html
+<om-map projection="globe" basemap="satellite" center="[-20, 30]" zoom="1.6">
+  <om-layer id="cities" type="ScatterplotLayer" data="./cities.json"
+            get-position="[$lon, $lat]" get-radius="4" radius-units="pixels"></om-layer>
+  <om-overlay anchor="[-0.1278, 51.5074]"><div>London</div></om-overlay>
+</om-map>
+```
+
+Zoomed out, the Earth is a sphere you can spin. Zoom in and it becomes the
+ordinary flat map, with nothing to switch. It is the view for things that span the
+planet — flight routes, global datasets, the poles — which Web Mercator stretches
+out of shape.
+
+**Nothing else changes.** Layers are written as for a flat map, data stays
+longitude/latitude, and `center`/`zoom` mean what they always did.
+
+**It needs a basemap.** MapLibre draws the sphere and deck.gl draws the layers
+over it, from MapLibre's camera. Measured: the two agree to within half a pixel at
+every zoom, including zoom 10–12, where the globe turns into the flat map.
+
+**It is live.** Set or remove `projection` on a mounted map, or use the
+`set-projection` action (`{ projection: "globe" }` / `"mercator"`). Camera and
+layers carry over, and a basemap switch keeps the globe.
+
+**What changes for interaction.**
+- **Overlays hide on the far side.** An `<om-overlay>` anchored to a point on the
+  far side of the planet hides, rather than floating over the near side.
+- **A click in space has no coordinate.** Clicking the space around the globe
+  reports no coordinate (`om-map-point` carries `null`, `unproject()` returns
+  `null`). It never reports the edge of the planet.
+- **A globe is flat-on and north-up.** deck.gl's globe camera has no tilt or
+  rotation, and a tilted globe put the layers off the basemap. So tilt and rotate
+  gestures are off, and the camera levels out when the globe switches on.
+
+### What a globe cannot do yet
+
+Each is a validation error with a fix:
+
+| Limit | Why | What to do instead |
+|---|---|---|
+| No `basemap="none"` | the deck-only globe is not built yet | any basemap preset |
+| No `crs` | a sphere is not a plane | one or the other |
+| No `terrain`, no `TerrainLayer` | deck.gl's globe has no terrain surface | a flat 3D map |
+| No `pitch` / `bearing` | see above | — |
+| No heatmap, hexagon, grid, screen-grid or contour layers | screen-space aggregation has no globe path | pre-aggregate to polygons (H3 cells draw) |
+| No `TextLayer`, `IconLayer`, `TextOnPathLayer`, `PopupLayer` | deck.gl's globe culls glyphs and icons | `<om-overlay>` labels, or the basemap's own |
+| No `ArcLayer` / `GreatCircleLayer` | arcs do not draw on deck.gl's globe | a `PathLayer` through points along the route |
+| Not in a cartograph frame | a frame is a flat, georeferenced sheet | a flat or projected map |
+
+Clustered layers draw their bubbles, but not their counts, which are text; the
+validator warns. The measure tool's on-map labels are text too, so they do not
+show on a globe. SVG export already refuses any MapLibre basemap, the globe
+included. Stories are not yet checked on a globe: `seek()` interpolates a flight
+along the flat map's arc, so a recorded flight can differ from the live one.
 
 ---
 
@@ -327,3 +486,5 @@ must appear in exactly one chunk.
   marching pass. The polylines project exactly, so the lines are right; what is
   Mercator is the sampling.
 - **An analytic `buffer`.** A deliberate non-goal — see above.
+- **The globe without a basemap**, and text, icons and arcs on a globe (see
+  "What a globe cannot do yet").

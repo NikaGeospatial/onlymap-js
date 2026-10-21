@@ -18,8 +18,9 @@ The `basemap` attribute on `<om-map>` selects what renders under your data layer
 | `positron` | OpenFreeMap | none | Ultra-clean light style — the classic dataviz backdrop. |
 | `dark-matter` | [CARTO](https://github.com/CartoDB/basemap-styles) | none | Dark dataviz style. Attribution required (rendered automatically). |
 | `voyager` | CARTO | none | Balanced light style with labels. |
-| `osm` | [openstreetmap.org](https://operations.osmfoundation.org/policies/tiles/) | none | The classic raster look. **Policy-constrained**: donation-funded, no uptime guarantee; commercial apps should prefer a vector preset or a paid provider. |
-| `maptiler-streets` / `maptiler-dataviz` / `maptiler-satellite` | [MapTiler](https://docs.maptiler.com/cloud/api/maps/) | **required** | Free tier available; the satellite preset is the one imagery option here. |
+| `osm` | [openstreetmap.org](https://operations.osmfoundation.org/policies/tiles/) | none | The classic raster look. **Policy-constrained**: donation-funded, no uptime guarantee; commercial apps should prefer a vector preset or a paid provider. Works from a page opened from disk (`file://`) too: tile requests carry the `X-Requested-With` header OSM asks for from pages that send no Referer — without it, Firefox got a grid of "Access blocked" tiles, and so did Chrome on a hard reload. |
+| `satellite` | [EOX Sentinel-2 cloudless](https://cloudless.eox.at) | none | Keyless satellite imagery: the 2016 cloud-free Sentinel-2 mosaic, worldwide. CC BY 4.0, so commercial use is fine with the credit it renders. 10 m imagery: sharp to about zoom 13–14, softer beyond (the map stops fetching at 14 and stretches). For street-level detail or current imagery, use `maptiler-satellite`. |
+| `maptiler-streets` / `maptiler-dataviz` / `maptiler-satellite` | [MapTiler](https://docs.maptiler.com/cloud/api/maps/) | **required** | Free tier available; `maptiler-satellite` is sharp, current imagery to street level. |
 | `maplibre` | MapLibre demo tiles | none | Country-level outlines only — fine for smoke tests, not production. |
 
 ## Switching at runtime
