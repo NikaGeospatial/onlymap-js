@@ -1,0 +1,45 @@
+{
+ "zarr_format": 3,
+ "node_type": "array",
+ "shape": [
+  8,
+  188,
+  280
+ ],
+ "data_type": "float32",
+ "chunk_grid": {
+  "name": "regular",
+  "configuration": {
+   "chunk_shape": [
+    1,
+    188,
+    280
+   ]
+  }
+ },
+ "chunk_key_encoding": {
+  "name": "default",
+  "configuration": {
+   "separator": "/"
+  }
+ },
+ "fill_value": 0,
+ "codecs": [
+  {
+   "name": "bytes",
+   "configuration": {
+    "endian": "little"
+   }
+  }
+ ],
+ "attributes": {
+  "units": "degC",
+  "long_name": "2 metre temperature",
+  "source": "ECMWF IFS ENS via Dynamical.org"
+ },
+ "dimension_names": [
+  "lead_time",
+  "y",
+  "x"
+ ]
+}

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<!--
+  Half a million points from one file, and nothing special in the markup. The
+  layer below is an ordinary ScatterplotLayer: what makes 500,000 rows cheap
+  is the data's shape. An .arrow file loads as columns, so $lon, $lat and
+  $area compile to direct reads of typed arrays and no JavaScript object is
+  ever built per building. The colour classes, the slider and the panel all
+  run against those same columns.
+
+  The map: 500,000 of the 1,081,586 buildings in Microsoft's US Building
+  Footprints for Utah, one point per footprint, coloured by its area. Pick a
+  size band to keep only buildings of that size (the cut runs on the GPU, so
+  the map never reloads), zoom into Salt Lake City, or hover a point for its
+  footprint. The panel reports how long the file took to load and how many
+  buildings are in view.
+
+  Data: Microsoft US Building Footprints, ODbL. A seeded random sample of
+  footprint centres and areas, float32 coordinates, 4.8 MB; the data folder's
+  README says how it was cut.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Half a million buildings in Utah</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.13.2/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.13.2/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #12161d;
+      --om-widget-fg: #f1f5f9;
+      --om-widget-muted: #7d8899;
+      --om-widget-border: #26303d;
+      --om-widget-hover-bg: #1d2530;
+      --om-widget-accent: #fca636;
+    }
+    .credit { position: absolute; right: 10px; bottom: 38px; z-index: 2; max-width: 60%;
+              font: 11px system-ui; color: #9aa4b2; background: rgba(18, 22, 29, .78);
+              padding: 3px 8px; border-radius: 6px; }
+    .credit a { color: #c7d2e0; }
+  </style>
+</head>
+<body>
+
+  <om-map license-key="om_live_eyJwbGFuIjoicHJvIiwiZG9tYWlucyI6WyJvbmx5bWFwLm5pa2FwbGFuZXQuY29tIl0sImV4cCI6MTk1MDk1MDAxOSwia2V5SWQiOiJnYWxsZXJ5LXNpdGUifQ.GvHWiUikUos08p-BQ20xIePeiSvh15W-33O6dkrLa9_3HzY1HZBR0B3yWtLcN5lKjp2EXv8Duu8JObHNxdPWDg" center="[-111.75, 40.15]" zoom="6.6" basemap="dark-matter">
+
+    <!-- One row per building. classify-by computes five quantile classes from
+         the data itself and builds the legend; filter-field/filter-range is a
+         GPU cut the size buttons below rewrite, so 500,000 points re-filter without
+         a reload. Radius is in pixels so the state reads at any zoom. -->
+    <om-layer id="buildings" type="ScatterplotLayer"
+              data="../../data/utah-buildings-500k.arrow"
+              label="Buildings, by footprint area (m²)"
+              get-position="[$lon, $lat]"
+              classify-by="area" classify-scale="quantile" classify-classes="5" classify-ramp="plasma"
+              radius-units="pixels" get-radius="1.3" radius-min-pixels="1"
+              opacity="0.85" pickable
+              filter-field="area" filter-range="[0, 65535]"></om-layer>
+
+    <om-overlay id="tip" anchor-from="selection" selection-type="hover" visible="false">
+      <div style="font: 12px system-ui; padding: 2px 4px">Footprint: <b>{{area}} m²</b></div>
+    </om-overlay>
+    <om-behavior on="hover" layer="buildings" action="show-overlay" target="tip"></om-behavior>
+
+    <!-- The readout. watch "data:buildings" re-renders once the file has
+         loaded, "viewport" on every camera move: ctx.stats walks the area
+         column for the in-view count, filter included. -->
+    <om-widget id="readout" position="top-start" order="1">
+      <style>
+        .panel { background: var(--om-widget-bg); color: var(--om-widget-fg);
+                 border: 1px solid var(--om-widget-border); border-radius: 10px;
+                 padding: 13px 15px; width: 236px; font-size: 12px;
+                 box-shadow: 0 4px 18px rgba(0,0,0,.45); }
+        .kicker { font-size: 10.5px; font-weight: 650; letter-spacing: .08em;
+                  text-transform: uppercase; color: var(--om-widget-muted); }
+        .hero { font-size: 27px; font-weight: 700; line-height: 1.15; margin: 2px 0 0; }
+        .ctx { color: var(--om-widget-muted); margin: 1px 0 10px; line-height: 1.4; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 10px;
+                border-top: 1px solid var(--om-widget-border); padding-top: 10px; }
+        .cell .v { font-size: 15px; font-weight: 650; }
+        .cell .l { color: var(--om-widget-muted); font-size: 10.5px; }
+      </style>
+      <div class="panel">
+        <div class="kicker">Buildings in Utah</div>
+        <div class="hero" id="total">loading…</div>
+        <div class="ctx" id="ctx">one 4.8 MB Arrow file, read as columns</div>
+        <div class="grid">
+          <div class="cell"><div class="v" id="load">—</div><div class="l">from opening the page</div></div>
+          <div class="cell"><div class="v" id="fps">—</div><div class="l">frames per second</div></div>
+          <div class="cell"><div class="v" id="inview">—</div><div class="l">in view</div></div>
+          <div class="cell"><div class="v" id="median">—</div><div class="l">median footprint</div></div>
+        </div>
+      </div>
+      <script type="om/widget">
+        this.watch = ['data:buildings', 'viewport', 'layers'];
+        let loadedAt = null;
+        // Frames actually presented, averaged over the last second.
+        let frames = 0, windowStart = performance.now();
+        const tick = (now) => {
+          frames++;
+          if (now - windowStart >= 1000) {
+            const fps = Math.round((frames * 1000) / (now - windowStart));
+            const el = this.$('#fps');
+            if (el) el.textContent = String(fps);
+            frames = 0; windowStart = now;
+          }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+        this.render = (ctx) => {
+          const all = ctx.stats('buildings', 'area', { filtered: false });
+          if (!all.count) return;
+          if (loadedAt === null) {
+            loadedAt = performance.now();
+            // performance.now() counts from the moment the page started loading: library, file and first draw.
+            this.$('#load').textContent = `${(loadedAt / 1000).toFixed(1)} s`;
+          }
+          const kept = ctx.stats('buildings', 'area');
+          const view = ctx.stats('buildings', 'area', { scope: 'viewport' });
+          this.$('#total').textContent = all.count.toLocaleString();
+          this.$('#ctx').textContent = kept.count === all.count
+            ? 'every point drawn, one per building footprint'
+            : `${kept.count.toLocaleString()} match the size filter`;
+          this.$('#inview').textContent = view.count.toLocaleString();
+          this.$('#median').textContent = kept.count ? `${Math.round(kept.p50).toLocaleString()} m²` : '—';
+        };
+      </script>
+    </om-widget>
+
+    <!-- Size presets. Each emits filter-layer, the action the built-in
+         filter slider sends, so the GPU cut, the panel and undo (Cmd/Ctrl-Z)
+         all follow. Footprints span 10 m² to 65,000 m² but half are under
+         200 m², so named bands read better than a straight slider. -->
+    <om-widget id="sizes" position="top-start" order="2">
+      <style>
+        .sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; width: 236px; box-sizing: border-box;
+                 background: var(--om-widget-bg); border: 1px solid var(--om-widget-border);
+                 border-radius: 10px; padding: 6px; box-shadow: 0 4px 18px rgba(0,0,0,.45); }
+        button { border: none; border-radius: 6px; padding: 7px 4px; background: transparent;
+                 color: #c3c2b7; font: 600 11.5px system-ui; cursor: pointer; }
+        button:hover { background: var(--om-widget-hover-bg); }
+        button[aria-pressed="true"] { background: var(--om-widget-accent); color: #12161d; }
+      </style>
+      <div class="sizes">
+        <button data-range="0,65535">All sizes</button>
+        <button data-range="0,250">Under 250 m²</button>
+        <button data-range="250,2000">250–2,000 m²</button>
+        <button data-range="2000,65535">Over 2,000 m²</button>
+      </div>
+      <script type="om/widget">
+        this.watch = ['layers'];
+        let last = null;
+        this.root.addEventListener('click', (e) => {
+          const b = e.target.closest('button[data-range]');
+          if (b && last) last.emit('filter-layer', { layer: 'buildings', field: 'area', range: b.dataset.range.split(',').map(Number) });
+        });
+        this.render = (ctx) => {
+          last = ctx;
+          // The active band is read back off the layer, so undo moves the buttons too.
+          const active = String(ctx.layers.find((l) => l.id === 'buildings')?.filter?.[0]?.range ?? [0, 65535]);
+          for (const b of this.root.querySelectorAll('button[data-range]')) b.setAttribute('aria-pressed', String(b.dataset.range === active));
+        };
+      </script>
+    </om-widget>
+
+    <om-widget type="legend" position="bottom-start"></om-widget>
+  </om-map>
+
+  <div class="credit">Buildings: <a href="https://github.com/microsoft/USBuildingFootprints" target="_blank" rel="noopener">Microsoft US Building Footprints</a> (<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a>)</div>
+
+</body>
+</html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<!--
+  This page compares OnlyMapJS with MapLibre GL JS rather than showing a map.
+  Use it to decide which one a project needs, or whether it needs both:
+  OnlyMapJS draws its basemaps with MapLibre, so the two work together.
+
+  Every MapLibre entry was checked against MapLibre's own documentation on the
+  date at the foot of the page. "Plugin" means the capability exists in the
+  MapLibre ecosystem but not in maplibre-gl-js itself.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Compare with MapLibre</title>
+  <style>
+    /*
+      The hosted gallery shell supplies --card, --fg, --muted and the rest. Without
+      it (the npm run dev preview, or the file opened on its own) every fallback
+      derives from the surrounding text colour, so the page reads on a light or a
+      dark background alike rather than assuming the shell's dark theme.
+    */
+    .cmp {
+      --cmp-text: var(--fg, currentColor);
+      --cmp-muted: var(--muted, color-mix(in srgb, currentColor 68%, transparent));
+      --cmp-panel: var(--card, color-mix(in srgb, currentColor 4%, transparent));
+      --cmp-panel-soft: var(--hover, color-mix(in srgb, currentColor 8%, transparent));
+      --cmp-line: var(--line, color-mix(in srgb, currentColor 18%, transparent));
+      --cmp-accent: var(--accent, #b86e00);
+      --cmp-yes: var(--ok, #3c8a16);
+      color: var(--cmp-text);
+    }
+    * { box-sizing: border-box; }
+    /*
+      Standalone (the npm run dev preview, or the file opened directly) the page
+      is a direct child of the body element, which the dev layout leaves without margins so
+      map examples can fill the window. Give the prose its own gutter there. The
+      hosted gallery nests the page inside its own padded column, so this rule
+      never matches on the site.
+    */
+    body > .cmp { max-width: 1180px; padding: 26px 30px 80px; line-height: 1.5; }
+    @media (max-width: 650px) { body > .cmp { padding: 18px 16px 60px; } }
+    /* Standalone, follow the reader's light or dark setting, in the gallery's own dark palette. */
+    @media (prefers-color-scheme: dark) {
+      body:has(> .cmp) { background: #110a13; color: #f7ece6; color-scheme: dark; }
+      body > .cmp { --cmp-accent: var(--accent, #eba941); --cmp-yes: var(--ok, #c5ff5a); }
+    }
+    .cmp { width: 100%; }
+    .cmp .lede { color: var(--cmp-muted); max-width: 62ch; }
+    .cmp h2 { margin: 40px 0 6px; font-size: 19px; color: var(--cmp-text); }
+    .cmp h2 + p { margin: 0 0 14px; color: var(--cmp-muted); max-width: 70ch; }
+    .legend-row { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 22px 0 0; font-size: 13.5px; color: var(--cmp-muted); }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--cmp-line); border-radius: 14px; background: var(--cmp-panel); }
+    table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 620px; }
+    th, td { padding: 12px 14px; text-align: left; vertical-align: top; border-top: 1px solid var(--cmp-line); }
+    thead th { border-top: 0; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--cmp-muted); font-weight: 600; background: var(--cmp-panel-soft); }
+    th[scope="row"] { font-weight: 600; width: 30%; color: var(--cmp-text); }
+    td { color: var(--cmp-muted); }
+    td code, th code, p code, li code { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--cmp-text); }
+    .chip { display: inline-block; margin: 0 0 5px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; border: 1px solid currentColor; }
+    .chip.yes { color: var(--cmp-yes); }
+    .chip.plugin { color: var(--cmp-accent); }
+    .chip.no { color: var(--cmp-muted); }
+    .chip + br + span, .note { display: block; }
+    .fineprint { margin: 28px 0 0; color: var(--cmp-muted); font-size: 13px; max-width: 80ch; }
+    @media (max-width: 650px) {
+      /* One row per card on a phone: both answers stay on screen, no sideways scroll. */
+      table { min-width: 0; }
+      thead { display: none; }
+      table, tbody, tr, th[scope="row"], td { display: block; width: auto; }
+      tr { border-top: 1px solid var(--cmp-line); padding: 12px 14px; }
+      tbody tr:first-child { border-top: 0; }
+      th[scope="row"], td { border-top: 0; padding: 0; }
+      td { margin-top: 10px; }
+      td::before { content: attr(data-label); display: block; margin-bottom: 4px; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--cmp-text); font-weight: 600; }
+    }
+  </style>
+</head>
+<body>
+  <div class="cmp">
+    <h1>OnlyMapJS and MapLibre</h1>
+    <p class="lede">OnlyMapJS draws its basemaps with MapLibre, so this is not a choice between rivals. MapLibre GL JS renders and styles vector-tile maps. OnlyMapJS adds what a data map needs on top of one, written as HTML.</p>
+
+    <div class="legend-row">
+      <span><span class="chip no">Not available</span> not in MapLibre or its plugin list</span>
+      <span><span class="chip plugin">Plugin</span> a separate plugin or custom layer</span>
+      <span><span class="chip plugin">Partly</span> / <span class="chip plugin">Experimental</span> in MapLibre, with the limit noted</span>
+    </div>
+
+    <h2>Projections and print</h2>
+    <p>Maps that have to look right on paper, in the projection a cartographer would choose.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Capability</th><th scope="col">MapLibre GL JS</th><th scope="col">OnlyMapJS</th></tr></thead>
+        <tbody>
+          <tr>
+            <th scope="row">A map in a real projection, using ordinary web tiles</th>
+            <td data-label="MapLibre GL JS"><span class="chip plugin">Experimental</span><span class="note">Since 6.15, <code>addProjection</code> registers a planar CRS, but every tile source must already be cut in that projection's grid. Tiles are not reprojected.</span></td>
+            <td data-label="OnlyMapJS"><code>crs="EPSG:5070"</code>. Standard web tiles, OpenFreeMap's vector basemaps and shaded relief are reprojected on the GPU. The projection switches live.</td>
+          </tr>
+          <tr>
+            <th scope="row">Data stored in a local grid (eastings and northings)</th>
+            <td data-label="MapLibre GL JS"><span class="chip no">Not available</span><span class="note">GeoJSON must be longitude and latitude. Convert it yourself.</span></td>
+            <td data-label="OnlyMapJS">Read from a shapefile <code>.prj</code> or a FlatGeobuf or GeoParquet header, or declared with <code>crs</code> on the layer.</td>
+          </tr>
+          <tr>
+            <th scope="row">Vector SVG export with editable labels</th>
+            <td data-label="MapLibre GL JS"><span class="chip plugin">Plugin</span><span class="note">Experimental in maplibre-gl-export. It exports a raster image by default.</span></td>
+            <td data-label="OnlyMapJS"><code>snapshot({ format: "svg" })</code>: paths stay paths, and labels are real text, following their line.</td>
+          </tr>
+          <tr>
+            <th scope="row">Print layouts measured in millimetres</th>
+            <td data-label="MapLibre GL JS"><span class="chip no">Not available</span></td>
+            <td data-label="OnlyMapJS"><code>&lt;om-cartograph&gt;</code> sheets with legends, scale bars, graticules and north arrows, and <code>&lt;om-atlas&gt;</code> for one page per feature.</td>
+          </tr>
+          <tr>
+            <th scope="row">Print finishes on the rendered map</th>
+            <td data-label="MapLibre GL JS"><span class="chip no">Not available</span></td>
+            <td data-label="OnlyMapJS"><code>&lt;om-effect preset="vintage"&gt;</code>: grain, halftone, engraving, edge and tint looks, sized in millimetres.</td>
+          </tr>
+          <tr>
+            <th scope="row">Geometry generalised at draw time</th>
+            <td data-label="MapLibre GL JS"><span class="chip plugin">Partly</span><span class="note">Contour lines from a DEM through maplibre-contour. GeoJSON is simplified only for tiling.</span></td>
+            <td data-label="OnlyMapJS"><code>&lt;om-transform&gt;</code>: simplify, smooth, buffer, dot density and contours.</td>
+          </tr>
+          <tr>
+            <th scope="row">Class breaks computed from the data</th>
+            <td data-label="MapLibre GL JS"><span class="chip no">Not available</span><span class="note">You supply the breaks to <code>step</code> or <code>interpolate</code>.</span></td>
+            <td data-label="OnlyMapJS"><code>classify-scale="jenks"</code> (or quantile, equal interval) with a named colour ramp and a legend made for you.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Terrain and bathymetry</h2>
+    <p>A seafloor or a survey of your own, not just the global elevation tiles.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Capability</th><th scope="col">MapLibre GL JS</th><th scope="col">OnlyMapJS</th></tr></thead>
+        <tbody>
+          <tr>
+            <th scope="row">Several elevation datasets on one map</th>
+            <td data-label="MapLibre GL JS"><span class="chip no">Not available</span><span class="note">Terrain takes a single DEM source.</span></td>
+            <td data-label="OnlyMapJS">Rank <code>&lt;om-terrain&gt;</code> sources: a survey wins inside its extent, and a global grid fills the rest and shows through its gaps.</td>
+          </tr>
+          <tr>
+            <th scope="row">Gaps and datum differences between datasets</th>
+            <td data-label="MapLibre GL JS"><span class="chip no">Not available</span></td>
+            <td data-label="OnlyMapJS"><code>nodata</code> turns empty cells into holes, and <code>vertical-offset</code> corrects a datum step. <code>onlymapjs inspect-terrain</code> measures both for you.</td>
+          </tr>
+          <tr>
+            <th scope="row">Your own GeoTIFF DEM as terrain tiles</th>
+            <td data-label="MapLibre GL JS"><span class="chip no">Not available</span></td>
+            <td data-label="OnlyMapJS"><code>onlymapjs dem-tiles survey.tif</code> writes the tiles and prints the line to paste.</td>
+          </tr>
+          <tr>
+            <th scope="row">A camera that holds a set distance above the seabed</th>
+            <td data-label="MapLibre GL JS"><span class="chip plugin">Partly</span><span class="note">The view centre can stay on the terrain, and the camera is kept above the surface. There is no clearance setting.</span></td>
+            <td data-label="OnlyMapJS"><code>camera-clearance="15"</code> holds the eye that many metres up, and <code>getCamera()</code> reads its depth.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Data</h2>
+    <p>Point the map at the file you have.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Capability</th><th scope="col">MapLibre GL JS</th><th scope="col">OnlyMapJS</th></tr></thead>
+        <tbody>
+          <tr>
+            <th scope="row">Formats read without conversion</th>
+            <td data-label="MapLibre GL JS"><span class="chip plugin">Plugin</span><span class="note">Plugins exist for CSV, KML, GPX, FlatGeobuf and Cloud-Optimized GeoTIFF. None are listed for Shapefile, GeoArrow or Zarr.</span></td>
+            <td data-label="OnlyMapJS"><code>data="…"</code> reads CSV, Shapefile, KML, GPX, FlatGeobuf, GeoParquet, Arrow and GeoArrow, and CityJSON. Rasters come from Cloud-Optimized GeoTIFF and Zarr.</td>
+          </tr>
+          <tr>
+            <th scope="row">Live feeds</th>
+            <td data-label="MapLibre GL JS"><span class="chip plugin">Partly</span><span class="note"><code>updateData</code> merges changes by id. You write the WebSocket or polling code.</span></td>
+            <td data-label="OnlyMapJS"><code>data="wss://…" key="id"</code> upserts and reconnects. <code>refresh="5s"</code> polls and keeps the last good data through an outage.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>3D and data visualization</h2>
+    <p>deck.gl's layers, without wiring deck.gl to the map yourself.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Capability</th><th scope="col">MapLibre GL JS</th><th scope="col">OnlyMapJS</th></tr></thead>
+        <tbody>
+          <tr>
+            <th scope="row">Hexagon and grid aggregation, arcs, animated trips</th>
+            <td data-label="MapLibre GL JS"><span class="chip plugin">Plugin</span><span class="note">Through a deck.gl overlay that you set up.</span></td>
+            <td data-label="OnlyMapJS">Built in: OnlyMapJS is built on deck.gl, with 41 layer types.</td>
+          </tr>
+          <tr>
+            <th scope="row">glTF models, 3D Tiles and point clouds</th>
+            <td data-label="MapLibre GL JS"><span class="chip plugin">Plugin</span><span class="note">Through three.js or babylon.js custom layers, or maplibre-gl-lidar.</span></td>
+            <td data-label="OnlyMapJS"><code>ScenegraphLayer</code>, <code>Tile3DLayer</code> (Google Photorealistic 3D Tiles included) and <code>PointCloudLayer</code>.</td>
+          </tr>
+          <tr>
+            <th scope="row">BIM: IFC files with per-element picking</th>
+            <td data-label="MapLibre GL JS"><span class="chip no">Not available</span></td>
+            <td data-label="OnlyMapJS"><code>BIMLayer</code> parses IFC in the browser. Pick a wall or a window, and isolate, hide or ghost elements. Coarse clash detection is included.</td>
+          </tr>
+          <tr>
+            <th scope="row">A 3D clip box through every layer</th>
+            <td data-label="MapLibre GL JS"><span class="chip no">Not available</span></td>
+            <td data-label="OnlyMapJS"><code>clip-box-min</code> and <code>clip-box-max</code> cut the whole scene, with a widget to move the box.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Authoring, interface and testing</h2>
+    <p>What it takes to ship the page around the map.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Capability</th><th scope="col">MapLibre GL JS</th><th scope="col">OnlyMapJS</th></tr></thead>
+        <tbody>
+          <tr>
+            <th scope="row">A whole map, written as HTML</th>
+            <td data-label="MapLibre GL JS"><span class="chip no">Not available</span><span class="note">The style is declarative JSON, but the map needs JavaScript.</span></td>
+            <td data-label="OnlyMapJS"><code>&lt;om-map&gt;</code>, <code>&lt;om-layer&gt;</code> and <code>&lt;om-widget&gt;</code> elements. Edit an attribute and the map updates.</td>
+          </tr>
+          <tr>
+            <th scope="row">Legends, filter and time sliders, charts, measure and draw</th>
+            <td data-label="MapLibre GL JS"><span class="chip plugin">Plugin</span><span class="note">Core controls are navigation, scale, attribution, geolocate, fullscreen, terrain and globe. The rest are separate plugins.</span></td>
+            <td data-label="OnlyMapJS">Built-in widgets, including a legend generated from the layer's own styling.</td>
+          </tr>
+          <tr>
+            <th scope="row">Guided story tours with a player</th>
+            <td data-label="MapLibre GL JS"><span class="chip no">Not available</span></td>
+            <td data-label="OnlyMapJS"><code>&lt;om-story&gt;</code> steps on a timeline, with play, pause and scrub.</td>
+          </tr>
+          <tr>
+            <th scope="row">Undo and redo of map edits</th>
+            <td data-label="MapLibre GL JS"><span class="chip no">Not available</span></td>
+            <td data-label="OnlyMapJS">Built in, recorded from the page itself. Cmd or Ctrl-Z works.</td>
+          </tr>
+          <tr>
+            <th scope="row">A validator that says how to fix the page</th>
+            <td data-label="MapLibre GL JS"><span class="chip plugin">Partly</span><span class="note">The style validator reports errors, without fixes.</span></td>
+            <td data-label="OnlyMapJS"><code>OmMap.validate()</code> reports errors and warnings, each with a fix.</td>
+          </tr>
+          <tr>
+            <th scope="row">Tests without a browser or GPU</th>
+            <td data-label="MapLibre GL JS"><span class="chip no">Not available</span><span class="note">Since 6.0 MapLibre requires WebGL2.</span></td>
+            <td data-label="OnlyMapJS"><code>mountForTest()</code> runs your page in vitest or jest, clicks included.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="fineprint">Compared with MapLibre GL JS 6.16.0 on 26 October 2026, using MapLibre's documentation, style specification, changelog and plugins page. MapLibre moves quickly: custom projections arrived in 6.15.0, eight days earlier. Corrections are welcome. MapLibre is a project of the MapLibre Organization. This comparison is independent and is not endorsed by or affiliated with MapLibre.</p>
+
+  </div>
+</body>
+</html>
