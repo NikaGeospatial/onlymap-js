@@ -25,6 +25,15 @@ Riau coasts in the same file are Natural Earth 10m, cut to the region.
 **NOAA** — tropical cyclone tracks (IBTrACS) and the Storm Prediction Center
 tornado database. Public domain.
 
+**Microsoft** — `utah-buildings-500k.arrow`: 500,000 of the 1,081,586
+building footprints in [US Building Footprints](https://github.com/microsoft/USBuildingFootprints)
+for Utah, one row per footprint: its centre (float32 longitude and latitude)
+and its area in square metres (capped at 65,535). Chosen by a seeded random
+sample, so the density of the state is kept, by
+`dev/tools/large-data/cut-utah-buildings.mjs`. Licensed under the
+[ODbL](https://opendatacommons.org/licenses/odbl/); this derived file is
+ODbL too, and the Utah buildings example credits Microsoft on the map.
+
 **NOAA NCEI** — `monterey-canyon/`: the DEM Global Mosaic over Monterey Bay,
 whose ~10 m survey is the multibeam work of CSUMB, MBARI and USGS, with a
 ~150 m regional grid around it; cut to the canyon, heights rounded to whole
