@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<!--
+  Many national mapping agencies publish their tiles on their OWN grid, not
+  Web Mercator's: swisstopo on LV95 (EPSG:2056), PDOK on RD New (28992),
+  Finland's MML on TM35FIN (3067), Germany's AdV on UTM (25832). Such a WMTS
+  is a raster TileLayer with two things the service states in its
+  GetCapabilities:
+
+    - its tile address, with {TileMatrix}, {TileRow} and {TileCol} (and
+      {Time}, filled from the layer's `time`), and
+    - its tile matrix set, as tile-matrix-set: the grid's CRS, its top-left
+      origin, the resolution of each level and the tile size.
+
+  The layer picks the level nearest the view's ground resolution, asks for
+  the grid tiles that cover the view, and warps each onto the map — so the
+  national map lines up with everything else on it, Web Mercator or not.
+
+  tile-matrix-set takes three spellings: this short one; the TileMatrixSet as
+  WMTS capabilities state it (QGIS hands that over as JSON); or an OGC tile
+  matrix set. `extent` keeps requests inside the published grid.
+
+  The map: swisstopo's national map and its aerial imagery, both on the
+  Swiss grid. Switch between them in the legend and zoom into a valley: the
+  levels go down to half a metre of map, and a quarter of a metre of photo.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Add a national grid WMTS</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: light; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map { display: block; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <om-map center="[8.23, 46.82]" zoom="7.4" basemap="positron">
+
+    <!-- swisstopo's national map (Landeskarte) in colour. {Time} is the
+         WMTS time dimension; "current" is the latest edition. The grid is
+         LV95's: origin at its top-left corner, 27 levels from 4 km to 0.5 m
+         a pixel, 256-pixel tiles. -->
+    <om-layer id="map" type="TileLayer" tile-size="256"
+              data="https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/{Time}/2056/{TileMatrix}/{TileCol}/{TileRow}.jpeg"
+              time="current"
+              tile-matrix-set='{"crs": "EPSG:2056", "origin": [2420000, 1350000], "extent": [2420000, 1030000, 2900000, 1350000], "tileSize": 256,
+                                "resolutions": [4000, 3750, 3500, 3250, 3000, 2750, 2500, 2250, 2000, 1750, 1500, 1250, 1000, 750, 650, 500, 250, 100, 50, 20, 10, 5, 2.5, 2, 1.5, 1, 0.5]}'
+              label="National map (swisstopo, EPSG:2056)" color="#e11d48"></om-layer>
+
+    <!-- SWISSIMAGE, the aerial mosaic: same grid, one level deeper (0.25 m). -->
+    <om-layer id="photo" type="TileLayer" tile-size="256" visible="false"
+              data="https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/{Time}/2056/{TileMatrix}/{TileCol}/{TileRow}.jpeg"
+              time="current"
+              tile-matrix-set='{"crs": "EPSG:2056", "origin": [2420000, 1350000], "extent": [2420000, 1030000, 2900000, 1350000], "tileSize": 256,
+                                "resolutions": [4000, 3750, 3500, 3250, 3000, 2750, 2500, 2250, 2000, 1750, 1500, 1250, 1000, 750, 650, 500, 250, 100, 50, 20, 10, 5, 2.5, 2, 1.5, 1, 0.5, 0.25]}'
+              label="Aerial imagery (SWISSIMAGE)" color="#65a30d"></om-layer>
+
+    <om-widget type="legend" title="swisstopo" position="top-right" interactive></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+    <om-widget type="scale-bar" position="bottom-right"></om-widget>
+    <om-widget type="attribution" position="bottom-start" text="© swisstopo"></om-widget>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: rgba(255,255,255,.92); color: #1f2937; padding: 10px 14px;
+                 border-radius: 8px; font-size: 13px; max-width: 270px; line-height: 1.45;
+                 box-shadow: 0 2px 10px rgba(0,0,0,.15); }
+        .panel b { color: #be123c; }
+      </style>
+      <div class="panel">
+        <b>A national map on its own grid.</b> swisstopo tiles in Swiss
+        coordinates, placed on a Web Mercator map. Zoom into a valley, or
+        switch to the aerial imagery in the legend.
+      </div>
+    </om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

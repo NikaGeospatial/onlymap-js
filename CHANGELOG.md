@@ -8,6 +8,34 @@ Note: npm collapsed a few closely-spaced releases — the GPX/FlatGeobuf (0.5.4)
 and GeoParquet (0.5.5) work shipped to npm together as **0.5.6**, so npm's
 version list jumps 0.5.3 → 0.5.6. Each logical version is listed here regardless.
 
+## 0.13.4 — 2026-11-03
+
+### Added
+- **WMS layers in any coordinate system.** A WMS that offers no Web Mercator works with `{bbox-epsg-XXXX}` in its own CRS (`CRS=EPSG:25832&BBOX={bbox-epsg-25832}`): each tile asks for the area it covers there, with the axis order the request version expects, and the picture is warped into place.
+- **WMTS on national grids.** Tiles published only on a national grid (swisstopo, PDOK, MML, AdV) draw with `{TileMatrix}/{TileRow}/{TileCol}` and a `tile-matrix-set` — the TileMatrixSet JSON from the service's capabilities works as is — on Web Mercator and projected maps.
+- **Live features from WFS, OGC API Features and ArcGIS FeatureServer.** Put `{bbox-crs84}` (or `{bbox-epsg-4326}`) in a GeoJSON layer's `data` and it loads the features in view, again when the map moves elsewhere, following each service's paging up to `max-features`.
+- **PMTiles.** `data="./tiles.pmtiles"` reads a single-file tile archive, vector or raster.
+- **Vector tiles in their publisher's style.** `vector-style="…/style.json"` on an MVTLayer draws it with the style's colours, line widths, filters, zoom rules and labels.
+- **Leaflet `{s}` subdomains and time-enabled WMS.** `{s}` spreads tiles across `subdomains`; `{time}` is filled from the layer's `time`, which the `time-slider` widget's new `times` mode steps through, play and scrub included.
+- **Tile servers without cross-origin permission still show.** When a server refuses cross-origin reads but its tiles load as plain images, they are drawn that way under the map (`cors-fallback="off"` opts out).
+- **A layer error event.** `om-layer-error` fires whenever a layer's tiles or features fail — validating or not — so a page can tell its readers a layer is missing; `MapController` has the `onLayerError` twin.
+
+### Fixed
+- Tile services whose addresses carry no file extension (ArcGIS caches, Google-style URLs) now draw; they used to load and show nothing.
+- `{-y}` (TMS) tile addresses now load.
+- The scale bar showed distances twice too long; it now measures the map's own projection, on projected maps too.
+- `whenSettled()` now waits for tiles to finish drawing, so captures, prints and thumbnails no longer miss them.
+- Clicking a cluster bubble now zooms exactly to where it splits, and the `expand-cluster` action works again.
+- A layer's old tile errors are withdrawn once its `data` is fixed.
+
+## 0.13.3 — 2026-11-02
+
+### Added
+- **WMS layers as tiles.** A raster `TileLayer` now fills `{bbox-epsg-3857}` (each tile's Web Mercator extent), `{width}` and `{height}` (its `tile-size`), so a WMS GetMap request works as a tiled layer: `data="…/wms?…&FORMAT=image/png&CRS=EPSG:3857&WIDTH={width}&HEIGHT={height}&BBOX={bbox-epsg-3857}"`. It works on projected maps too, and in cartograph frames.
+- **Quadkey tile services.** `{quadkey}` addresses Bing-style tiles.
+- **Tile failures reach the page.** A tile that fails is left empty while the rest of the map draws, and the cause is reported once per layer on `om-validation-error`: a server that refuses cross-origin requests, an HTTP error, or a WMS error message, quoted.
+- **Tile templates are checked.** Validation names any token the map cannot fill, such as Leaflet's `{s}` or QGIS's `{q}`, which used to be requested literally.
+
 ## 0.13.2 — 2026-10-20
 
 ### Added

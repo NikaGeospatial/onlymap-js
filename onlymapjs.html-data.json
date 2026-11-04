@@ -788,7 +788,7 @@
         },
         {
           "name": "data",
-          "description": "Data URL (JSON, GeoJSON, CSV/TSV, Arrow/GeoArrow IPC, Shapefile .shp, KML, GPX, FlatGeobuf .fgb, GeoParquet .parquet, CityJSON) or wss:// stream; omit for inline <script type=\"application/json\">. Always a URL: rows written into data= are fetched as a file and draw nothing (a validation error since 0.11.9), and a URL that fails to load is reported as a diagnostic."
+          "description": "Data URL (JSON, GeoJSON, CSV/TSV, Arrow/GeoArrow IPC, Shapefile .shp, KML, GPX, FlatGeobuf .fgb, GeoParquet .parquet, CityJSON) or wss:// stream; omit for inline <script type=\"application/json\">. Always a URL: rows written into data= are fetched as a file and draw nothing (a validation error since 0.11.9), and a URL that fails to load is reported as a diagnostic. On TileLayer/MVTLayer it is a tile template: {z}/{x}/{y} (and {-y}); a raster TileLayer also fills {bbox-epsg-3857}, {width}, {height} and {quadkey}, for a WMS GetMap (CRS=EPSG:3857, FORMAT=image/png) or a quadkey service."
         },
         {
           "name": "label",
@@ -942,6 +942,42 @@
         {
           "name": "site-heading",
           "description": "Georeferencing: bearing in degrees clockwise from true north. On its own, rotates the model where it stands."
+        },
+        {
+          "name": "subdomains",
+          "description": "TileLayer/MVTLayer: the hosts a {s} template spreads its tiles across — \"abc\" (Leaflet's form), \"a,b,c\" or a JSON array. Default a, b, c."
+        },
+        {
+          "name": "time",
+          "description": "TileLayer/MVTLayer: what the template's {time} token is filled with (a WMS-T TIME=). Step it with <om-widget type=\"time-slider\" times=\"…\">."
+        },
+        {
+          "name": "max-features",
+          "description": "A data URL filled with the view's extent ({bbox-crs84}, {bbox-epsg-XXXX}): the most features kept per view (default 10000); more are reported, not drawn."
+        },
+        {
+          "name": "tile-matrix-set",
+          "description": "TileLayer: the national grid a {TileMatrix}/{TileRow}/{TileCol} WMTS template addresses — an OGC tile matrix set, the WMTS TileMatrixSet from GetCapabilities, or {crs, origin, resolutions, tileSize}, as JSON."
+        },
+        {
+          "name": "cors-fallback",
+          "description": "TileLayer: when the tile server refuses cross-origin reads, \"auto\" (default) draws its tiles as plain images under the map (beneath every other layer, hidden while tilted, not exported); \"off\" leaves them empty.",
+          "values": [
+            {
+              "name": "auto"
+            },
+            {
+              "name": "off"
+            }
+          ]
+        },
+        {
+          "name": "vector-style",
+          "description": "MVTLayer: a MapLibre / Mapbox style JSON URL to draw the tiles with — fill, line, circle, fill-extrusion and symbol layers of one source, by the style's own filters and zoom functions. Web Mercator maps."
+        },
+        {
+          "name": "vector-style-source",
+          "description": "MVTLayer with vector-style: which of the style's vector sources these tiles are (default: its first)."
         },
         {
           "name": "site-scale",
@@ -2819,6 +2855,10 @@
         {
           "name": "loop",
           "description": "time-slider widget: restart the sweep from the domain start when it completes."
+        },
+        {
+          "name": "times",
+          "description": "time-slider widget: step a layer's time (its {time} tile token) through these instants instead of filtering a field — a comma list, or a WMS dimension start/end/period (2024-01-01/2024-03-01/P1D)."
         },
         {
           "name": "on",

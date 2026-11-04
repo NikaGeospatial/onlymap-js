@@ -16,8 +16,8 @@ Vite/npm project:
 Static CDN page (raw-file CDNs only — unpkg/jsDelivr; never esm.sh or another rebundling CDN, which duplicates the WebGL runtime and breaks layer shaders):
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.13.2/dist/onlymapjs.css">
-<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.13.2"></script>
+<link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.13.4/dist/onlymapjs.css">
+<script type="module" src="https://unpkg.com/@nika-js/onlymap@0.13.4"></script>
 ```
 
 Always include `onlymapjs.css` — it carries the MapLibre basemap styles and the no-JS fallback rules (`<om-fallback>` / default banner). For the fallback to work in script-disabled previews it must load without JavaScript: a real `<link rel="stylesheet">` or inlined `<style>` on no-build pages (a bundler-emitted stylesheet is fine in npm projects).
@@ -89,7 +89,7 @@ Common attributes:
 - `widgets-dim="off"` disables collision-dim — by default a widget slot dims (`--om-widget-opacity-dimmed`, 0.35) while an open `<om-overlay>` popup covers it, rather than the popup dodging (attribution/toggle slots never dim).
 - `headless width="800" height="600"` for test harness use
 
-Events: `om-map-ready` (boot complete; `await mapEl.ready` is the promise twin), `om-validation-error`, `om-view-changed` — fires once the camera settles after a move (debounced; `detail = {longitude, latitude, zoom, pitch, bearing}`), the hook for persisting the camera — `om-map-point` (`detail = {coordinate: [lng,lat]|null, kind: "click"|"hover"}` — every click/hover map coordinate, including empty-map clicks; the hook for custom capture tools the built-in draw widget doesn't cover), and `om-tileset-load` (`detail = {layerId, tileset}` — a `Tile3DLayer`'s live deck `Tileset3D`, for tools needing the real tileset such as region export). `om-attributions-changed` bubbles when a basemap style loads; `mapEl.attributions()` then returns its providers as plain text. `MapController` mirrors these as `onViewChange` / `onMapPoint` / `onTilesetLoad` options.
+Events: `om-map-ready` (boot complete; `await mapEl.ready` is the promise twin), `om-validation-error`, `om-view-changed` — fires once the camera settles after a move (debounced; `detail = {longitude, latitude, zoom, pitch, bearing}`), the hook for persisting the camera — `om-map-point` (`detail = {coordinate: [lng,lat]|null, kind: "click"|"hover"}` — every click/hover map coordinate, including empty-map clicks; the hook for custom capture tools the built-in draw widget doesn't cover), `om-tileset-load` (`detail = {layerId, tileset}` — a `Tile3DLayer`'s live deck `Tileset3D`, for tools needing the real tileset such as region export), and `om-layer-error` (`detail = {layerId, severity, cause, status?, host, message, fix}` — a layer's tiles failed; once per cause, validating or not). `om-attributions-changed` bubbles when a basemap style loads; `mapEl.attributions()` then returns its providers as plain text. `MapController` mirrors these as `onViewChange` / `onMapPoint` / `onTilesetLoad` / `onLayerError` options.
 
 `await mapEl.snapshot()` (also on `MapController`) returns a canvas-only PNG dataURL of the scene — basemap + layers composited at device pixels (`{as: "blob"}` for files; `type`/`quality` for jpeg/webp). DOM widgets, overlays, and the provider attribution are NOT in the pixels: exports must render credits themselves. Await `ready` first; headless maps reject.
 
@@ -451,6 +451,45 @@ deck's `TileLayer` and `MVTLayer` take their `data` prop as a `{z}/{x}/{y}` URL 
             get-line-color="'#38bdf8'" line-width-min-pixels="1"></om-layer>
 ```
 
+A WMS, or any service addressed by extent rather than tile index, is a raster `TileLayer` too. Besides deck's `{z}` `{x}` `{y}` `{-y}`, a raster `TileLayer` fills `{bbox-epsg-3857}` (each tile's Web Mercator extent in metres, `minx,miny,maxx,maxy` — WMS 1.1.1/1.3.0 axis order for EPSG:3857), `{width}`/`{height}` (the layer's `tile-size`, default 512) and `{quadkey}` (Bing-style). Ask for EPSG:3857 and an image format (`FORMAT=image/png`, or `format=png` on an ArcGIS export). A template counts as imagery unless it asks for a vector format (`.pbf`, `.mvt`, `.json`, `f=json`), so an address with no extension at all (an ArcGIS cache's `…/MapServer/tile/{z}/{y}/{x}`) works as written, and a tile that arrives as GeoJSON anyway is drawn as GeoJSON:
+
+```html
+<om-layer id="wms" type="TileLayer" tile-size="512"
+          data="https://example.org/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=a,b&STYLES=&FORMAT=image/png&TRANSPARENT=true&CRS=EPSG:3857&WIDTH={width}&HEIGHT={height}&BBOX={bbox-epsg-3857}"></om-layer>
+```
+
+It works on a projected (`crs`) map as well: the tiles are Web Mercator tiles warped into the plane.
+
+More tokens, for services as QGIS users meet them:
+
+- `{bbox-epsg-XXXX}` — a WMS that offers no Web Mercator: ask in its own CRS (`CRS=EPSG:25832&BBOX={bbox-epsg-25832}`). Each tile asks for the box enclosing it in that CRS, written in the CRS's EPSG axis order (latitude first for EPSG:4326 under WMS 1.3.0; a WMS 1.1.1 `SRS=` request is always x,y), and the picture is warped onto the tile. `{bbox-crs84}` is always longitude first.
+- `{s}` — Leaflet's subdomain token, spread across `subdomains` (`"abc"`, `"a,b,c"` or a JSON array; default a, b, c).
+- `{time}` (or WMTS's `{Time}`) — filled from the layer's `time` (a WMS-T `TIME=`, a WMTS time dimension such as swisstopo's `current`); `<om-widget type="time-slider" layer="wms" times="2024-01-01/2024-03-01/P1D">` steps it through a comma list or a WMS dimension's `start/end/period`, with play, scrub and undo.
+- `{TileMatrix}` `{TileRow}` `{TileCol}` — a WMTS on a national grid, with the grid as `tile-matrix-set` (the OGC tile matrix set, the WMTS `TileMatrixSet` from GetCapabilities, or `{crs, origin, resolutions, tileSize, extent?}` — `extent` keeps requests inside the grid — as JSON). The level nearest the view's resolution is chosen and each tile is warped onto the map:
+
+```html
+<om-layer id="swiss" type="TileLayer"
+          data="https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/{Time}/2056/{TileMatrix}/{TileCol}/{TileRow}.jpeg" time="current"
+          tile-matrix-set='{"crs":"EPSG:2056","origin":[2420000,1350000],"extent":[2420000,1030000,2900000,1350000],"resolutions":[4000,3750,3500,3250,3000,2750,2500,2250,2000,1750,1500,1250,1000,750,650,500,250,100,50,20,10,5,2.5,2,1.5,1,0.5],"tileSize":256,"matrixIds":["0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26"]}'></om-layer>
+```
+
+A PMTiles archive is a `data` URL like any other — `data="./tiles.pmtiles"` on an `MVTLayer` (vector) or `TileLayer` (raster), read with HTTP Range requests; the archive's zoom range is applied, so deep zooms overzoom.
+
+An `MVTLayer` can draw with its publisher's MapLibre style: `vector-style="…/style.json"` (and `vector-style-source` when the style has several vector sources). Its fill, line, circle, fill-extrusion and symbol layers draw in the style's order, by its own filters and zoom functions (MapLibre's expression engine); labels are one per feature, avoiding each other by priority, in the browser's fonts. Background, raster, hillshade and heatmap layers are not drawn (a warning lists them), and it is for Web Mercator maps. For the publisher's whole map as the base, `basemap="…/style.json"`.
+
+Any other token (QGIS's `{q}`) is a validation error, since it would be requested literally. The service should send `Access-Control-Allow-Origin` (`*` for a page opened from `file://`). One that does not — or an `http://` service inside an `https://` page — cannot be drawn by WebGL; when its tiles load as plain images, the layer is drawn that way, under the map: beneath every other layer (with a basemap, above it), hidden while the map is tilted or rotated, and left out of snapshots and exports. `cors-fallback="off"` leaves it empty instead. A failed tile is left empty while the rest of the map draws, and each cause — CORS, an HTTP status, a WMS ServiceException (quoted) — is reported once per layer: always as an `om-layer-error` event on the map (`detail = {layerId, severity, cause: "network"|"http"|"service-exception"|"other"|"cors-fallback", status?, host, message, fix}` — what a page uses to tell its readers a layer failed or fell back), and on the validation channel (`om-validation-error`, the on-page panel with `validate`). Changing the layer's `data` withdraws the old template's reports.
+
+### Live features for the area in view (WFS, OGC API Features, ArcGIS)
+
+An extent token in a NON-tiled layer's `data` makes it a request for the area in view, made again when the view settles somewhere new:
+
+```html
+<om-layer id="parcels" type="GeoJsonLayer" max-features="5000"
+          data="https://example.org/ogc/collections/parcels/items?bbox={bbox-crs84}&f=json"></om-layer>
+```
+
+`{bbox-crs84}` is longitude first (OGC API `bbox=`, an ArcGIS `geometry=…&geometryType=esriGeometryEnvelope&inSR=4326`); `{bbox-epsg-4326}` is latitude first, as a WFS 2.0 `BBOX=…,urn:ogc:def:crs:EPSG::4326` wants; `{bbox-epsg-XXXX}` any other CRS. Paging is followed — WFS `STARTINDEX` in steps of `COUNT`, OGC API `next` links, ArcGIS `resultOffset` while `exceededTransferLimit` — up to `max-features` (default 10000); a view with more is reported, not silently cut. Responses must be GeoJSON (`outputFormat=application/json`, `f=geojson`). Requests are made for a padded view, so a small pan asks nothing; `whenSettled()` waits for them; a failure is an `om-layer-error` like a tile's.
+
 `$field` accessors on an `MVTLayer` read the tile feature's `properties`. A tiled layer has no local rows, so `ctx.data()`/`ctx.stats()`/`filter-*` do not apply to it. For a raster `TileLayer` pointing at a non-image endpoint (vector tiles, custom decoding), register a custom layer with your own `renderSubLayers` via `OmMap.registerLayer`.
 
 CityJSON (3DBAG, PLATEAU, swisstopo) decodes to one of two shapes, chosen by the `data` URL — there is no CityJSON layer type:
@@ -626,7 +665,7 @@ watched token fires:
 - `ctx.dataInViewport(id)`
 - `ctx.stats(id, field, { scope: "viewport" })`
 - `ctx.selection`
-- `ctx.viewport`
+- `ctx.viewport` — `{ bounds, zoom, center, metersPerPixel, project(lngLat) }`; `metersPerPixel` is the ground scale across the view centre, measured through the map's own projection (right on a `crs` map and at any latitude) — use it for anything drawn to scale
 - `ctx.features(layerId)` — the decoded `EXT_structural_metadata` property table of a `pick-features` tileset, one row per element, or `undefined` before the first tile carrying one has landed. This is what a BIM panel groups and counts by; pair it with the `features` watch token, since the table cannot exist on the first render.
 - `ctx.history` — `{ canUndo, canRedo }`; re-render on changes via the `history` watch token
 - `ctx.emit(action, payload)`
