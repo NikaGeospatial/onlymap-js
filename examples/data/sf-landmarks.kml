@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- San Francisco landmarks — authored for OnlyMapJS examples (public domain
+     facts, our own file). Mixed geometry so the KML → GeoJSON demo shows
+     Point, LineString and Polygon placemarks. -->
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>San Francisco landmarks</name>
+    <Placemark>
+      <name>Golden Gate Bridge</name>
+      <description>Suspension bridge, opened 1937.</description>
+      <Point><coordinates>-122.4783,37.8199,0</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Ferry Building</name>
+      <description>Marketplace and ferry terminal on the Embarcadero.</description>
+      <Point><coordinates>-122.3933,37.7955,0</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Palace of Fine Arts</name>
+      <description>Beaux-Arts rotunda left from the 1915 exposition.</description>
+      <Point><coordinates>-122.4483,37.8029,0</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Painted Ladies</name>
+      <description>Victorian houses at Alamo Square.</description>
+      <Point><coordinates>-122.4329,37.7763,0</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Ocean Beach</name>
+      <description>Pacific shoreline on the western edge.</description>
+      <Point><coordinates>-122.5145,37.7715,0</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Market Street</name>
+      <description>The city's main diagonal artery, Embarcadero to Civic Center.</description>
+      <LineString>
+        <coordinates>
+          -122.3937,37.7946,0 -122.3990,37.7910,0 -122.4013,37.7893,0
+          -122.4069,37.7852,0 -122.4128,37.7806,0 -122.4194,37.7756,0
+          -122.4230,37.7727,0
+        </coordinates>
+      </LineString>
+    </Placemark>
+    <Placemark>
+      <name>Golden Gate Park</name>
+      <description>Urban park running to the ocean, with the Panhandle strip
+                   reaching east toward Baker Street.</description>
+      <Polygon>
+        <outerBoundaryIs><LinearRing>
+          <coordinates>
+            -122.5107,37.7738,0 -122.4900,37.7743,0 -122.4700,37.7745,0
+            -122.4540,37.7745,0 -122.4540,37.7735,0 -122.4478,37.7734,0
+            -122.4413,37.7733,0 -122.4413,37.7713,0 -122.4478,37.7714,0
+            -122.4540,37.7715,0 -122.4540,37.7688,0 -122.4700,37.7686,0
+            -122.4900,37.7684,0 -122.5090,37.7682,0 -122.5107,37.7710,0
+            -122.5107,37.7738,0
+          </coordinates>
+        </LinearRing></outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+  </Document>
+</kml>

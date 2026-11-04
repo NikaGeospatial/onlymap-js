@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<!--
+  Switch a map's projection while it is running.
+
+  `crs` on <om-map license-key="om_live_eyJwbGFuIjoicHJvIiwiZG9tYWlucyI6WyJvbmx5bWFwLm5pa2FwbGFuZXQuY29tIl0sImV4cCI6MTk1MDk1MDAxOSwia2V5SWQiOiJnYWxsZXJ5LXNpdGUifQ.GvHWiUikUos08p-BQ20xIePeiSvh15W-33O6dkrLa9_3HzY1HZBR0B3yWtLcN5lKjp2EXv8Duu8JObHNxdPWDg"> is live. Press a button below and the whole map re-draws in
+  that projection's plane: Albers for the United States, Lambert Azimuthal
+  Equal Area for Europe, British National Grid, Australian Albers, New Zealand
+  Transverse Mercator, Singapore's SVY21, or back to Web Mercator. Nothing reloads. The layers'
+  data was longitude/latitude all along, and the map re-projects it in place;
+  the camera (center + zoom) carries over untouched, because it is always
+  geographic. A projection switch never moves the view: the "View" links move
+  the camera, on their own, to the region each grid was built for.
+
+  What to watch:
+  - The graticule. Parallels bow and meridians converge in a conic or
+    azimuthal projection, and go straight again in Mercator.
+  - The outlines. Greenland shrinks to its true size the moment the map
+    leaves Mercator.
+  - The baselines on SVY21. Singapore sits a degree and a half off the
+    equator, so Mercator and SVY21 DRAW it almost alike; the difference is in
+    the metres. Two fixed lines across the island are measured in every plane
+    the buttons offer and compared with their true length on the WGS84
+    ellipsoid: the local grid is out by centimetres, Web Mercator by metres
+    east–west and over a hundred north–south, and a grid built for another
+    continent by kilometres — which is why survey data lives in its own grid.
+  - The readout. Each switch reports how long it took, from the attribute
+    write to the first settled frame. That is the cost of re-projecting the
+    layers on the CPU — about 10,000 vertices here, well under a frame's worth
+    of work; a million is seconds, which is why GPU projection is on the plan.
+
+  The buttons use the `set-crs` action, so every switch is undoable (Cmd/Ctrl-Z)
+  and a story step could do the same. A projection that cannot resolve leaves
+  the map as it was and reports the problem.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Switch the projection</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.13.0/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.13.0/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; background: #0d1117; }
+    om-map {
+      display: block; height: 100vh; background: #0d1117;
+      --om-widget-bg: rgba(13, 17, 23, .92);
+      --om-widget-fg: #e6edf3;
+      --om-widget-muted: #8b949e;
+      --om-widget-border: #30363d;
+      --om-widget-hover-bg: #161b22;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map license-key="om_live_eyJwbGFuIjoicHJvIiwiZG9tYWlucyI6WyJvbmx5bWFwLm5pa2FwbGFuZXQuY29tIl0sImV4cCI6MTk1MDk1MDAxOSwia2V5SWQiOiJnYWxsZXJ5LXNpdGUifQ.GvHWiUikUos08p-BQ20xIePeiSvh15W-33O6dkrLa9_3HzY1HZBR0B3yWtLcN5lKjp2EXv8Duu8JObHNxdPWDg" id="map" center="[10, 30]" zoom="1.6" basemap="none" validate>
+
+    <!-- The graticule layer is added by the script below: its lines are
+         generated, and an inline data block must be complete when the map
+         first reads it. -->
+
+    <!-- Small-scale outlines (Natural Earth 110m): past zoom 8 they are too
+         coarse to mean anything — Singapore is not even in them — so
+         visible-zoom-range hands over to the regional outlines below. -->
+    <om-layer id="countries" type="GeoJsonLayer" data="../../data/world-countries.geojson"
+              label="Countries" color="#e6edf3" visible-zoom-range="[0, 8]"
+              stroked filled get-fill-color="[48, 54, 61, 200]" get-line-color="[230, 237, 243, 180]"
+              get-line-width="1" line-width-units="pixels" line-width-min-pixels="0.8" pickable></om-layer>
+
+    <om-layer id="cities" type="ScatterplotLayer" data="../../data/world-cities.json"
+              label="Cities, by population" color="#f0883e"
+              get-position="[$lon, $lat]"
+              get-radius="scale($population, sqrt, [1.5, 7], domain=[0.1, 36])" radius-units="pixels"
+              get-fill-color="[240, 136, 62, 220]" pickable></om-layer>
+
+    <!-- The same outlines at Singapore's scale: the island from geoBoundaries
+         (URA's own planning boundary, simplified), Johor and the Riau islands
+         from Natural Earth 10m, cut to the region. Same land fill, its own
+         line colour — the legend lists both layers, and they should not be
+         mistaken for one. -->
+    <om-layer id="region" type="GeoJsonLayer" data="../../data/singapore-region-countries.geojson"
+              label="Coastline (Singapore region)" color="#e3b341" visible-zoom-range="[8, 24]"
+              stroked filled get-fill-color="[48, 54, 61, 200]" get-line-color="[227, 179, 65, 200]"
+              get-line-width="1" line-width-units="pixels" line-width-min-pixels="0.8" pickable></om-layer>
+
+    <!-- Singapore's rail network, for the SVY21 view. `$color` reads each
+         line's official colour off the feature. -->
+    <om-layer id="sg-rail" type="GeoJsonLayer" data="../../data/sg-rail-lines.geojson"
+              label="Singapore MRT and LRT" color="#df2518" visible-zoom-range="[6, 24]"
+              get-line-color="$color" get-line-width="2.4" line-width-units="pixels"
+              stroked filled="false" pickable></om-layer>
+
+    <!-- Two baselines between MRT stations, whose true length is known (WGS84
+         ellipsoid, Vincenty): Tuas Link to Changi Airport east–west, Woodlands
+         North to Marina South Pier north–south. The endpoints are the stations'
+         coordinates from sg-rail-stations.geojson, the same OpenStreetMap
+         source as the track, so they sit on the line ends at any zoom. The
+         script measures them in every plane. -->
+    <om-layer id="baselines" type="GeoJsonLayer" label="Baselines, measured below" color="#f778ba" visible-zoom-range="[8, 24]"
+              stroked filled="false" get-line-color="[247, 120, 186, 230]" get-line-width="2" line-width-units="pixels"
+              point-type="circle" get-fill-color="[247, 120, 186, 255]" get-point-radius="4" point-radius-units="pixels" pickable>
+      <script type="application/json">{"type":"FeatureCollection","features":[
+        {"type":"Feature","properties":{"name":"Tuas Link → Changi Airport","axis":"ew"},"geometry":{"type":"LineString","coordinates":[[103.636772,1.340294],[103.988533,1.357573]]}},
+        {"type":"Feature","properties":{"name":"Woodlands North → Marina South Pier","axis":"ns"},"geometry":{"type":"LineString","coordinates":[[103.785713,1.448289],[103.86282,1.271446]]}},
+        {"type":"Feature","properties":{"name":"Tuas Link"},"geometry":{"type":"Point","coordinates":[103.636772,1.340294]}},
+        {"type":"Feature","properties":{"name":"Changi Airport"},"geometry":{"type":"Point","coordinates":[103.988533,1.357573]}},
+        {"type":"Feature","properties":{"name":"Woodlands North"},"geometry":{"type":"Point","coordinates":[103.785713,1.448289]}},
+        {"type":"Feature","properties":{"name":"Marina South Pier"},"geometry":{"type":"Point","coordinates":[103.86282,1.271446]}}
+      ]}</script>
+    </om-layer>
+
+    <om-widget position="top-left">
+      <style>
+        .panel { background: rgba(13, 17, 23, .92); color: #e6edf3; border: 1px solid #30363d;
+                 border-radius: 10px; padding: 12px 14px; font: 13px/1.45 system-ui, sans-serif; max-width: 290px; }
+        .panel b { color: #f0883e; }
+        .row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+        button { font: inherit; font-size: 12.5px; padding: 5px 10px; border-radius: 7px; cursor: pointer;
+                 background: #161b22; color: #e6edf3; border: 1px solid #30363d; }
+        button:hover { background: #21262d; }
+        button[aria-pressed="true"] { background: #f0883e; color: #0d1117; border-color: #f0883e; }
+        .views { margin-top: 8px; color: #8b949e; font-size: 12.5px; }
+        .views a { color: #79c0ff; text-decoration: none; cursor: pointer; }
+        .views a:hover { text-decoration: underline; }
+        .readout { margin-top: 10px; padding-top: 9px; border-top: 1px solid #30363d; color: #8b949e;
+                   font-variant-numeric: tabular-nums; min-height: 2.9em; }
+        .toggle { display: flex; align-items: center; gap: 7px; margin-top: 9px; padding-top: 9px; border-top: 1px solid #30363d;
+                  color: #8b949e; cursor: pointer; }
+        .toggle input { accent-color: #f778ba; margin: 0; }
+        .readout code { color: #79c0ff; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+        .measure { margin-top: 10px; padding-top: 9px; border-top: 1px solid #30363d; }
+        .measure p { margin: 0 0 6px; color: #8b949e; }
+        .measure b { color: #f778ba; }
+        table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+        th { text-align: right; font-weight: 500; color: #8b949e; padding: 2px 0 4px 8px; }
+        th:first-child, td:first-child { text-align: left; padding-left: 0; }
+        td { text-align: right; padding: 2px 0 2px 8px; border-top: 1px solid #21262d; color: #c9d1d9; white-space: nowrap; }
+        tr[aria-current="true"] td { color: #e6edf3; font-weight: 600; }
+        tr[aria-current="true"] td:first-child { color: #f0883e; }
+      </style>
+      <div class="panel">
+        <b>Switch the projection.</b> The map re-draws in place — the data was longitude/latitude all along, and the camera carries over.
+        <div class="row" role="group" aria-label="Projection">
+          <button data-crs="" aria-pressed="true">Web Mercator</button>
+          <button data-crs="EPSG:5070">Albers · USA</button>
+          <button data-crs="EPSG:3035">LAEA · Europe</button>
+          <button data-crs="EPSG:27700">British National Grid</button>
+          <button data-crs="EPSG:3577">Albers · Australia</button>
+          <button data-crs="EPSG:2193">NZTM · New Zealand</button>
+          <button data-crs="EPSG:3414">SVY21 · Singapore</button>
+        </div>
+        <!-- Moving the camera is a separate act from switching the projection. -->
+        <div class="views">View:
+          <a data-center="[10, 30]" data-zoom="1.6">World</a> ·
+          <a data-center="[-96, 38]" data-zoom="3.4">USA</a> ·
+          <a data-center="[12, 52]" data-zoom="3.3">Europe</a> ·
+          <a data-center="[-2.5, 54.5]" data-zoom="4.3">Britain</a> ·
+          <a data-center="[134, -27]" data-zoom="3.4">Australia</a> ·
+          <a data-center="[172, -41]" data-zoom="4.2">New Zealand</a> ·
+          <a data-center="[103.84, 1.355]" data-zoom="10.6">Singapore</a>
+        </div>
+        <div class="readout" id="readout">Pick a projection. The readout shows what the switch cost.</div>
+        <label class="toggle"><input type="checkbox" id="baselines-toggle" checked /> Show the Singapore baselines and their measurement</label>
+        <div class="measure" id="measure" hidden>
+          <p>Singapore <b>baseline</b> measurements (Woodlands North to Marina South Pier, Tuas Link to Changi Airport) as calculated by straight-line distance by projection vs WGS84 ellipsoid 'true' distance.</p>
+          <table>
+            <thead><tr><th>Measured in</th><th id="ew-head">E–W</th><th id="ns-head">N–S</th></tr></thead>
+            <tbody id="measure-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </om-widget>
+
+    <om-widget type="legend" position="top-right"></om-widget>
+    <om-widget type="scale-bar" position="bottom-right"></om-widget>
+    <om-widget type="undo-redo" position="bottom-end"></om-widget>
+    <om-widget type="attribution" position="bottom-start" text="Countries and cities: Natural Earth · Singapore outline: geoBoundaries (URA) · rail: © OpenStreetMap contributors"></om-widget>
+
+    <om-behavior on="hover" layer="countries" action="show-tooltip" template="#country-tip"></om-behavior>
+    <om-behavior on="hover" layer="region" action="show-tooltip" template="#country-tip"></om-behavior>
+    <om-behavior on="hover" layer="cities" action="show-tooltip" template="#city-tip"></om-behavior>
+    <om-behavior on="hover" layer="sg-rail" action="show-tooltip" template="#rail-tip"></om-behavior>
+    <om-behavior on="hover" layer="baselines" action="show-tooltip" template="#baseline-tip"></om-behavior>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch; color: #e6edf3">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+  </om-map>
+
+  <template id="country-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#0d1117; color:#e6edf3;
+                border:1px solid #30363d; box-shadow:0 3px 12px rgba(0,0,0,.55); font:12px/1.45 system-ui, sans-serif;">
+      <b>{{name}}</b><br /><span style="color:#8b949e">{{continent}}</span>
+    </div>
+  </template>
+  <template id="city-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#0d1117; color:#e6edf3;
+                border:1px solid #30363d; box-shadow:0 3px 12px rgba(0,0,0,.55); font:12px/1.45 system-ui, sans-serif;">
+      <b>{{name}}</b><br /><span style="color:#8b949e">{{country}} · {{population}} million</span>
+    </div>
+  </template>
+
+  <template id="rail-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#0d1117; color:#e6edf3;
+                border:1px solid #30363d; box-shadow:0 3px 12px rgba(0,0,0,.55); font:12px/1.45 system-ui, sans-serif;">
+      <b>{{line}}</b><br /><span style="color:#8b949e">{{from}} – {{to}} · opened {{year}}</span>
+    </div>
+  </template>
+
+  <template id="baseline-tip">
+    <div style="padding:7px 10px; border-radius:7px; background:#0d1117; color:#e6edf3;
+                border:1px solid #30363d; box-shadow:0 3px 12px rgba(0,0,0,.55); font:12px/1.45 system-ui, sans-serif;">
+      <b>{{name}}</b>
+    </div>
+  </template>
+
+  <script type="module">
+    import { resolveProjection } from "https://unpkg.com/@nika-js/onlymap@0.13.0/dist/onlymap.standalone.js";
+
+    // The graticule, generated: 15° lines, each a polyline with a point every
+    // 2°, so a projection can bend it.
+    const features = [];
+    for (let lng = -180; lng <= 180; lng += 15) {
+      const coords = [];
+      for (let lat = -85; lat <= 85; lat += 2) coords.push([lng, lat]);
+      features.push({ type: "Feature", properties: { kind: "meridian" }, geometry: { type: "LineString", coordinates: coords } });
+    }
+    for (let lat = -75; lat <= 75; lat += 15) {
+      const coords = [];
+      for (let lng = -180; lng <= 180; lng += 2) coords.push([lng, lat]);
+      features.push({ type: "Feature", properties: { kind: "parallel" }, geometry: { type: "LineString", coordinates: coords } });
+    }
+    // A second, fine graticule for the SVY21 view, where no 15° line passes:
+    // 0.1° lines over the Singapore region, a point every 0.005°. The map
+    // re-projects it like any other layer, so the grid is drawn in whatever
+    // plane is current — the surest sign the CRS is in use at that scale.
+    const fine = [];
+    const step = 0.1, sample = 0.005;
+    for (let lng = 103.3; lng <= 104.5 + 1e-9; lng = +(lng + step).toFixed(3)) {
+      const coords = [];
+      for (let lat = 0.9; lat <= 1.9 + 1e-9; lat = +(lat + sample).toFixed(3)) coords.push([lng, lat]);
+      fine.push({ type: "Feature", properties: { kind: "meridian" }, geometry: { type: "LineString", coordinates: coords } });
+    }
+    for (let lat = 0.9; lat <= 1.9 + 1e-9; lat = +(lat + step).toFixed(3)) {
+      const coords = [];
+      for (let lng = 103.3; lng <= 104.5 + 1e-9; lng = +(lng + sample).toFixed(3)) coords.push([lng, lat]);
+      fine.push({ type: "Feature", properties: { kind: "parallel" }, geometry: { type: "LineString", coordinates: coords } });
+    }
+    const map = document.getElementById("map");
+    // A graticule is the clearest witness of a projection. Prepended so they
+    // draw under the outlines; the map reconciles the new children itself.
+    // Each is visible in its own zoom band, like the outlines above.
+    const addGraticule = (id, label, zoomRange, color, lineColor, collection) => {
+      const graticule = document.createElement("om-layer");
+      graticule.id = id;
+      for (const [k, v] of Object.entries({ type: "GeoJsonLayer", label, color, stroked: "", filled: "false", "get-line-color": lineColor, "get-line-width": "1", "line-width-units": "pixels", "visible-zoom-range": zoomRange })) graticule.setAttribute(k, v);
+      const data = document.createElement("script");
+      data.type = "application/json";
+      data.textContent = JSON.stringify({ type: "FeatureCollection", features: collection });
+      graticule.appendChild(data);
+      map.prepend(graticule);
+    };
+    addGraticule("graticule-fine", "Graticule (0.1°)", "[8, 24]", "#39c5bb", "[57, 197, 187, 150]", fine);
+    addGraticule("graticule", "Graticule (15°)", "[0, 8]", "#3d5a80", "[61, 90, 128, 160]", features);
+    await map.ready;
+    // A widget's content lives in its shadow root; its buttons are found there.
+    const panel = map.querySelector("om-widget[position='top-left']").shadowRoot;
+    const readout = panel.getElementById("readout");
+    const buttons = [...panel.querySelectorAll("button[data-crs]")];
+
+    const label = (crs) => crs || "Web Mercator";
+    const reflect = () => {
+      const current = map.getAttribute("crs") ?? "";
+      for (const b of buttons) b.setAttribute("aria-pressed", String(b.dataset.crs === current));
+    };
+
+    for (const button of buttons) {
+      button.addEventListener("click", async () => {
+        const crs = button.dataset.crs;
+        const t0 = performance.now();
+        // set-crs writes the attribute — undoable, story-steppable. An empty
+        // crs (or "mercator") goes back to Web Mercator.
+        map.emit("set-crs", { crs: crs || "mercator" });
+        await map.whenSettled({ timeout: 30000 });
+        const ms = performance.now() - t0;
+        readout.innerHTML = `Switched to <code>${label(crs)}</code> in <code>${ms.toFixed(0)} ms</code> — camera carried over, nothing reloaded.`;
+        reflect();
+      });
+    }
+    // Undo/redo and hand edits land as the attribute too: keep the buttons honest.
+    new MutationObserver(reflect).observe(map, { attributes: true, attributeFilter: ["crs"] });
+    // The view links move the camera and nothing else.
+    for (const link of panel.querySelectorAll(".views a[data-center]")) {
+      link.addEventListener("click", () => map.flyTo(JSON.parse(link.dataset.center), Number(link.dataset.zoom), { duration: 600 }));
+    }
+
+    // --- The baselines, measured in every plane -----------------------------
+    // True length: the inverse geodesic on the WGS84 ellipsoid (Vincenty,
+    // 1975), good to a fraction of a millimetre at this range. The library's
+    // own measure tools use a sphere, which is fine for a tool and not for a
+    // reference the planes are judged against.
+    const vincenty = ([lng1, lat1], [lng2, lat2]) => {
+      const a = 6378137, f = 1 / 298.257223563, b = a * (1 - f), rad = Math.PI / 180;
+      const L = (lng2 - lng1) * rad, U1 = Math.atan((1 - f) * Math.tan(lat1 * rad)), U2 = Math.atan((1 - f) * Math.tan(lat2 * rad));
+      const sinU1 = Math.sin(U1), cosU1 = Math.cos(U1), sinU2 = Math.sin(U2), cosU2 = Math.cos(U2);
+      let lambda = L, sinSigma, cosSigma, sigma, cos2Alpha, cos2SigmaM;
+      for (let i = 0; i < 100; i++) {
+        const sinL = Math.sin(lambda), cosL = Math.cos(lambda);
+        sinSigma = Math.hypot(cosU2 * sinL, cosU1 * sinU2 - sinU1 * cosU2 * cosL);
+        cosSigma = sinU1 * sinU2 + cosU1 * cosU2 * cosL;
+        sigma = Math.atan2(sinSigma, cosSigma);
+        const sinAlpha = (cosU1 * cosU2 * sinL) / sinSigma;
+        cos2Alpha = 1 - sinAlpha * sinAlpha;
+        cos2SigmaM = cos2Alpha ? cosSigma - (2 * sinU1 * sinU2) / cos2Alpha : 0;
+        const C = (f / 16) * cos2Alpha * (4 + f * (4 - 3 * cos2Alpha));
+        const prev = lambda;
+        lambda = L + (1 - C) * f * sinAlpha * (sigma + C * sinSigma * (cos2SigmaM + C * cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM)));
+        if (Math.abs(lambda - prev) < 1e-12) break;
+      }
+      const u2 = (cos2Alpha * (a * a - b * b)) / (b * b);
+      const A = 1 + (u2 / 16384) * (4096 + u2 * (-768 + u2 * (320 - 175 * u2)));
+      const B = (u2 / 1024) * (256 + u2 * (-128 + u2 * (74 - 47 * u2)));
+      const dSigma = B * sinSigma * (cos2SigmaM + (B / 4) * (cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM) - (B / 6) * cos2SigmaM * (-3 + 4 * sinSigma * sinSigma) * (-3 + 4 * cos2SigmaM * cos2SigmaM)));
+      return b * A * (sigma - dSigma);
+    };
+
+    const baselines = map.querySelector("#baselines script").textContent;
+    const lines = JSON.parse(baselines).features.filter((f) => f.geometry.type === "LineString");
+    const truth = Object.fromEntries(lines.map((f) => [f.properties.axis, vincenty(...f.geometry.coordinates)]));
+    const km = (m) => `${(m / 1000).toFixed(3)} km`;
+    panel.getElementById("ew-head").textContent = `E–W, true ${km(truth.ew)}`;
+    panel.getElementById("ns-head").textContent = `N–S, true ${km(truth.ns)}`;
+
+    // One row per button: the baseline's straight-line length in that plane,
+    // as the error against the truth. A grid used far outside the region it
+    // was built for can be off by kilometres, or fail to project at all.
+    const rows = panel.getElementById("measure-rows");
+    const fmt = (err) => {
+      if (!Number.isFinite(err)) return "—";
+      const abs = Math.abs(err);
+      const num = abs < 1 ? `${(err * 100).toFixed(1)} cm` : abs < 1000 ? `${err.toFixed(1)} m` : `${(err / 1000).toFixed(1)} km`;
+      return (err > 0 ? "+" : "") + num;
+    };
+    for (const button of buttons) {
+      const crs = button.dataset.crs;
+      const projection = await resolveProjection(crs || "EPSG:3857");
+      const tr = document.createElement("tr");
+      tr.dataset.crs = crs;
+      const cells = [button.textContent.replace(" · ", ", ")];
+      for (const f of lines) {
+        const [p, q] = f.geometry.coordinates.map((ll) => projection.forward(ll));
+        const planar = Math.hypot(q[0] - p[0], q[1] - p[1]) * projection.metresPerUnit;
+        cells.push(fmt(planar - truth[f.properties.axis]));
+      }
+      for (const text of cells) { const td = document.createElement("td"); td.textContent = text; tr.appendChild(td); }
+      rows.appendChild(tr);
+    }
+    const highlight = () => {
+      const current = map.getAttribute("crs") ?? "";
+      for (const tr of rows.children) tr.setAttribute("aria-current", String(tr.dataset.crs === current));
+    };
+    highlight();
+    new MutationObserver(highlight).observe(map, { attributes: true, attributeFilter: ["crs"] });
+    // The baselines and their table come and go together: `visible` on the
+    // layer is live, like every other attribute.
+    const toggle = panel.getElementById("baselines-toggle");
+    const measure = panel.getElementById("measure");
+    const showBaselines = () => {
+      map.querySelector("#baselines").setAttribute("visible", String(toggle.checked));
+      measure.hidden = !toggle.checked;
+    };
+    toggle.addEventListener("change", showBaselines);
+    showBaselines();
+  </script>
+
+</body>
+</html>

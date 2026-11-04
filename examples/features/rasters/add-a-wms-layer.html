@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!--
+  A WMS (Web Map Service) answers one question: "draw me this area". A
+  raster TileLayer asks it once per tile, so the service's pictures arrive and
+  cache like any tile pyramid. Write the GetMap request as the service
+  documents it and leave tokens where the tile's own values go:
+
+    {bbox-epsg-3857}   the tile's extent, in the CRS you asked for
+    {width} {height}   the image size: the layer's tile-size
+    {time}             the layer's `time` attribute (a WMS-T TIME=)
+
+  A service that offers no Web Mercator works too: ask in its own CRS with
+  {bbox-epsg-XXXX}. Each tile then asks for the box that encloses it in that
+  CRS, written in the axis order the request version expects (latitude first
+  for EPSG:4326 under WMS 1.3.0), and the picture is warped onto the tile.
+
+  The map: NASA's MODIS true-colour mosaic for one week in July 2026, a day
+  at a time — press play, or drag the slider. The roads and place names above
+  it come from a second WMS, asked for in EPSG:4326 — that second case.
+-->
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OnlyMapJS — Add a WMS layer</title>
+  <link rel="stylesheet" href="https://unpkg.com/@nika-js/onlymap@0.13.4/dist/onlymapjs.css" />
+  <script type="module" src="https://unpkg.com/@nika-js/onlymap@0.13.4/dist/onlymap.standalone.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    om-map {
+      display: block; height: 100vh;
+      --om-widget-bg: #10141c;
+      --om-widget-fg: #f1f5f9;
+      --om-widget-muted: #8b93a7;
+      --om-widget-border: #262e3a;
+      --om-widget-hover-bg: #1b212b;
+      --om-widget-accent: #38bdf8;
+    }
+  </style>
+</head>
+<body>
+
+  <om-map license-key="om_live_eyJwbGFuIjoicHJvIiwiZG9tYWlucyI6WyJvbmx5bWFwLm5pa2FwbGFuZXQuY29tIl0sImV4cCI6MTk1MDk1MDAxOSwia2V5SWQiOiJnYWxsZXJ5LXNpdGUifQ.GvHWiUikUos08p-BQ20xIePeiSvh15W-33O6dkrLa9_3HzY1HZBR0B3yWtLcN5lKjp2EXv8Duu8JObHNxdPWDg" center="[12.9, 42.2]" zoom="5.6" basemap="dark-matter">
+
+    <!-- One GetMap request per 512-pixel tile, in Web Mercator. TIME={time}
+         is filled from `time`; the slider below rewrites that attribute, and
+         the tiles reload in place, the old day staying on screen until the
+         new one lands. max-zoom stops at the mosaic's own resolution. -->
+    <om-layer id="modis" type="TileLayer" tile-size="512" max-zoom="8"
+              data="https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi?SERVICE=WMS&amp;VERSION=1.3.0&amp;REQUEST=GetMap&amp;LAYERS=MODIS_Terra_CorrectedReflectance_TrueColor&amp;STYLES=&amp;FORMAT=image/jpeg&amp;CRS=EPSG:3857&amp;TIME={time}&amp;WIDTH={width}&amp;HEIGHT={height}&amp;BBOX={bbox-epsg-3857}"
+              time="2026-07-14"
+              label="MODIS true colour (WMS, EPSG:3857)" color="#38bdf8"></om-layer>
+
+    <!-- A second service: OpenStreetMap roads and place names, asked for in
+         EPSG:4326. The box is written latitude first, as WMS 1.3.0 wants, and
+         each picture is warped onto its Web Mercator tile. TRANSPARENT=true
+         keeps the imagery visible between the lines. -->
+    <om-layer id="roads" type="TileLayer" tile-size="512" opacity="0.85"
+              data="https://ows.terrestris.de/osm/service?SERVICE=WMS&amp;VERSION=1.3.0&amp;REQUEST=GetMap&amp;LAYERS=OSM-Overlay-WMS&amp;STYLES=&amp;FORMAT=image/png&amp;TRANSPARENT=true&amp;CRS=EPSG:4326&amp;WIDTH={width}&amp;HEIGHT={height}&amp;BBOX={bbox-epsg-4326}"
+              label="Roads and places (WMS, EPSG:4326)" color="#fb7185"></om-layer>
+
+    <!-- `times` takes a comma list or a WMS time dimension, start/end/period,
+         as the service's GetCapabilities states it. -->
+    <om-widget type="time-slider" layer="modis" title="MODIS day" times="2026-07-14/2026-07-20/P1D"
+               duration="10s" loop position="bottom-center"></om-widget>
+
+    <om-widget type="legend" title="Layers" position="top-right" interactive></om-widget>
+    <om-widget type="zoom-controls" position="bottom-right"></om-widget>
+    <om-widget type="attribution" position="bottom-start"
+               text="Imagery: NASA GIBS, part of NASA ESDIS · Roads and places: terrestris OSM-WMS, © OpenStreetMap contributors"></om-widget>
+
+    <om-widget id="status" position="top-left">
+      <style>
+        .panel { background: rgba(16,20,28,.88); color: #e2e8f0; padding: 10px 14px;
+                 border-radius: 8px; font-size: 13px; max-width: 270px; line-height: 1.45; }
+        .panel b { color: #7dd3fc; }
+        .panel .err { color: #fca5a5; margin-top: 6px; }
+      </style>
+      <div class="panel">
+        <b>A week of weather, from a WMS.</b> Press play to step the days;
+        toggle either layer in the legend.
+        <div class="err" hidden></div>
+      </div>
+      <!-- om-layer-error fires when a layer's tiles fail (a service down,
+           a request it refuses), validating or not: tell the reader, once. -->
+      <script type="om/widget">
+        this.watch = [];
+        const map = this.closest("om-map");
+        map.addEventListener("om-layer-error", (e) => {
+          const note = this.$(".err");
+          note.textContent = `Some ${e.detail.layerId} tiles could not be loaded from ${e.detail.host}.`;
+          note.hidden = false;
+        });
+      </script>
+    </om-widget>
+
+    <om-fallback>
+      <p style="font: 15px system-ui, sans-serif; padding: 24px; max-width: 42ch">
+        <strong>This map needs JavaScript.</strong><br />
+        Open this file in a web browser such as Chrome, Safari, or Firefox.
+      </p>
+    </om-fallback>
+
+  </om-map>
+
+</body>
+</html>

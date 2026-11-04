@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Airliner planform pointing NORTH (up) — IconLayer's get-angle rotates it
+       to the aircraft's track. White + mask:true so get-color tints it by
+       altitude. Solid, with no cut-outs: transparent pixels inside an icon are
+       unpickable, and the fuselage centre is exactly where people click. -->
+  <path fill="#ffffff" d="M32 2c2.2 0 3.9 2.4 3.9 5.4v13.1L61 36.8v5.6l-25.1-7.3v11.6l7.4 5.2v4.1L32 53.4l-11.3 2.6v-4.1l7.4-5.2V35.1L3 42.4v-5.6l25.1-16.3V7.4C28.1 4.4 29.8 2 32 2z"/>
+</svg>

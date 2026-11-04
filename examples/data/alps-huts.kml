@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Alpine huts around Zermatt</name>
+    <Placemark>
+      <name>Capanna Regina Margherita</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>4554</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.87707,45.92706</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Bivacco Felice Giordano</name>
+      <ExtendedData>
+        <Data name="kind"><value>wilderness_hut</value></Data>
+        <Data name="elevation_m"><value>4166</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.85808,45.91366</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Bivacco Città di Gallarate</name>
+      <ExtendedData>
+        <Data name="kind"><value>wilderness_hut</value></Data>
+        <Data name="elevation_m"><value>3960</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.87729,45.95197</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Mischabeljochbiwak SAC</name>
+      <ExtendedData>
+        <Data name="kind"><value>wilderness_hut</value></Data>
+        <Data name="elevation_m"><value>3847</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.86582,46.07421</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Capanna Giovanni Gnifetti</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>3625</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.84976,45.89949</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Capanna Luigina Resegotti</name>
+      <ExtendedData>
+        <Data name="kind"><value>wilderness_hut</value></Data>
+        <Data name="elevation_m"><value>3624</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.9003,45.92637</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Bivacco Città di Luino</name>
+      <ExtendedData>
+        <Data name="kind"><value>wilderness_hut</value></Data>
+        <Data name="elevation_m"><value>3580</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.90995,45.99678</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Col de la Dent Blanche CAS Bivouac</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>3540</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.60709,46.04193</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Città di Mantova</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>3498</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.84776,45.89551</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Rifugio Guide d'Ayas</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>3388</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.76714,45.9206</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Mischabelhütte</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>3340</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.8888,46.10942</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Cabane de Bertol CAS</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>3311</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.52767,46.00602</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Hörnlihütte</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>3260</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.67701,45.9822</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Capanna Fratelli Gugliermina</name>
+      <ExtendedData>
+        <Data name="kind"><value>wilderness_hut</value></Data>
+        <Data name="elevation_m"><value>3212</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.88302,45.91245</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>bivacco Remo Passera m.3175</name>
+      <ExtendedData>
+        <Data name="kind"><value>wilderness_hut</value></Data>
+        <Data name="elevation_m"><value>3175</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.83484,45.88338</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Rifugio Ottorino Mezzalama</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>3036</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.75943,45.9137</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Britanniahütte</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>3030</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.93502,46.06006</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Capanna Eugenio Sella</name>
+      <ExtendedData>
+        <Data name="kind"><value>wilderness_hut</value></Data>
+        <Data name="elevation_m"><value>3029</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.91237,45.98752</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Refuge des Bouquetins CAS</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2980</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.53052,45.97088</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Weisshornhütte SAC</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2932</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.74359,46.08596</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Cabane du Mountet CAS</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2886</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.65354,46.06005</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Monte Rosa Hütte</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2883</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.81457,45.95693</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Cabane de Moiry</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2825</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.59549,46.09069</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Rifugio Nacamuli al col Collon</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2818</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.50052,45.94845</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Cabane d'Arpitettaz</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2786</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.67936,46.10089</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Rifugio Aosta</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2785</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.56144,45.96955</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Täschhütte</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2701</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.83001,46.05157</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Schönbielhütte SAC</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2694</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.62896,46.00198</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Cabane de la Tsa</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2607</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.50382,46.03035</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Kinhütte</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2584</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.80709,46.08853</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Bivacco Valentino Belloni</name>
+      <ExtendedData>
+        <Data name="kind"><value>wilderness_hut</value></Data>
+        <Data name="elevation_m"><value>2490</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.89949,45.96312</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Berggasthaus Trift</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2337</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.72107,46.03004</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Grünsee Mountain Lodge</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2296</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.7797,46.00599</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Rifugio Barba Ferrero</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2247</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.90997,45.90276</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Rifugio Rodolfo Zamboni e Mario Zappa</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2066</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.9179,45.95316</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Rifugio Prarayer</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>2005</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.53295,45.92109</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Rifugio CAI di Saronno</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value>1827</value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.92474,45.96644</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Rifugio Axerio</name>
+      <ExtendedData>
+        <Data name="kind"><value>wilderness_hut</value></Data>
+        <Data name="elevation_m"><value></value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.96823,45.90193</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Rifugio Gaspare Oberto e Paolo Maroli</name>
+      <ExtendedData>
+        <Data name="kind"><value>alpine_hut</value></Data>
+        <Data name="elevation_m"><value></value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.97883,45.99651</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Bivacco Mauro Borretti e Walter Schranz</name>
+      <ExtendedData>
+        <Data name="kind"><value>wilderness_hut</value></Data>
+        <Data name="elevation_m"><value></value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.97225,45.95129</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Bivacco Vincenzo Pirazzi e Francesco Rossotti</name>
+      <ExtendedData>
+        <Data name="kind"><value>wilderness_hut</value></Data>
+        <Data name="elevation_m"><value></value></Data>
+      </ExtendedData>
+      <Point><coordinates>7.96724,45.93999</coordinates></Point>
+    </Placemark>
+  </Document>
+</kml>
